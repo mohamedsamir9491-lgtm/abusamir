@@ -125,7 +125,7 @@ describe('buildStatements', () => {
     expect(s.sfp.totals.find((t) => t.key === 'total_liabilities')!.value).toBe('419000.00');
     expect(s.sfp.totals.find((t) => t.key === 'total_equity')!.value).toBe('428000.00');
     expect(s.sfp.balanced).toBe(true);
-    expect(s.sfp.lines.find((l) => l.code === 'AR_ALLOWANCE')!.value).toBe('8000.00');
+    expect(s.sfp.lines.find((l) => l.code === 'AR_ALLOWANCE')!.value).toBe('-8000.00');
   });
   it('builds cash flow from opening balances that reconciles to closing cash', () => {
     const s = buildStatements({ current: BALANCED_TB, periodLabel: '2025' });

@@ -40,10 +40,13 @@ export function aggregateByLine(entries: TbEntry[], accounts?: Map<string, Accou
 }
 
 /** تحويل صافي الرصيد (مدين موجب) إلى قيمة العرض الطبيعية للبند */
+const CONTRA = new Set(['AR_ALLOWANCE', 'ACC_DEP', 'DIVIDENDS', 'SALES_RETURNS']);
 function presentValue(lineCode: string, netDebit: Decimal): Decimal {
   const l = FS_LINE_MAP[lineCode];
   if (!l) return netDebit;
-  return l.normal_sign === 'credit' ? netDebit.neg() : netDebit;
+  const v = l.normal_sign === 'credit' ? netDebit.neg() : netDebit;
+  // الحسابات المقابلة (مخصص/مجمع/توزيعات/مردودات) تُعرض بالسالب داخل مجموعتها لتُطرح مباشرة في الإجماليات
+  return CONTRA.has(lineCode) ? v.neg() : v;
 }
 
 export function buildStatements(params: {
@@ -74,7 +77,7 @@ export function buildStatements(params: {
     const revenue = sec(plLines, 'revenue', prior) ;
     // المردودات تُعرض كبند مدين داخل قسم الإيرادات: الإيراد الصافي = الإيرادات (دائن) - المردودات (مدين)
     const revLines = plLines.filter((l) => l.section === 'revenue');
-    const netRevenue = sum(revLines.map((l) => { const v = D(prior ? (l.prior_value ?? 0) : l.value); return FS_LINE_MAP[l.code].normal_sign === 'debit' ? v.neg() : v; }));
+    const netRevenue = sum(revLines.map((l) => (prior ? (l.prior_value ?? 0) : l.value)));
     const cogs = sec(plLines, 'cost_of_sales', prior);
     const gross = netRevenue.minus(cogs);
     const opex = sec(plLines, 'operating_expenses', prior);
@@ -103,11 +106,7 @@ export function buildStatements(params: {
   // ---- قائمة المركز المالي ----
   const sfpLines = buildLines('sfp');
   const sfpCalc = (prior: boolean, netIncome: Decimal) => {
-    const g = (s: string) => sum(sfpLines.filter((l) => l.section === s).map((l) => {
-      const v = D(prior ? (l.prior_value ?? 0) : l.value);
-      // الحسابات المقابلة (مخصص/مجمع) تُطرح من مجموعتها
-      return ['AR_ALLOWANCE', 'ACC_DEP'].includes(l.code) ? v.neg() : (l.code === 'DIVIDENDS' ? v.neg() : v);
-    }));
+    const g = (s: string) => sum(sfpLines.filter((l) => l.section === s).map((l) => (prior ? (l.prior_value ?? 0) : l.value)));
     const currentAssets = g('current_assets'); const nonCurrentAssets = g('non_current_assets');
     const currentLiab = g('current_liabilities'); const nonCurrentLiab = g('non_current_liabilities');
     const unclassified = g('unclassified');
@@ -137,7 +136,7 @@ export function buildStatements(params: {
 
   // ---- قائمة التغيرات في حقوق الملكية (تعتمد على الأرصدة الافتتاحية) ----
   const hasOpening = params.current.some((e) => !D(e.opening_debit).isZero() || !D(e.opening_credit).isZero());
-  const equityOpen = sum([...opening.entries()].filter(([c]) => FS_LINE_MAP[c]?.section === 'equity').map(([c, v]) => presentValue(c, v.net).mul(c === 'DIVIDENDS' ? -1 : 1)));
+  const equityOpen = sum([...opening.entries()].filter(([c]) => FS_LINE_MAP[c]?.section === 'equity').map(([c, v]) => presentValue(c, v.net)));
   const capitalMov = (code: string) => {
     const c = cur.get(code)?.net ?? ZERO; const o = opening.get(code)?.net ?? ZERO;
     return presentValue(code, c.minus(o));
@@ -151,7 +150,7 @@ export function buildStatements(params: {
       { label_ar: 'التغير في جاري الشركاء / الأرباح المبقاة (حركات مباشرة)', label_en: 'Movements in current accounts / retained earnings', value: toStr(capitalMov('OWNER_CURRENT').plus(capitalMov('RETAINED_EARNINGS'))) },
       { label_ar: 'صافي ربح / (خسارة) الفترة', label_en: 'Profit / (loss) for the period', value: toStr(plC.netIncome) },
       { label_ar: 'الدخل الشامل الآخر', label_en: 'Other comprehensive income', value: toStr(plC.oci) },
-      { label_ar: 'توزيعات أرباح / مسحوبات', label_en: 'Dividends / drawings', value: toStr(capitalMov('DIVIDENDS').neg()) },
+      { label_ar: 'توزيعات أرباح / مسحوبات', label_en: 'Dividends / drawings', value: toStr(capitalMov('DIVIDENDS')) },
       { label_ar: 'الرصيد في نهاية الفترة', label_en: 'Balance at end of period', value: toStr(sC.equity) },
     ],
   } : { status: 'insufficient_data', rows: [], note: 'يتطلب أرصدة افتتاحية لحسابات حقوق الملكية في ميزان المراجعة.' };
@@ -212,7 +211,7 @@ export function buildStatements(params: {
     total_equity: toStr(sC.equity), revenue: toStr(plC.netRevenue), cogs: toStr(plC.cogs), gross_profit: toStr(plC.gross),
     operating_profit: toStr(plC.operating), net_income: toStr(plC.netIncome), finance_cost: toStr(plC.financeCost), depreciation: toStr(plC.depreciation),
     cash: toStr(presentValue('CASH', cur.get('CASH')?.net ?? ZERO)),
-    receivables: toStr(presentValue('AR', cur.get('AR')?.net ?? ZERO).minus(presentValue('AR_ALLOWANCE', cur.get('AR_ALLOWANCE')?.net ?? ZERO))),
+    receivables: toStr(presentValue('AR', cur.get('AR')?.net ?? ZERO).plus(presentValue('AR_ALLOWANCE', cur.get('AR_ALLOWANCE')?.net ?? ZERO))),
     receivables_gross: toStr(presentValue('AR', cur.get('AR')?.net ?? ZERO)),
     inventory: toStr(presentValue('INVENTORY', cur.get('INVENTORY')?.net ?? ZERO)),
     payables: toStr(presentValue('AP', cur.get('AP')?.net ?? ZERO)),
@@ -226,7 +225,7 @@ export function buildStatements(params: {
     opening_receivables: hasOpening ? toStr(presentValue('AR', opening.get('AR')?.net ?? ZERO)) : null,
     opening_inventory: hasOpening ? toStr(presentValue('INVENTORY', opening.get('INVENTORY')?.net ?? ZERO)) : null,
     opening_payables: hasOpening ? toStr(presentValue('AP', opening.get('AP')?.net ?? ZERO)) : null,
-    opening_total_assets: hasOpening ? toStr(sum([...opening.entries()].filter(([c]) => ['current_assets', 'non_current_assets'].includes(FS_LINE_MAP[c]?.section ?? '')).map(([c, v]) => presentValue(c, v.net).mul(['AR_ALLOWANCE', 'ACC_DEP'].includes(c) ? -1 : 1)))) : null,
+    opening_total_assets: hasOpening ? toStr(sum([...opening.entries()].filter(([c]) => ['current_assets', 'non_current_assets'].includes(FS_LINE_MAP[c]?.section ?? '')).map(([c, v]) => presentValue(c, v.net)))) : null,
   };
 
   return {

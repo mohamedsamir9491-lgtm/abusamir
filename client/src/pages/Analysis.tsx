@@ -21,7 +21,7 @@ function StatementTable({ lines, totals, hasPrior, order, totalsAfter }: { lines
 }
 function FragmentRows({ g, ls, hasPrior, open, setOpen, totals }: { g: string; ls: Line[]; hasPrior: boolean; open: string | null; setOpen: (k: string | null) => void; totals: Total[] }) {
   return <>
-    <tr className="group"><td colSpan={hasPrior ? 3 : 2}>{SEC[g] ?? g}</td></tr>
+    {ls.length > 0 && <tr className="group"><td colSpan={hasPrior ? 3 : 2}>{SEC[g] ?? g}</td></tr>}
     {ls.map((l) => <><tr key={l.code} className="clickable" onClick={() => setOpen(open === l.code ? null : l.code)}><td>{l.label_ar} <span className="muted">({l.accounts.length} حساب)</span></td><td className="num"><Money v={l.value} /></td>{hasPrior && <td className="num"><Money v={l.prior_value ?? '0'} /></td>}</tr>
       {open === l.code && l.accounts.map((a) => <tr key={l.code + a.code}><td style={{ paddingRight: 30 }} className="muted">{a.code} - {a.name}</td><td className="num muted"><Money v={a.net} /></td>{hasPrior && <td />}</tr>)}</>)}
     {totals.map((t) => <tr key={t.key} className="total"><td>{t.label_ar}</td><td className="num"><Money v={t.value} /></td>{hasPrior && <td className="num"><Money v={t.prior_value ?? '0'} /></td>}</tr>)}

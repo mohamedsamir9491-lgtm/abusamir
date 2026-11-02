@@ -43,7 +43,7 @@ function statementTable(lines: { code: string; label_ar: string; section: string
   for (const g of groupOrder) {
     const ls = lines.filter((l) => l.section === g);
     if (!ls.length && !(totalAfter[g] ?? []).some((k) => byKey[k])) continue;
-    rows.push({ label: sectionLabels[g] ?? g, current: '', prior: '', _group: '1' });
+    if (ls.length) rows.push({ label: sectionLabels[g] ?? g, current: '', prior: '', _group: '1' });
     for (const l of ls) rows.push({ label: l.label_ar, current: fmtMoney(l.value), prior: hasPrior ? fmtMoney(l.prior_value ?? '0') : null });
     for (const k of totalAfter[g] ?? []) { const t = byKey[k]; if (t) rows.push({ label: t.label_ar, current: fmtMoney(t.value), prior: hasPrior ? fmtMoney(t.prior_value ?? '0') : null, _total: '1' }); }
   }
