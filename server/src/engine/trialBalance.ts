@@ -1,5 +1,5 @@
 import { D, Decimal, ZERO, sum, net, isZero, toStr, pct, safeDiv } from './money.js';
-import { classifyAccount, learnPrefixMap, type PrefixMap } from './classification.js';
+import { classifyAccount, learnPrefixMap, TYPE_LABELS, type PrefixMap } from './classification.js';
 import type { TbEntry, AccountMeta, EngineFinding, Severity } from './types.js';
 
 export interface TbValidationOptions {
@@ -256,7 +256,7 @@ export function validateTrialBalance(entries: TbEntry[], opts: TbValidationOptio
         title: isBank ? `حساب بنكي برصيد دائن: ${nm || a.account_code}` : `رصيد غير طبيعي للحساب ${a.account_code} (${nm})`,
         description: isBank
           ? `الحساب البنكي ${nm || a.account_code} يظهر برصيد دائن ${toStr(closingNet.abs())}. قد يمثل سحبًا على المكشوف يجب عرضه ضمن الالتزامات، أو شيكات صادرة لم تُصرف، أو خطأ تسجيل.`
-          : `الحساب من نوع "${a.meta.account_type}" طبيعة رصيده ${a.meta.normal_balance === 'debit' ? 'مدينة' : 'دائنة'} لكنه يظهر برصيد ${side(a)} قدره ${toStr(closingNet.abs())}.`,
+          : `الحساب من نوع "${TYPE_LABELS[a.meta.account_type]}" طبيعة رصيده ${a.meta.normal_balance === 'debit' ? 'مدينة' : 'دائنة'} لكنه يظهر برصيد ${side(a)} قدره ${toStr(closingNet.abs())}.`,
         account_code: a.account_code, account_name: nm, source_row_ref: ref, amount: toStr(closingNet.abs()), fs_line_code: a.meta.fs_line_code,
         evidence: { expected_side: a.meta.normal_balance, actual_side: a.balance_side, closing_net: a.closing_net, account_type: a.meta.account_type },
         impact: 'قد يعكس خطأ تصنيف، أو قيدًا معكوسًا، أو حالة تحتاج إعادة عرض (مثل دفعات مقدمة من العملاء).',
