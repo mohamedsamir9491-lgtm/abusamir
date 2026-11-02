@@ -5,6 +5,8 @@ import type { ReportContent, ReportBlock } from './builder.js';
 import { SEVERITY_LABELS, CATEGORY_LABELS, type Severity, type FindingCategory } from '../../engine/types.js';
 import { REVIEW_STATUS_LABELS, fmtDate } from './format.js';
 import { getFile, readFileData } from '../files/storage.js';
+import { logger } from '../../lib/logger.js';
+import { query } from '../../db/pool.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const FONT_DIR = path.resolve(here, '../../../assets/fonts');
@@ -31,20 +33,67 @@ export function embeddedFontsCss(): string {
 export const esc = (s: unknown): string => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const nl2p = (s: string) => esc(s).split(/\n{2,}/).map((x) => `<p>${x.replace(/\n/g, '<br>')}</p>`).join('');
 
-export interface OfficeLetterhead { name_ar: string; name_en: string; logo_data_url: string | null; cr_number: string | null; license_number: string | null; license_authority: string | null; address_ar: string | null; phone: string | null; email: string | null; website: string | null; vat_number: string | null; footer_ar: string | null; confidentiality_ar: string; signatory_name: string | null; signatory_title: string | null; signature_data_url: string | null; stamp_data_url: string | null; use_signature: boolean; use_stamp: boolean; letterhead_bg_data_url: string | null; letterhead_template_ar: string | null; page_margin_top_mm: number; page_margin_bottom_mm: number; page_margin_left_mm: number; page_margin_right_mm: number; header_height_mm: number; footer_height_mm: number; page_numbering: string; default_font: string; primary_color: string }
+export interface OfficeLetterhead { letterhead_mode?: 'generated' | 'design'; design?: LetterheadDesign | null; name_ar: string; name_en: string; logo_data_url: string | null; cr_number: string | null; license_number: string | null; license_authority: string | null; address_ar: string | null; phone: string | null; email: string | null; website: string | null; vat_number: string | null; footer_ar: string | null; confidentiality_ar: string; signatory_name: string | null; signatory_title: string | null; signature_data_url: string | null; stamp_data_url: string | null; use_signature: boolean; use_stamp: boolean; letterhead_bg_data_url: string | null; letterhead_template_ar: string | null; page_margin_top_mm: number; page_margin_bottom_mm: number; page_margin_left_mm: number; page_margin_right_mm: number; header_height_mm: number; footer_height_mm: number; page_numbering: string; default_font: string; primary_color: string }
 
 async function dataUrl(fileId: string | null): Promise<string | null> {
   if (!fileId) return null;
   try { const f = await getFile(fileId); if (!f.mime_type.startsWith('image/')) return null; return `data:${f.mime_type};base64,${readFileData(f).toString('base64')}`; } catch { return null; }
 }
+/** الترويسة المرفوعة قد تكون PDF: تُحوَّل صفحتها الأولى إلى PNG مرة واحدة (pdftoppm ثم pypdfium2 احتياطًا) وتُحفظ في الذاكرة */
+const bgCache = new Map<string, string | null>();
+async function letterheadDataUrl(fileId: string | null): Promise<string | null> {
+  if (!fileId) return null;
+  if (bgCache.has(fileId)) return bgCache.get(fileId)!;
+  let out: string | null = null;
+  try {
+    const f = await getFile(fileId);
+    if (f.mime_type.startsWith('image/')) out = `data:${f.mime_type};base64,${readFileData(f).toString('base64')}`;
+    else if (f.mime_type === 'application/pdf') {
+      const { execFileSync } = await import('node:child_process'); const os = await import('node:os'); const path = await import('node:path'); const fs = await import('node:fs');
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lh-')); const src = path.join(dir, 'lh.pdf'); fs.writeFileSync(src, readFileData(f));
+      try { execFileSync('pdftoppm', ['-png', '-r', '150', '-f', '1', '-l', '1', '-singlefile', src, path.join(dir, 'lh')], { timeout: 30000 }); }
+      catch { execFileSync('python3', ['-c', `import pypdfium2 as p,sys; d=p.PdfDocument(sys.argv[1]); d[0].render(scale=2).to_pil().save(sys.argv[2])`, src, path.join(dir, 'lh.png')], { timeout: 60000 }); }
+      out = `data:image/png;base64,${fs.readFileSync(path.join(dir, 'lh.png')).toString('base64')}`;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  } catch (e) { logger.warn({ err: e }, 'letterhead conversion failed'); out = null; }
+  bgCache.set(fileId, out); return out;
+}
+/** شرائط التصميم المرفوع: حدوده (مم) وصور الرأس/التذييل/الوسط عبر python/letterhead_bounds.py؛ تُحسب مرة واحدة لكل ملف وتُحفظ في الذاكرة */
+export interface LetterheadDesign { top_mm: number; bottom_mm: number; top_png: string; bottom_png: string; middle_png: string }
+const designCache = new Map<string, LetterheadDesign | null>();
+export async function letterheadDesign(fileId: string): Promise<LetterheadDesign | null> {
+  if (designCache.has(fileId)) return designCache.get(fileId)!;
+  let out: LetterheadDesign | null = null;
+  try {
+    const f = await getFile(fileId); const { execFileSync } = await import('node:child_process'); const os = await import('node:os'); const path = await import('node:path'); const fs = await import('node:fs');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lhb-')); const ext = f.mime_type === 'application/pdf' ? '.pdf' : '.png'; const src = path.join(dir, 'lh' + ext); fs.writeFileSync(src, readFileData(f));
+    const here = path.dirname((await import('node:url')).fileURLToPath(import.meta.url));
+    const py = [path.resolve(here, '../../../../python/letterhead_bounds.py'), path.resolve(process.cwd(), '../python/letterhead_bounds.py'), path.resolve(process.cwd(), 'python/letterhead_bounds.py')].find((p) => fs.existsSync(p));
+    if (py) out = JSON.parse(execFileSync('python3', ['-I', py, src], { timeout: 90000, maxBuffer: 64 * 1024 * 1024 }).toString()) as LetterheadDesign;
+    fs.rmSync(dir, { recursive: true, force: true });
+  } catch (e) { logger.warn({ err: e }, 'letterhead design extraction failed'); out = null; }
+  designCache.set(fileId, out); return out;
+}
+export const invalidateLetterheadCache = () => { bgCache.clear(); designCache.clear(); };
+export async function detectLetterheadBounds(fileId: string): Promise<{ top_mm: number; bottom_mm: number } | null> { const d = await letterheadDesign(fileId); return d ? { top_mm: d.top_mm, bottom_mm: d.bottom_mm } : null; }
+
 export async function loadLetterhead(office: Record<string, unknown>): Promise<OfficeLetterhead> {
+  // وضع التصميم: شريطا الرأس والتذييل يُطبعان في هوامش الصفحة (قوالب Chromium) فلا يغطيهما المحتوى؛ الهوامش العلوية/السفلية = حدود التصميم
+  let headerH = Number(office.header_height_mm ?? 28); let footerH = Number(office.footer_height_mm ?? 18);
+  let mTop = Number(office.page_margin_top_mm ?? 20); let mBottom = Number(office.page_margin_bottom_mm ?? 20);
+  let design: LetterheadDesign | null = null;
+  if (office.letterhead_mode === 'design' && office.letterhead_file_id) {
+    design = await letterheadDesign(String(office.letterhead_file_id));
+    if (design) { mTop = design.top_mm + 1.5; mBottom = 297 - design.bottom_mm + 1.5; headerH = 0; footerH = 6; if (office.letterhead_top_mm == null) await query('UPDATE office_settings SET letterhead_top_mm = $1, letterhead_bottom_mm = $2 WHERE id = 1', [design.top_mm, design.bottom_mm]); }
+  }
   return {
     name_ar: String(office.name_ar ?? ''), name_en: String(office.name_en ?? ''), logo_data_url: await dataUrl(office.logo_file_id as string | null), cr_number: office.cr_number as string | null, license_number: office.license_number as string | null, license_authority: office.license_authority as string | null,
     address_ar: office.address_ar as string | null, phone: office.phone as string | null, email: office.email as string | null, website: office.website as string | null, vat_number: office.vat_number as string | null, footer_ar: office.footer_ar as string | null, confidentiality_ar: String(office.confidentiality_ar ?? ''),
     signatory_name: (office.signatory_name as string | null) ?? null, signatory_title: (office.signatory_title as string | null) ?? null, signature_data_url: office.use_signature ? await dataUrl(office.signature_file_id as string | null) : null, stamp_data_url: office.use_stamp ? await dataUrl(office.stamp_file_id as string | null) : null, use_signature: !!office.use_signature, use_stamp: !!office.use_stamp,
-    letterhead_bg_data_url: await dataUrl(office.letterhead_file_id as string | null), letterhead_template_ar: (office.letterhead_template_ar as string | null) || null,
-    page_margin_top_mm: Number(office.page_margin_top_mm ?? 20), page_margin_bottom_mm: Number(office.page_margin_bottom_mm ?? 20), page_margin_left_mm: Number(office.page_margin_left_mm ?? 18), page_margin_right_mm: Number(office.page_margin_right_mm ?? 18),
-    header_height_mm: Number(office.header_height_mm ?? 28), footer_height_mm: Number(office.footer_height_mm ?? 18), page_numbering: String(office.page_numbering ?? 'page_of_total'), default_font: String(office.default_font ?? 'Noto Naskh Arabic'), primary_color: String(office.primary_color ?? '#1f3a5f'),
+    letterhead_bg_data_url: design ? null : await letterheadDataUrl(office.letterhead_file_id as string | null), letterhead_mode: String(office.letterhead_mode ?? 'generated') as 'generated' | 'design', design, letterhead_template_ar: (office.letterhead_template_ar as string | null) || null,
+    page_margin_top_mm: Math.round(mTop * 10) / 10, page_margin_bottom_mm: Math.round(mBottom * 10) / 10, page_margin_left_mm: Number(office.page_margin_left_mm ?? 18), page_margin_right_mm: Number(office.page_margin_right_mm ?? 18),
+    header_height_mm: Math.round(headerH * 10) / 10, footer_height_mm: Math.round(footerH * 10) / 10, page_numbering: String(office.page_numbering ?? 'page_of_total'), default_font: String(office.default_font ?? 'Noto Naskh Arabic'), primary_color: String(office.primary_color ?? '#1f3a5f'),
   };
 }
 
@@ -150,6 +199,7 @@ export function baseCss(lh: OfficeLetterhead): string {
 /** ترويسة المكتب (تتكرر على كل صفحة عبر position:fixed) */
 export type LetterheadMeta = Pick<ReportContent['meta'], 'title' | 'reference_no' | 'client_name' | 'confidentiality'>;
 function letterheadHtml(lh: OfficeLetterhead, meta: LetterheadMeta): string {
+  if (lh.letterhead_mode === 'design' && lh.design) return ''; // الترويسة مطبوعة في هامش الصفحة من التصميم
   if (lh.letterhead_template_ar) {
     return lh.letterhead_template_ar.replace(/\{\{(\w+)\}\}/g, (_, k: string) => esc(({ name_ar: lh.name_ar, name_en: lh.name_en, cr_number: lh.cr_number, license_number: lh.license_number, address_ar: lh.address_ar, phone: lh.phone, email: lh.email, website: lh.website, vat_number: lh.vat_number, reference_no: meta.reference_no, client_name: meta.client_name, logo: '' } as Record<string, string | null>)[k] ?? ''))
       .replace(/\{\{logo\}\}/g, lh.logo_data_url ? `<img src="${lh.logo_data_url}" style="max-height:${Math.max(8, lh.header_height_mm - 6)}mm">` : '');
@@ -163,6 +213,7 @@ function letterheadHtml(lh: OfficeLetterhead, meta: LetterheadMeta): string {
   </div>`;
 }
 function footerHtml(lh: OfficeLetterhead, meta: LetterheadMeta): string {
+  if (lh.letterhead_mode === 'design' && lh.design) return `<div style="height:${lh.footer_height_mm}mm;display:flex;align-items:flex-end;justify-content:space-between;font-size:8pt;color:#555"><span>${esc(meta.reference_no)}</span><span style="color:#c0392b">${esc(meta.confidentiality)}</span></div>`;
   const lines = [lh.address_ar, [lh.phone ? `هاتف: ${lh.phone}` : '', lh.email ? `بريد: ${lh.email}` : '', lh.website ?? ''].filter(Boolean).join(' | '), lh.vat_number ? `الرقم الضريبي: ${lh.vat_number}` : '', lh.footer_ar].filter(Boolean);
   return `<div class="lh" style="height:${lh.footer_height_mm}mm;border-top:1px solid ${lh.primary_color};padding-top:1mm;font-size:8.5pt;display:flex;justify-content:space-between;align-items:flex-start">
     <div>${lines.map((l) => `<div>${esc(l)}</div>`).join('')}</div><div style="color:#c0392b;white-space:nowrap">${esc(meta.confidentiality)}</div></div>`;
@@ -195,13 +246,17 @@ export function renderReportHtml(content: ReportContent, lh: OfficeLetterhead, o
 /** غلاف صفحة A4 بترويسة المكتب وتذييله (يتكرران على كل صفحة) - يُستخدم للتقارير وخطابات الارتباط وأي مستند رسمي */
 export function wrapWithLetterhead(bodyHtml: string, lh: OfficeLetterhead, meta: LetterheadMeta, opts: { forPdf?: boolean; watermark?: string | null; extraCss?: string } = {}): string {
   const watermark = opts.watermark ? `<div style="position:fixed;top:40%;left:0;right:0;text-align:center;font-size:60pt;color:rgba(192,57,43,0.12);transform:rotate(-20deg);z-index:0;pointer-events:none">${esc(opts.watermark)}</div>` : '';
-  const bg = lh.letterhead_bg_data_url ? `<img src="${lh.letterhead_bg_data_url}" style="position:fixed;top:-${lh.page_margin_top_mm}mm;left:-${lh.page_margin_left_mm}mm;width:210mm;height:297mm;z-index:-1">` : '';
-  const header = letterheadHtml(lh, meta); const footer = footerHtml(lh, meta);
-  const pageCss = opts.forPdf ? `@page{size:A4;margin:${lh.page_margin_top_mm}mm ${lh.page_margin_right_mm}mm ${lh.page_margin_bottom_mm + 7}mm ${lh.page_margin_left_mm}mm}` : `body{padding:12mm;max-width:210mm;margin:0 auto;background:#fff}`;
+  const design = lh.letterhead_mode === 'design' && !!lh.design;
+  // وضع التصميم: شريطا الرأس والتذييل في هوامش الصفحة (pdf.ts)، والوسط (العلامة المائية) صورة ثابتة داخل منطقة المحتوى
+  const bg = design && lh.design ? `<img src="data:image/jpeg;base64,${lh.design.middle_png}" style="position:fixed;top:0;left:-${lh.page_margin_left_mm}mm;width:210mm;height:${lh.design.bottom_mm - lh.design.top_mm}mm;z-index:-1">`
+    : lh.letterhead_bg_data_url ? `<img src="${lh.letterhead_bg_data_url}" style="position:fixed;top:-${lh.page_margin_top_mm}mm;left:-${lh.page_margin_left_mm}mm;width:210mm;height:297mm;z-index:-1">` : '';
+  const header = (design && lh.design && !opts.forPdf ? `<img src="data:image/jpeg;base64,${lh.design.top_png}" style="display:block;width:100%;margin:-12mm -12mm 4mm;width:calc(100% + 24mm)">` : '') + letterheadHtml(lh, meta); const footer = footerHtml(lh, meta);
+  const pageCss = opts.forPdf ? `@page{size:A4;margin:${lh.page_margin_top_mm}mm ${lh.page_margin_right_mm}mm ${lh.page_margin_bottom_mm + (design ? 0 : 7)}mm ${lh.page_margin_left_mm}mm}` : `body{padding:12mm;max-width:210mm;margin:0 auto;background:#fff}`;
+  const fixedCss = `.fixed-header{position:fixed;top:0;left:0;right:0;height:${lh.header_height_mm}mm}.fixed-footer{position:fixed;bottom:0;left:0;right:0;height:${lh.footer_height_mm}mm}`;
   // أسلوب الجدول الغلافي: thead/tfoot يتكرران على كل صفحة لحجز مساحة الترويسة والتذييل الثابتين
   return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${esc(meta.title)}</title><style>${baseCss(lh)}${pageCss}${opts.extraCss ?? ''}
-    .fixed-header{position:fixed;top:0;left:0;right:0;height:${lh.header_height_mm}mm}.fixed-footer{position:fixed;bottom:0;left:0;right:0;height:${lh.footer_height_mm}mm}
-    table.wrap{width:100%;table-layout:fixed;border-collapse:collapse;margin:0}table.wrap>thead>tr>td{height:${lh.header_height_mm + 3}mm;padding:0;border:0}table.wrap>tfoot>tr>td{height:${lh.footer_height_mm + 6}mm;padding:0;border:0}table.wrap>tbody>tr>td{padding:0;border:0;width:100%;overflow:hidden}
+    ${fixedCss}
+    table.wrap{width:100%;table-layout:fixed;border-collapse:collapse;margin:0}table.wrap>thead>tr>td{height:${lh.header_height_mm + (design ? 0 : 3)}mm;padding:0;border:0}table.wrap>tfoot>tr>td{height:${lh.footer_height_mm + (design ? 2 : 6)}mm;padding:0;border:0}table.wrap>tbody>tr>td{padding:0;border:0;width:100%;overflow:hidden}
     ${opts.forPdf ? '' : '.fixed-header,.fixed-footer{position:static}table.wrap>thead,table.wrap>tfoot{display:none}'}
   </style></head><body>${bg}${watermark}
     <div class="fixed-header">${header}</div><div class="fixed-footer">${footer}</div>

@@ -44,8 +44,8 @@
     "@types/node": "^22.18.0",
     "@types/papaparse": "^5.3.16",
     "@types/pg": "^8.15.5",
-    "supertest": "^7.1.4",
     "@types/supertest": "^6.0.3",
+    "supertest": "^7.1.4",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"

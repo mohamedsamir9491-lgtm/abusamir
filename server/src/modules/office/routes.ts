@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { invalidateLetterheadCache, detectLetterheadBounds } from '../reports/render.js';
 import { z } from 'zod';
 import { one, query } from '../../db/pool.js';
 import { parse } from '../../lib/validate.js';
@@ -41,6 +42,7 @@ const settingsSchema = z.object({
   disclaimer_en: z.string().max(5000).nullable().optional(),
   confidentiality_ar: z.string().max(300).optional(),
   confidentiality_en: z.string().max(300).optional(),
+  letterhead_mode: z.enum(['generated', 'design']).optional(),
   letterhead_template_ar: z.string().max(20000).nullable().optional(),
   letterhead_template_en: z.string().max(20000).nullable().optional(),
   page_margin_top_mm: z.number().min(5).max(60).optional(),
@@ -78,6 +80,11 @@ officeRouter.post('/branding/:kind', requirePermission('office.manage'), upload.
     checkUpload(kind === 'letterhead' ? 'letterhead' : 'image', req.file.originalname, req.file.mimetype);
     const f = await saveFile({ purpose: kind, subdir: 'branding', originalName: req.file.originalname, mime: req.file.mimetype, data: req.file.buffer, userId: req.user!.id });
     await query(`UPDATE office_settings SET ${col} = $1, updated_by = $2, updated_at = now() WHERE id = 1`, [f.id, req.user!.id]);
+    if (kind === 'letterhead') { // تصميم مرفوع: يُفعَّل وضع التصميم تلقائيًا وتُحجز مساحة كافية للرأس والتذييل
+      const b = await detectLetterheadBounds(f.id);
+      await query(`UPDATE office_settings SET letterhead_mode = 'design', letterhead_top_mm = $1, letterhead_bottom_mm = $2, page_margin_top_mm = LEAST(page_margin_top_mm, 8), page_margin_bottom_mm = LEAST(page_margin_bottom_mm, 8) WHERE id = 1`, [b?.top_mm ?? null, b?.bottom_mm ?? null]);
+      invalidateLetterheadCache();
+    }
     await audit(req, { action: `office.${kind}_uploaded`, entityType: 'stored_file', entityId: f.id });
     res.json({ file_id: f.id, settings: await getOfficeSettings() });
   } catch (e) { next(e); }
@@ -88,6 +95,7 @@ officeRouter.delete('/branding/:kind', requirePermission('office.manage'), async
     const col = BRAND_FIELDS[req.params.kind as string];
     if (!col) throw badRequest('نوع غير معروف');
     await query(`UPDATE office_settings SET ${col} = NULL, updated_by = $1, updated_at = now() WHERE id = 1`, [req.user!.id]);
+    if (req.params.kind === 'letterhead') { await query(`UPDATE office_settings SET letterhead_mode = 'generated', letterhead_top_mm = NULL, letterhead_bottom_mm = NULL WHERE id = 1`); invalidateLetterheadCache(); }
     await audit(req, { action: `office.${req.params.kind}_removed` });
     res.json({ settings: await getOfficeSettings() });
   } catch (e) { next(e); }
