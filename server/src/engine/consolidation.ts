@@ -1,6 +1,7 @@
 import { D, Decimal, ZERO, sum, net, toStr } from './money.js';
 import { buildStatements } from './statements.js';
 import type { TbEntry, AccountMeta } from './types.js';
+import { buildConsolidationWorksheet } from './consolidationWorksheet.js';
 
 /**
  * محرك توحيد وتقييم دفتري للمجموعة (IFRS 10 / IAS 27 بأسلوب صافي الأصول):
@@ -15,6 +16,9 @@ export interface SubsidiarySpec extends GroupCompany {
   investment_codes_in_parent: string[];      // حسابات الاستثمار لدى الأم
   parent_account_codes_in_sub: string[];     // حسابات الأم (جاري/ذمم) في دفاتر التابعة
   sub_account_codes_in_parent: string[];     // حسابات التابعة (جاري/ذمم) في دفاتر الأم
+  control_since?: string | null;             // تاريخ اكتساب السيطرة
+  control_basis?: 'incorporation' | 'acquisition' | null;
+  pre_acquisition_equity?: string | null;    // حقوق ملكية التابعة بتاريخ السيطرة عدا رأس المال (للشراء اللاحق)
 }
 export interface AtCostSpec { key: string; label: string; investment_codes_in_parent: string[]; receivable_codes_in_parent: string[]; note?: string }
 export interface DocumentedAdjustment { ref: string; description: string; amount: string; evidence: string; affects: 'parent' | string }
@@ -56,17 +60,16 @@ export function consolidate(input: { parent: GroupCompany; subsidiaries: Subsidi
   const groupEquity = subs.reduce((acc, s) => acc.plus(s._contribution), parentEquity);
   const adjustments = input.adjustments ?? [];
   const adjustedNav = adjustments.reduce((acc, a) => acc.plus(D(a.amount)), groupEquity);
-  // قيود الاستبعاد المقترحة (للعرض والمراجعة؛ لا تُرحَّل)
-  const eliminations = subs.flatMap((s) => {
-    const rows: { sub: string; description: string; debit: string; credit: string; account: string }[] = [];
-    rows.push({ sub: s.label, description: 'استبعاد الاستثمار مقابل حقوق ملكية التابعة', account: 'حقوق ملكية التابعة (رأس المال والأرباح المبقاة ونتيجة الفترة)', debit: s.sub_equity, credit: '0.00' });
-    rows.push({ sub: s.label, description: 'استبعاد الاستثمار مقابل حقوق ملكية التابعة', account: 'الاستثمار في التابعة لدى الأم', debit: '0.00', credit: s.investment_cost_in_parent });
-    if (!D(s.sub_claim_on_parent).isZero()) rows.push({ sub: s.label, description: 'استبعاد رصيد بيني: مستحق من الأم في دفاتر التابعة', account: 'جاري/ذمم الأم لدى التابعة', debit: '0.00', credit: s.sub_claim_on_parent });
-    if (!D(s.parent_claim_on_sub).isZero()) rows.push({ sub: s.label, description: 'استبعاد رصيد بيني: مستحق من التابعة في دفاتر الأم', account: 'جاري/ذمم التابعة لدى الأم', debit: '0.00', credit: s.parent_claim_on_sub });
-    const residual = D(s.sub_equity).minus(s.investment_cost_in_parent).minus(s.sub_claim_on_parent).minus(s.parent_claim_on_sub).plus(s.sub_owes_parent).plus(s.parent_owes_sub);
-    rows.push({ sub: s.label, description: 'فرق الاستبعاد (حصة الأم في صافي أصول التابعة الخارجية − تكلفة الاستثمار) يُضاف إلى حقوق ملكية المجموعة', account: 'حقوق ملكية المجموعة / حقوق غير مسيطرة', debit: residual.lt(0) ? toStr(residual.abs()) : '0.00', credit: residual.gte(0) ? toStr(residual) : '0.00' });
-    return rows;
-  });
+  // ورقة عمل التوحيد: قيود متوازنة من ميزان كل شركة، بلا حساب موازنة تلقائي؛ الفروق غير المثبتة تبقى بنودًا معلقة
+  const worksheet = buildConsolidationWorksheet(
+    { key: input.parent.key, label: input.parent.label, entries: input.parent.entries, statements: pStat },
+    input.subsidiaries.map((sub, i) => ({ key: sub.key, label: sub.label, entries: sub.entries, statements: subs[i].statements, ownership_pct: sub.ownership_pct, profit_share_pct: sub.profit_share_pct, investment_codes_in_parent: sub.investment_codes_in_parent, parent_account_codes_in_sub: sub.parent_account_codes_in_sub, sub_account_codes_in_parent: sub.sub_account_codes_in_parent, control_since: sub.control_since, control_basis: sub.control_basis, pre_acquisition_equity: sub.pre_acquisition_equity })),
+  );
+  // قيود الاستبعاد بصيغة سطور (للعرض): من ورقة العمل حصرًا
+  const eliminations = worksheet.entries.flatMap((e) => e.lines.map((l) => ({ ref: e.ref, sub: e.sub, description: e.description, account: `${l.line_code}${l.account ? ` (${l.account})` : ''} - ${l.company}${l.note ? `: ${l.note}` : ''}`, debit: l.debit, credit: l.credit })));
+  // التحقق المتقاطع: المعادلة المباشرة (حصة الأم − الاستثمار) يجب أن تساوي ورقة العمل بعد شطب البنود المعلقة
+  const crossCheck = groupEquity.minus(worksheet._equity.minus(worksheet._pending));
+  if (!crossCheck.abs().lte('0.05')) throw new Error(`تعارض بين المعادلة المباشرة (${toStr(groupEquity)}) وورقة عمل التوحيد (${worksheet.group_equity_if_pending_written_off})؛ فرق ${toStr(crossCheck)}`);
   const sensitivity: SensitivityItem[] = [];
   for (const s of subs) {
     if (!s._unm1.isZero()) sensitivity.push({ key: `ic_${s.key}`, title: `رصيد تطالب به ${s.label} من الأم بلا مقابل في دفاتر الأم`, condition: 'إن ثبت أنه رأس مال غير مدفوع أو التزام فعلي على الأم فلا أثر على حقوق المجموعة بعد الاستبعاد (أُخذ في الحسبان)؛ وإن ثبت أنه خطأ قيد لدى التابعة فتُصحح دفاتر التابعة بالمبلغ نفسه دون أثر على المجموعة', amount: toStr(s._unm1), direction: 'either', status: 'unresolved', required_documents: ['قيود اليومية وكشوف البنك للحوالات بين الشركتين', 'مطابقة ثنائية موقعة'] });
@@ -79,7 +82,11 @@ export function consolidate(input: { parent: GroupCompany; subsidiaries: Subsidi
     parent: { label: input.parent.label, book_equity: toStr(parentEquity), statements: pStat },
     subsidiaries: subs.map(({ _contribution, _nci, _inv, _unm1, _unm2, _ivp, ...rest }) => rest),
     at_cost: atCost,
-    group_equity_before_adjustments: toStr(groupEquity),
+    status: worksheet.status, pending_reasons: worksheet.pending_reasons,
+    group_equity_worksheet: worksheet.group_equity_worksheet,                       // مجموع بنود حقوق الملكية بعد القيود (البنود المعلقة ظاهرة ولم تُحمَّل)
+    group_equity_if_pending_written_off: worksheet.group_equity_if_pending_written_off, // إن ثبت أن البنود المعلقة غير قابلة للاسترداد
+    group_equity_before_adjustments: toStr(groupEquity),                            // = المعادلة المباشرة؛ تساوي الحالة المحافِظة (شطب المعلق) - غير معتمدة ما دامت الحالة pending
+    worksheet: { rows: worksheet.rows, entries: worksheet.entries, subsidiaries: worksheet.subsidiaries, totals: worksheet.totals },
     nci_total: toStr(subs.reduce((acc, s) => acc.plus(s._nci), ZERO)),
     documented_adjustments: adjustments,
     adjusted_net_assets: toStr(adjustedNav),

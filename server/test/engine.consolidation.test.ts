@@ -59,3 +59,64 @@ describe('ratio meaningfulness', () => {
     expect(r.debt_to_equity.status).toBe('ok'); expect(r.debt_to_equity.value).toBe('0.0014');
   });
 });
+
+// ---- ورقة عمل التوحيد: قيود متوازنة، بلا حساب موازنة، بنود معلقة ظاهرة، مطابقة الاستثمار برأس المال من الرصيد الافتتاحي والحركة ----
+const M = (code: string, name: string, m: { od?: string; oc?: string; pd?: string; pc?: string; cd?: string; cc?: string }): TbEntry => ({ account_code: code, account_name: name, opening_debit: m.od ?? '0', opening_credit: m.oc ?? '0', period_debit: m.pd ?? '0', period_credit: m.pc ?? '0', closing_debit: m.cd ?? '0', closing_credit: m.cc ?? '0' });
+// أرقام حقيقية من حالة أسس القابضة / جراند إستيتس (الحسابات ذات الصلة فقط مع نقد موازن)
+const OSOS: TbEntry[] = [M('1101', 'بنك', { od: '922147.83', pc: '160634', cd: '761513.83' }), M('106021', 'استثمار في جراند', { od: '77852.17', pd: '160634', cd: '238486.17' }), M('3100', 'رأس المال', { oc: '1000000', cc: '1000000' })];
+const GRAND: TbEntry[] = [M('1101', 'بنك', { cd: '237686.81' }), M('202005', 'جاري شركة أسس القابضة', { od: '222147.82', pc: '160000', cd: '62147.82' }), M('3100', 'رأس المال', { oc: '300000', cc: '300000' }), M('3200', 'أرباح وخسائر مرحلة', { od: '126511.5', cd: '126511.5' }), M('5100', 'مبيعات', { cc: '126346.13' })];
+const run = (subExtra: Partial<Parameters<typeof consolidate>[0]['subsidiaries'][0]> = {}, parent: TbEntry[] = OSOS, sub: TbEntry[] = GRAND) => consolidate({ parent: { key: 'p', label: 'الأم', entries: parent, periodLabel: 't' }, subsidiaries: [{ key: 'g', label: 'جراند', entries: sub, periodLabel: 't', ownership_pct: '100', investment_codes_in_parent: ['106021'], parent_account_codes_in_sub: ['202005'], sub_account_codes_in_parent: [], ...subExtra }], at_cost: [] });
+
+describe('consolidation worksheet', () => {
+  it('posts balanced elimination entries only and never balances through group equity', () => {
+    const r = run({ control_since: '2025-01-01', control_basis: 'incorporation' });
+    for (const e of r.worksheet.entries) expect(e.total_debit).toBe(e.total_credit);
+    expect(r.worksheet.totals.eliminations_debit).toBe(r.worksheet.totals.eliminations_credit);
+    expect(r.worksheet.totals.equation_difference).toBe('0.00');
+    // حقوق المجموعة = مجموع بنود حقوق الملكية بعد القيود، لا رقم مشتق
+    const eq = r.worksheet.rows.filter((x) => x.section === 'equity').reduce((a, x) => a + Number(x.consolidated), 0);
+    expect(eq.toFixed(2)).toBe(r.group_equity_worksheet);
+    expect(r.worksheet.rows.some((x) => x.code === 'SHARE_CAPITAL' && x.consolidated === '1000000.00')).toBe(true); // رأس مال التابعة استُبعد كاملًا
+  });
+  it('reconciles investment vs capital from opening balance and movements (633.99 = 634.00 − 0.01)', () => {
+    const r = run({ control_since: '2025-01-01', control_basis: 'incorporation' });
+    const s = r.worksheet.subsidiaries[0];
+    expect(s.capital_matching.implied_paid_capital).toBe('237852.18');
+    expect(s.capital_matching.investment_vs_implied_paid_capital).toBe('633.99');
+    expect(s.capital_matching.identity_opening).toBe('0.01'); // (رأس المال − المطالبة) − الاستثمار عند الافتتاح: الأم سجلت 0.01 أقل
+    expect(s.capital_matching.identity_period).toBe('634.00');
+    expect(s.capital_matching.identity_reconciles).toBe(true);
+    expect(s.capital_matching.claim_matched_to_unpaid_capital).toBe('61513.83');
+    expect(s.capital_matching.unmatched_sub_claim).toBe('633.99');
+  });
+  it('bridges the matching difference (633.99) to the equity contribution (799.36) via post-control results (165.37)', () => {
+    const r = run({ control_since: '2025-01-01', control_basis: 'incorporation' });
+    const b = r.worksheet.subsidiaries[0].bridge;
+    expect(b.post_acquisition_results).toBe('-165.37');
+    expect(b.contribution_if_difference_written_off).toBe('-799.36');
+    expect(b.contribution_with_difference_pending).toBe('-165.37');
+    expect(r.subsidiaries[0].contribution_to_group_equity).toBe('-799.36');
+  });
+  it('keeps unproven differences as a visible pending line and withholds approval', () => {
+    const r = run({ control_since: '2025-01-01', control_basis: 'incorporation' });
+    expect(r.status).toBe('pending');
+    expect(r.worksheet.rows.find((x) => x.code === 'IC_SUSPENSE')?.consolidated).toBe('633.99');
+    expect(r.group_equity_worksheet).toBe('999834.63');              // 1,000,000 − 165.37 (الفرق معلق)
+    expect(r.group_equity_if_pending_written_off).toBe('999200.64'); // إن عُدّ الفرق خسارة
+    expect(r.group_equity_before_adjustments).toBe(r.group_equity_if_pending_written_off); // المعادلة المباشرة = الحالة المحافِظة؛ غير معتمدة
+    expect(r.pending_reasons.length).toBeGreaterThan(0);
+  });
+  it('is supported only when every balance has a proven counterpart and the control date is documented', () => {
+    const r = consolidate({ parent: { key: 'p', label: 'الأم', entries: PARENT, periodLabel: 't' }, subsidiaries: [{ key: 's', label: 'س', entries: SUB, periodLabel: 't', ownership_pct: '100', investment_codes_in_parent: ['1060'], parent_account_codes_in_sub: ['2050'], sub_account_codes_in_parent: [], control_since: '2024-06-01', control_basis: 'incorporation' }], at_cost: [] });
+    expect(r.status).toBe('supported'); expect(r.worksheet.totals.pending_items).toBe('0.00'); expect(r.group_equity_worksheet).toBe('820.00');
+    const r2 = consolidate({ parent: { key: 'p', label: 'الأم', entries: PARENT, periodLabel: 't' }, subsidiaries: [{ key: 's', label: 'س', entries: SUB, periodLabel: 't', ownership_pct: '100', investment_codes_in_parent: ['1060'], parent_account_codes_in_sub: ['2050'], sub_account_codes_in_parent: [] }], at_cost: [] });
+    expect(r2.status).toBe('pending'); expect(r2.pending_reasons.some((x) => x.includes('السيطرة'))).toBe(true);
+  });
+  it('shows pre- and post-elimination balances per company and line', () => {
+    const r = run({ control_since: '2025-01-01', control_basis: 'incorporation' });
+    const inv = r.worksheet.rows.find((x) => x.code === 'INVESTMENTS')!;
+    expect(inv.per_company.p).toBe('238486.17'); expect(inv.aggregate).toBe('238486.17'); expect(inv.elimination_credit).toBe('238486.17'); expect(inv.consolidated).toBe('0.00');
+    const claim = r.worksheet.rows.find((x) => x.code === 'RELATED_PARTY_DR')!;
+    expect(claim.per_company.g).toBe('62147.82'); expect(claim.consolidated).toBe('0.00');
+  });
+});

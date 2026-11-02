@@ -98,7 +98,8 @@ analysisRouter.post('/group/consolidate', requirePermission('analysis.run'), asy
     const d = parse(z.object({
       parent: companyRef,
       subsidiaries: z.array(companyRef.extend({ key: z.string().max(40), ownership_pct: z.string().regex(/^\d+(\.\d+)?$/), profit_share_pct: z.string().regex(/^\d+(\.\d+)?$/).nullable().optional(),
-        investment_codes_in_parent: z.array(z.string()).max(20), parent_account_codes_in_sub: z.array(z.string()).max(20), sub_account_codes_in_parent: z.array(z.string()).max(20) })).max(20),
+        investment_codes_in_parent: z.array(z.string()).max(20), parent_account_codes_in_sub: z.array(z.string()).max(20), sub_account_codes_in_parent: z.array(z.string()).max(20),
+        control_since: z.string().max(40).nullable().optional(), control_basis: z.enum(['incorporation', 'acquisition']).nullable().optional(), pre_acquisition_equity: z.string().regex(/^-?\d+(\.\d+)?$/).nullable().optional() })).max(20),
       at_cost: z.array(z.object({ key: z.string().max(40), label: z.string().max(200), investment_codes_in_parent: z.array(z.string()).max(20), receivable_codes_in_parent: z.array(z.string()).max(20), note: z.string().max(500).optional() })).max(20).default([]),
       adjustments: z.array(z.object({ ref: z.string().max(40), description: z.string().max(500), amount: z.string().regex(/^-?\d+(\.\d+)?$/), evidence: z.string().max(500), affects: z.string().max(60) })).max(50).default([]),
     }), req.body);
@@ -112,7 +113,7 @@ analysisRouter.post('/group/consolidate', requirePermission('analysis.run'), asy
     const subs = await Promise.all(d.subsidiaries.map(async (s) => { const x = await load(s); return { ...s, label: x.label, entries: x.entries, accounts: x.accounts, periodLabel: x.p.label, client_id: x.e.client_id }; }));
     const result = consolidate({ parent: { key: 'parent', label: parent.label, entries: parent.entries, accounts: parent.accounts, periodLabel: parent.p.label }, subsidiaries: subs, at_cost: d.at_cost, adjustments: d.adjustments, currency: parent.e.currency });
     const run = await one<{ id: string }>(`INSERT INTO analysis_runs (client_id, engagement_id, period_id, run_type, status, summary, result, started_by, finished_at) VALUES ($1,$2,$3,'consolidation','completed',$4,$5,$6,now()) RETURNING id`,
-      [parent.e.client_id, parent.e.id, parent.p.id, JSON.stringify({ parent_book_equity: result.parent.book_equity, group_equity: result.group_equity_before_adjustments, adjusted_net_assets: result.adjusted_net_assets, checks: result.checks, companies: subs.map((s) => s.client_id) }), JSON.stringify({ ...result, parent: { ...result.parent, statements: undefined }, subsidiaries: result.subsidiaries.map((x) => ({ ...x, statements: undefined })) }), req.user!.id]);
+      [parent.e.client_id, parent.e.id, parent.p.id, JSON.stringify({ parent_book_equity: result.parent.book_equity, status: result.status, group_equity_worksheet: result.group_equity_worksheet, group_equity: result.group_equity_before_adjustments, adjusted_net_assets: result.adjusted_net_assets, checks: result.checks, companies: subs.map((s) => s.client_id) }), JSON.stringify({ ...result, parent: { ...result.parent, statements: undefined }, subsidiaries: result.subsidiaries.map((x) => ({ ...x, statements: undefined })) }), req.user!.id]);
     await audit(req, { action: 'analysis.group_consolidation', entityType: 'analysis_run', entityId: run!.id, clientId: parent.e.client_id, details: { subsidiaries: subs.map((s) => ({ client_id: s.client_id, label: s.label })), group_equity: result.group_equity_before_adjustments } });
     res.json({ run_id: run!.id, result });
   } catch (e) { next(e); }
