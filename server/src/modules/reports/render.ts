@@ -48,6 +48,13 @@ export async function loadLetterhead(office: Record<string, unknown>): Promise<O
   };
 }
 
+// خلية رقمية خالصة (رقم، عملة، نسبة، قوسان للسالب، شرطة) تُعرض بمحاذاة يسار واتجاه LTR؛ أما النص المختلط فيُعرض كنص عربي عادي حتى لا يتداخل
+function isNumericText(v: string | null | undefined): boolean {
+  if (v == null) return false;
+  const t = v.trim();
+  return t === '' || t === '—' || t === '-' || /^[()\-+\d.,%\s/×x]+$/.test(t);
+}
+
 function renderBlock(b: ReportBlock): string {
   switch (b.type) {
     case 'paragraph': return b.text.trim() ? nl2p(b.text) : '';
@@ -58,9 +65,13 @@ function renderBlock(b: ReportBlock): string {
     case 'page_break': return '<div class="page-break"></div>';
     case 'table': {
       const head = `<thead><tr>${b.columns.map((c) => `<th class="${c.numeric ? 'num' : ''}"${c.width ? ` style="width:${c.width}"` : ''}>${esc(c.label)}</th>`).join('')}</tr></thead>`;
-      const row = (r: Record<string, string | null>, cls = '') => `<tr class="${cls}${r._group ? ' group' : ''}${r._total ? ' total' : ''}">${b.columns.map((c) => `<td class="${c.numeric ? 'num' : ''}">${esc(r[c.key] ?? '')}</td>`).join('')}</tr>`;
+      const row = (r: Record<string, string | null>, cls = '') => `<tr class="${cls}${r._group ? ' group' : ''}${r._total ? ' total' : ''}">${b.columns.map((c) => `<td class="${c.numeric && isNumericText(r[c.key]) ? 'num' : c.numeric ? 'mixed' : ''}">${esc(r[c.key] ?? '')}</td>`).join('')}</tr>`;
       const keep = b.rows.length + (b.total_rows?.length ?? 0) <= 15 ? ' keep' : '';
-      return `${b.caption ? `<div class="caption">${esc(b.caption)}</div>` : ''}<table class="data${keep}">${head}<tbody>${b.rows.map((r) => row(r)).join('')}${(b.total_rows ?? []).map((r) => row(r, 'total')).join('')}</tbody></table>`;
+      // الجداول العريضة (≥6 أعمدة) أو ذات النصوص الطويلة تُعرض بخط أصغر حتى لا تتمدد الخلايا عموديًا
+      const cellLen = b.rows.reduce((m, r) => Math.max(m, ...b.columns.map((c) => (r[c.key] ?? '').length)), 0);
+      const dense = b.columns.length >= 6 || (b.columns.length >= 4 && cellLen > 120) ? ' dense' : '';
+      const keepFinal = dense ? '' : keep; // الجداول الكثيفة تُترك تنقسم بين الصفحات مع تكرار رأسها بدل ترك فراغ كبير
+      return `${b.caption ? `<div class="caption">${esc(b.caption)}</div>` : ''}<table class="data${keepFinal}${dense}">${head}<tbody>${b.rows.map((r) => row(r)).join('')}${(b.total_rows ?? []).map((r) => row(r, 'total')).join('')}</tbody></table>`;
     }
     case 'findings':
       return b.items.map((f) => `<div class="finding sev-${esc(f.severity)}">
@@ -92,6 +103,9 @@ export function baseCss(lh: OfficeLetterhead): string {
   table{border-collapse:collapse;width:100%;margin:2mm 0 4mm;font-size:10pt;page-break-inside:auto}
   table.data{table-layout:fixed}
   table.data th.num{white-space:normal}
+  table.data.dense{font-size:8pt;line-height:1.45}table.data.dense th{padding:1.2mm 1.2mm;font-size:8pt}table.data.dense td{padding:1mm 1.2mm;text-align:right}table.data.dense td.num{white-space:normal}
+  td.mixed{text-align:right;direction:rtl;white-space:normal;font-variant-numeric:tabular-nums}
+  p+table.data,.caption+table.data{break-before:avoid-page;page-break-before:avoid}p:has(+table.data){break-after:avoid-page}
   section,.cover{max-width:100%;overflow-wrap:anywhere}
   thead{display:table-header-group}
   tr{page-break-inside:avoid}
@@ -100,7 +114,7 @@ export function baseCss(lh: OfficeLetterhead): string {
   table.data tr:nth-child(even) td{background:#f6f8fb}
   table.data tr.group td{background:#e8edf4;font-weight:700}
   table.data tr.total td{font-weight:700;border-top:2px solid var(--primary);background:#eef2f7}
-  td.num,th.num{text-align:left;direction:ltr;font-variant-numeric:tabular-nums;white-space:nowrap}
+  td.num,th.num{text-align:left;direction:ltr;font-variant-numeric:tabular-nums;white-space:normal}
   .ltr-num{direction:rtl;unicode-bidi:plaintext}
   table.kv{width:auto;min-width:60%}
   table.kv th{text-align:right;padding:1.2mm 2mm;background:#f1f4f8;border:1px solid #d7dde6;width:38mm;font-weight:700}
