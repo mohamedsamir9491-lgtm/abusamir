@@ -8,3 +8,5 @@ storage/backups/
 .DS_Store
 coverage/
 client/dist/
+server/storage/
+client/storage/
