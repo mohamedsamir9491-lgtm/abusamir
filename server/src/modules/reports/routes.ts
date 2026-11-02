@@ -158,6 +158,15 @@ reportsRouter.post('/:id/status', async (req, res, next) => {
     const allowed: Record<string, string[]> = { draft: ['reviewed'], reviewed: ['approved', 'draft'], approved: ['issued', 'draft'], issued: [] };
     if (!allowed[r.status].includes(d.status)) throw badRequest(`لا يمكن الانتقال من ${r.status} إلى ${d.status}`);
     if (d.status === 'reviewed' && !perms.includes('reports.review') && !perms.includes('reports.create')) throw forbidden();
+    if (d.status === 'reviewed' && r.prepared_by === req.user!.id) throw badRequest('لا يمكن لمُعد التقرير تعليمه كمُراجَع؛ المراجعة المهنية تتم من مستخدم آخر (لا يُدّعى وجود مراجعة لم تحدث)');
+    if (d.status === 'approved') {
+      const v = await loadVersion(r.id); const snap = v.snapshot as unknown as { statements?: { sfp?: { balanced?: boolean; difference?: string } } | null; findings?: { category: string; severity: string; review_status: string; finding_ref: string }[] };
+      const reasons: string[] = [];
+      if (snap.statements && snap.statements.sfp && snap.statements.sfp.balanced === false) reasons.push(`قائمة المركز المالي غير متوازنة بفرق ${snap.statements.sfp.difference}`);
+      const openCritical = (snap.findings ?? []).filter((f) => f.category === 'math_error' && f.severity === 'critical' && ['open', 'under_review'].includes(f.review_status));
+      if (openCritical.length) reasons.push(`أخطاء حسابية مؤكدة لم تُحسم: ${openCritical.map((f) => f.finding_ref).join('، ')}`);
+      if (reasons.length) throw badRequest('لا يمكن اعتماد التقرير قبل معالجة الفروقات الجوهرية غير المفسرة', reasons);
+    }
     if (['approved', 'issued'].includes(d.status) && !perms.includes('reports.approve')) throw forbidden('اعتماد التقارير للإصدار يتطلب صلاحية المراجع/المدير');
     if (d.status === 'approved' && r.prepared_by === req.user!.id && req.user!.role_code !== 'admin' && req.user!.role_code !== 'office_manager') throw forbidden('لا يمكن لمُعد التقرير اعتماده بنفسه (فصل المهام)');
     if (d.status === 'draft' && !perms.includes('reports.create') && !perms.includes('reports.approve')) throw forbidden();

@@ -167,7 +167,7 @@ export function validateTrialBalance(entries: TbEntry[], opts: TbValidationOptio
     const computed = openingNet.plus(movNet);
     const matches = cols.opening && cols.movements && cols.closing ? computed.minus(closingNet).abs().lte(tolerance) : true;
     const side: AccountAnalysis['balance_side'] = closingNet.isZero() ? 'zero' : closingNet.gt(0) ? 'debit' : 'credit';
-    const bilateral = ['RETAINED_EARNINGS', 'OWNER_CURRENT', 'RELATED_PARTY_DR', 'RELATED_PARTY_CR', 'OTHER_OPERATING'].includes(meta.fs_line_code);
+    const bilateral = ['RETAINED_EARNINGS', 'OWNER_CURRENT', 'RELATED_PARTY_DR', 'RELATED_PARTY_CR', 'DUE_FROM_SHAREHOLDERS', 'DUE_TO_SHAREHOLDERS', 'OTHER_OPERATING'].includes(meta.fs_line_code);
     const abnormal = side !== 'zero' && side !== meta.normal_balance && meta.account_type !== 'other' && !bilateral;
     typeTotals[meta.account_type] = (typeTotals[meta.account_type] ?? ZERO).plus(closingNet);
     if (meta.account_type === 'revenue') revenueTotal = revenueTotal.plus(closingNet.neg());
@@ -338,10 +338,10 @@ export function validateTrialBalance(entries: TbEntry[], opts: TbValidationOptio
       amount: toStr(accumulated.abs()), fs_line_code: 'RETAINED_EARNINGS', evidence: { capital: toStr(capital), retained_earnings: toStr(retained), period_result: toStr(plNet), accumulated: toStr(accumulated) },
       calculation: `${toStr(retained)} + (${toStr(plNet)}) = ${toStr(accumulated)}`, recommendation: 'عرض الأمر على الشركاء/الجمعية العامة واتخاذ القرار النظامي (زيادة رأس المال، تخفيضه، أو الاستمرار بشروط).', dedupe_key: 'TB-024' });
   }
-  for (const a of analyses.filter((x) => x.meta.fs_line_code === 'OWNER_CURRENT' && D(x.closing_net).gt(0))) {
+  for (const a of analyses.filter((x) => x.meta.fs_line_code === 'DUE_FROM_SHAREHOLDERS' && D(x.closing_net).gt(0))) {
     findings.push({ rule_code: 'TB-025', category: 'accounting_issue', severity: D(a.closing_net).gte(materiality) ? 'high' : 'medium', title: `رصيد مدين على جاري الشريك/المساهم: ${a.account_name ?? a.account_code}`,
       description: `حساب ${a.account_code} (${a.account_name}) يحمل رصيدًا مدينًا ${a.closing_net} أي مبلغًا مستحقًا على الشريك للشركة. يلزم التحقق من طبيعته (مسحوبات، قرض، مصاريف شخصية) وأثره النظامي والزكوي، وعرضه كذمم مدينة من أطراف ذات علاقة لا ضمن حقوق الملكية.`,
-      account_code: a.account_code, account_name: a.account_name, amount: a.closing_net, fs_line_code: 'OWNER_CURRENT', evidence: { closing_net: a.closing_net },
+      account_code: a.account_code, account_name: a.account_name, amount: a.closing_net, fs_line_code: 'DUE_FROM_SHAREHOLDERS', evidence: { closing_net: a.closing_net },
       recommendation: 'الحصول على مصادقة الشريك ومستندات الحركات، وإعادة التصنيف إن لزم.', dedupe_key: `TB-025:${a.account_code}` });
   }
   const hasPl = analyses.some((a) => a.meta.account_type === 'revenue' || a.meta.account_type === 'expense');

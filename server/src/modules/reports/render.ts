@@ -161,7 +161,7 @@ export function renderReportHtml(content: ReportContent, lh: OfficeLetterhead, o
   body.push(`<div class="cover">
     ${lh.logo_data_url && !opts.forPdf ? '' : ''}
     <div class="t">${esc(m.title)}</div><div class="c">${esc(m.client_name)}</div>${m.client_name_en ? `<div class="en" style="direction:ltr;color:#555">${esc(m.client_name_en)}</div>` : ''}
-    <div class="meta">الفترة المالية: ${esc(m.period_label)} (${esc(m.period_range)})<br>مرجع التقرير: ${esc(m.reference_no)} | تاريخ الإعداد: ${esc(fmtDate(m.prepared_date))}<br>الحالة: ${esc({ draft: 'مسودة - غير معتمد', reviewed: 'تمت المراجعة - بانتظار الاعتماد', approved: 'معتمد للإصدار', issued: 'صادر' }[m.status] ?? m.status)}</div>
+    <div class="meta">الفترة المالية: ${esc(m.period_label)} (${esc(m.period_range)})<br>مرجع التقرير: ${esc(m.reference_no)} | تاريخ الإعداد: ${esc(fmtDate(m.prepared_date))}<br>الحالة: ${esc({ draft: 'مسودة - غير مراجعة وغير معتمدة', reviewed: 'تمت المراجعة المهنية - بانتظار الاعتماد', approved: 'معتمد للإصدار', issued: 'صادر' }[m.status] ?? m.status)}</div>
     <div class="conf">${esc(m.confidentiality)}</div>${m.is_demo ? '<br><span class="demo">بيانات تجريبية - ليست سجلات عميل فعلي</span>' : ''}
   </div>`);
   if (cover) body.push(`<div class="cover-kv">${cover.blocks.map(renderBlock).join('')}</div>`);

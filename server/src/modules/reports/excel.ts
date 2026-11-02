@@ -9,8 +9,10 @@ export async function reportToExcel(content: ReportContent, snap: Snapshot): Pro
   wb.creator = 'Abusamir Accounting Platform'; wb.created = new Date();
   const numFmt = '#,##0.00;(#,##0.00);"-"';
   const toNum = (s: string | null | undefined): number | string | null => { if (s == null || s === '' || s === '—') return null; const t = s.replace(/[,()]/g, ''); const neg = s.startsWith('('); const n = Number(t); if (!Number.isFinite(n)) return s; return neg ? -n : n; };
+  const used = new Set<string>();
+  const uniqueName = (name: string) => { const base = name.replace(/[\\/?*[\]:]/g, ' ').slice(0, 27).trim() || 'ورقة'; let n = base; let i = 2; while (used.has(n)) { n = `${base} ${i++}`; } used.add(n); return n; };
   const addSheet = (name: string, columns: { key: string; label: string; numeric?: boolean }[], rows: Record<string, string | null>[], opts: { sumKeys?: string[] } = {}) => {
-    const ws = wb.addWorksheet(name.slice(0, 31), { views: [{ rightToLeft: true }] });
+    const ws = wb.addWorksheet(uniqueName(name), { views: [{ rightToLeft: true }] });
     ws.columns = columns.map((c) => ({ header: c.label, key: c.key, width: c.numeric ? 18 : 34 }));
     ws.getRow(1).font = { bold: true }; ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EDF4' } };
     for (const r of rows) { const row = ws.addRow(Object.fromEntries(columns.map((c) => [c.key, c.numeric ? toNum(r[c.key]) : (r[c.key] ?? '')]))); if (r._group || r._total) row.font = { bold: true }; }
@@ -18,6 +20,7 @@ export async function reportToExcel(content: ReportContent, snap: Snapshot): Pro
     if (opts.sumKeys && rows.length) { const last = ws.rowCount; const sumRow = ws.addRow({}); sumRow.getCell(1).value = 'الإجمالي (صيغة)'; for (const k of opts.sumKeys) { const col = ws.getColumn(k).letter; sumRow.getCell(k).value = { formula: `SUM(${col}2:${col}${last})` }; sumRow.getCell(k).numFmt = numFmt; } sumRow.font = { bold: true }; }
     return ws;
   };
+  used.add('معلومات'); used.add('الملاحظات');
   const meta = wb.addWorksheet('معلومات', { views: [{ rightToLeft: true }] });
   meta.columns = [{ header: 'البند', key: 'k', width: 30 }, { header: 'القيمة', key: 'v', width: 60 }];
   for (const [k, v] of Object.entries({ 'التقرير': content.meta.title, 'المرجع': content.meta.reference_no, 'العميل': content.meta.client_name, 'الفترة': `${content.meta.period_label} (${content.meta.period_range})`, 'العملة': content.meta.currency, 'الحالة': content.meta.status, 'تاريخ الإعداد': content.meta.prepared_date, 'ملاحظة': 'الأرقام مستخرجة من المحرك الحسابي؛ جداول الإجماليات تحتوي صيغ SUM للمراجعة', 'بيانات تجريبية': content.meta.is_demo ? 'نعم' : 'لا' })) meta.addRow({ k, v });

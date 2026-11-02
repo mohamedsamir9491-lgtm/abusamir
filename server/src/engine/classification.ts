@@ -130,6 +130,11 @@ export function classifyAccount(code: string, name: string | null | undefined, b
   const prefix = byCodePrefix(code ?? '', prefixMap);
   const c = classifyCore(code, n, prefix);
   // الحسابات الجارية (أطراف ذات علاقة/شركاء) ثنائية الاتجاه: يحدد جانب الرصيد عرضها كأصل أو التزام
+  // جاري الشركاء/المساهمين: الرصيد المدين ذمة مدينة على الشريك (أصل) والدائن مستحق له (التزام)؛ لا يُخصم من حقوق الملكية إلا بتصنيف يدوي (المؤسسات الفردية)
+  if (balanceSide && balanceSide !== 'zero' && c.fs_line_code === 'OWNER_CURRENT') {
+    const dr = balanceSide === 'debit';
+    return { ...c, account_type: dr ? 'asset' : 'liability', sub_type: dr ? 'current_asset' : 'current_liability', normal_balance: dr ? 'debit' : 'credit', fs_line_code: dr ? 'DUE_FROM_SHAREHOLDERS' : 'DUE_TO_SHAREHOLDERS', reason: c.reason + ' (جانب الرصيد يحدد العرض: مدين = مستحق من الشريك، دائن = مستحق إلى الشريك)' };
+  }
   if (balanceSide && balanceSide !== 'zero' && ['RELATED_PARTY_DR', 'RELATED_PARTY_CR'].includes(c.fs_line_code)) {
     const dr = balanceSide === 'debit';
     return { ...c, account_type: dr ? 'asset' : 'liability', sub_type: dr ? 'current_asset' : 'current_liability', normal_balance: dr ? 'debit' : 'credit', fs_line_code: dr ? 'RELATED_PARTY_DR' : 'RELATED_PARTY_CR', reason: c.reason + ' (جانب الرصيد يحدد العرض)' };

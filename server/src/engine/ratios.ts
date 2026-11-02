@@ -5,7 +5,7 @@ export interface RatioResult {
   formula_ar: string; formula: string;
   inputs: Record<string, string | null>;
   value: string | null; unit: 'ratio' | 'pct' | 'days' | 'amount' | 'times';
-  status: 'ok' | 'insufficient_data';
+  status: 'ok' | 'insufficient_data' | 'not_meaningful';
   note?: string;
   prior_value?: string | null;
   interpretation_ar?: string;
@@ -23,15 +23,19 @@ export function computeRatios(kf: KF, opts: { periodDays?: number; priorKf?: KF 
   const days = opts.periodDays ?? 365;
   const out: RatioResult[] = [];
   const get = (k: string) => (kf[k] == null ? null : D(kf[k]!));
+  const ca = get('current_assets'), cl = get('current_liabilities');
   const nn = (...vals: (Decimal | null)[]) => vals.every((v) => v !== null);
-  const push = (r: Omit<RatioResult, 'status' | 'inputs' | 'value'> & { inputs: Record<string, Decimal | null>; value: Decimal | null; note?: string }) => {
-    const ok = r.value !== null;
+  const push = (r: Omit<RatioResult, 'status' | 'inputs' | 'value'> & { inputs: Record<string, Decimal | null>; value: Decimal | null; note?: string; notMeaningful?: string | null }) => {
+    const ok = r.value !== null && !r.notMeaningful;
+    const fmtVal = (v: Decimal) => (r.unit === 'ratio' || r.unit === 'times') ? (v.abs().lt('0.01') && !v.isZero() ? v.toDecimalPlaces(4).toFixed(4) : v.toDecimalPlaces(2).toFixed(2)) : r.unit === 'days' ? v.toDecimalPlaces(0).toFixed(0) : toStr(v);
     out.push({ ...r, inputs: Object.fromEntries(Object.entries(r.inputs).map(([k, v]) => [k, v === null ? null : toStr(v)])),
-      value: ok ? (r.unit === 'ratio' || r.unit === 'times' ? r.value!.toDecimalPlaces(2).toFixed(2) : r.unit === 'days' ? r.value!.toDecimalPlaces(0).toFixed(0) : toStr(r.value!)) : null,
-      status: ok ? 'ok' : 'insufficient_data', note: ok ? r.note : (r.note ?? 'بيانات غير كافية للاحتساب') });
+      value: ok ? fmtVal(r.value!) : (r.notMeaningful && r.value !== null ? fmtVal(r.value) : null),
+      status: ok ? 'ok' : r.notMeaningful ? 'not_meaningful' : 'insufficient_data', note: ok ? r.note : (r.notMeaningful ?? r.note ?? 'بيانات غير كافية للاحتساب') });
   };
+  // مقام ضئيل جدًا نسبةً للبسط يجعل نسب السيولة غير قابلة للتفسير الاقتصادي
+  const tinyCl = (ca !== null && cl !== null) && (cl.isZero() || (ca.gt(0) && cl.div(ca).lt('0.02'))) ? 'الالتزامات المتداولة ضئيلة جدًا نسبةً للأصول المتداولة؛ النسبة غير ذات معنى اقتصاديًا' : null;
 
-  const ca = get('current_assets'), cl = get('current_liabilities'), inv = get('inventory'), cash = get('cash');
+  const inv = get('inventory'), cash = get('cash');
   const ta = get('total_assets'), tl = get('total_liabilities'), te = get('total_equity'), rev = get('revenue'), cogs = get('cogs');
   const gp = get('gross_profit'), op = get('operating_profit'), ni = get('net_income'), ar = get('receivables_gross'), ap = get('payables');
   const loans = get('loans'), fc = get('finance_cost'), ocf = get('operating_cash_flow');
@@ -43,12 +47,12 @@ export function computeRatios(kf: KF, opts: { periodDays?: number; priorKf?: KF 
 
   // السيولة
   push({ code: 'current_ratio', group: 'liquidity', label_ar: 'نسبة التداول', label_en: 'Current ratio', formula_ar: 'الأصول المتداولة ÷ الالتزامات المتداولة', formula: 'current_assets / current_liabilities',
-    inputs: { current_assets: ca, current_liabilities: cl }, value: nn(ca, cl) ? safeDiv(ca!, cl!) : null, unit: 'ratio',
-    note: nn(ca, cl) && cl!.isZero() ? 'الالتزامات المتداولة صفر' : undefined, interpretation_ar: 'أقل من 1 يشير إلى ضغط على السيولة قصيرة الأجل.' });
+    inputs: { current_assets: ca, current_liabilities: cl }, value: nn(ca, cl) ? safeDiv(ca!, cl!) : null, unit: 'ratio', notMeaningful: tinyCl,
+    note: nn(ca, cl) && cl!.isZero() ? 'الالتزامات المتداولة صفر' : undefined, interpretation_ar: 'أقل من 1 يشير إلى ضغط على السيولة قصيرة الأجل؛ ارتفاعها الشديد لا يعني انخفاض المخاطر دون فحص قابلية تحصيل الأصول المتداولة.' });
   push({ code: 'quick_ratio', group: 'liquidity', label_ar: 'نسبة السيولة السريعة', label_en: 'Quick ratio', formula_ar: '(الأصول المتداولة − المخزون) ÷ الالتزامات المتداولة', formula: '(current_assets - inventory) / current_liabilities',
-    inputs: { current_assets: ca, inventory: inv, current_liabilities: cl }, value: nn(ca, cl) ? safeDiv(ca!.minus(inv ?? 0), cl!) : null, unit: 'ratio' });
+    inputs: { current_assets: ca, inventory: inv, current_liabilities: cl }, value: nn(ca, cl) ? safeDiv(ca!.minus(inv ?? 0), cl!) : null, unit: 'ratio', notMeaningful: tinyCl });
   push({ code: 'cash_ratio', group: 'liquidity', label_ar: 'نسبة النقدية', label_en: 'Cash ratio', formula_ar: 'النقد ÷ الالتزامات المتداولة', formula: 'cash / current_liabilities',
-    inputs: { cash, current_liabilities: cl }, value: nn(cash, cl) ? safeDiv(cash!, cl!) : null, unit: 'ratio' });
+    inputs: { cash, current_liabilities: cl }, value: nn(cash, cl) ? safeDiv(cash!, cl!) : null, unit: 'ratio', notMeaningful: tinyCl });
   push({ code: 'working_capital', group: 'liquidity', label_ar: 'رأس المال العامل', label_en: 'Working capital', formula_ar: 'الأصول المتداولة − الالتزامات المتداولة', formula: 'current_assets - current_liabilities',
     inputs: { current_assets: ca, current_liabilities: cl }, value: nn(ca, cl) ? ca!.minus(cl!) : null, unit: 'amount' });
   // المديونية
@@ -62,7 +66,7 @@ export function computeRatios(kf: KF, opts: { periodDays?: number; priorKf?: KF 
   push({ code: 'equity_ratio', group: 'leverage', label_ar: 'نسبة حقوق الملكية إلى الأصول', label_en: 'Equity ratio', formula_ar: 'حقوق الملكية ÷ إجمالي الأصول', formula: 'total_equity / total_assets',
     inputs: { total_equity: te, total_assets: ta }, value: nn(te, ta) ? safeDiv(te!, ta!) : null, unit: 'ratio' });
   push({ code: 'interest_coverage', group: 'leverage', label_ar: 'تغطية تكاليف التمويل', label_en: 'Interest coverage', formula_ar: 'الربح التشغيلي ÷ تكاليف التمويل', formula: 'operating_profit / finance_cost',
-    inputs: { operating_profit: op, finance_cost: fc }, value: nn(op, fc) && !fc!.isZero() ? safeDiv(op!, fc!) : null, unit: 'times', note: fc && fc.isZero() ? 'لا توجد تكاليف تمويل' : undefined });
+    inputs: { operating_profit: op, finance_cost: fc }, value: nn(op, fc) && !fc!.isZero() ? safeDiv(op!, fc!) : null, unit: 'times', note: fc && fc.isZero() ? 'لا توجد تكاليف تمويل' : undefined, notMeaningful: op && op.lte(0) ? 'الربح التشغيلي صفر أو سالب؛ التغطية غير ذات معنى' : (fc && fc.gt(0) && op && fc.lt(op.abs().mul('0.001')) ? 'تكاليف التمويل ضئيلة جدًا؛ النسبة غير ذات معنى' : null) });
   // الربحية
   const pctOf = (a: Decimal | null, b: Decimal | null) => (nn(a, b) && !b!.isZero() ? safeDiv(a!, b!)!.mul(100) : null);
   push({ code: 'gross_margin', group: 'profitability', label_ar: 'هامش مجمل الربح', label_en: 'Gross profit margin', formula_ar: 'مجمل الربح ÷ صافي الإيرادات × 100', formula: 'gross_profit / revenue * 100',
@@ -98,9 +102,9 @@ export function computeRatios(kf: KF, opts: { periodDays?: number; priorKf?: KF 
     inputs: { revenue: rev, avg_total_assets: avgAssets }, value: nn(rev, avgAssets) && avgAssets!.gt(0) ? safeDiv(rev!, avgAssets!) : null, unit: 'times' });
   // التدفق النقدي
   push({ code: 'ocf_to_net_income', group: 'cash_flow', label_ar: 'التدفق النقدي التشغيلي ÷ صافي الربح', label_en: 'Operating cash flow to net income', formula_ar: 'صافي النقد من التشغيل ÷ صافي الربح', formula: 'operating_cash_flow / net_income',
-    inputs: { operating_cash_flow: ocf, net_income: ni }, value: nn(ocf, ni) && ni!.gt(0) ? safeDiv(ocf!, ni!) : null, unit: 'ratio',
-    note: ocf === null ? 'قائمة التدفقات النقدية غير متاحة' : ni && ni.lte(0) ? 'صافي الربح صفر أو سالب؛ النسبة غير ذات معنى' : undefined, interpretation_ar: 'يميز الربح المحاسبي عن النقد الفعلي؛ نسبة منخفضة باستمرار تستدعي التحقق من جودة الأرباح.' });
+    inputs: { operating_cash_flow: ocf, net_income: ni }, value: nn(ocf, ni) && !ni!.isZero() ? safeDiv(ocf!, ni!) : null, unit: 'ratio', notMeaningful: ni && ni.lte(0) ? 'صافي الربح صفر أو سالب؛ النسبة غير ذات معنى' : null,
+    note: ocf === null ? 'قائمة التدفقات النقدية غير متاحة' : 'التدفق النقدي مشتق من ميزان المراجعة (استرشادي)', interpretation_ar: 'يميز الربح المحاسبي عن النقد الفعلي؛ نسبة منخفضة باستمرار تستدعي التحقق من جودة الأرباح.' });
   push({ code: 'ocf_to_current_liabilities', group: 'cash_flow', label_ar: 'التدفق النقدي التشغيلي ÷ الالتزامات المتداولة', label_en: 'Operating cash flow ratio', formula_ar: 'صافي النقد من التشغيل ÷ الالتزامات المتداولة', formula: 'operating_cash_flow / current_liabilities',
-    inputs: { operating_cash_flow: ocf, current_liabilities: cl }, value: nn(ocf, cl) && !cl!.isZero() ? safeDiv(ocf!, cl!) : null, unit: 'ratio' });
+    inputs: { operating_cash_flow: ocf, current_liabilities: cl }, value: nn(ocf, cl) && !cl!.isZero() ? safeDiv(ocf!, cl!) : null, unit: 'ratio', notMeaningful: tinyCl, note: 'التدفق النقدي مشتق من ميزان المراجعة (استرشادي)' });
   return out;
 }

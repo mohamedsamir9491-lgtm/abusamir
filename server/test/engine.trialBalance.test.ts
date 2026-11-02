@@ -162,7 +162,7 @@ describe('ratios', () => {
     expect(by.debt_to_equity.value).toBe('0.98');
     expect(by.ocf_to_net_income.status).toBe('ok');
     const r2 = computeRatios({ current_assets: '100', current_liabilities: '0', revenue: null });
-    expect(Object.fromEntries(r2.map((x) => [x.code, x])).current_ratio.status).toBe('insufficient_data');
+    expect(Object.fromEntries(r2.map((x) => [x.code, x])).current_ratio.status).toBe('not_meaningful');
     expect(Object.fromEntries(r2.map((x) => [x.code, x])).gross_margin.status).toBe('insufficient_data');
   });
 });

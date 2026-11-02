@@ -203,7 +203,9 @@ describe('reports: templates, editing, approval workflow, PDF/Excel', () => {
   });
   it('enforces the draft -> reviewed -> approved workflow with segregation of duties', async () => {
     expect((await request(app).post(`/api/reports/${reportId}/status`).set(auth(accountant)).send({ status: 'approved' })).status).toBe(400);
-    expect((await request(app).post(`/api/reports/${reportId}/status`).set(auth(accountant)).send({ status: 'reviewed' })).status).toBe(200);
+    // المُعد لا يستطيع تعليم تقريره كمُراجَع (لا تُدّعى مراجعة لم تحدث)
+    expect((await request(app).post(`/api/reports/${reportId}/status`).set(auth(accountant)).send({ status: 'reviewed' })).status).toBe(400);
+    expect((await request(app).post(`/api/reports/${reportId}/status`).set(auth(reviewer)).send({ status: 'reviewed' })).status).toBe(200);
     expect((await request(app).post(`/api/reports/${reportId}/status`).set(auth(accountant)).send({ status: 'approved' })).status).toBe(403);
     expect((await request(app).post(`/api/reports/${reportId}/status`).set(auth(reviewer)).send({ status: 'approved', note: 'معتمد' })).status).toBe(200);
     const d = (await request(app).get(`/api/reports/${reportId}`).set(auth(accountant))).body; expect(d.report.status).toBe('approved'); expect(d.version.content.meta.approver).toBe('مستخدم reviewer');

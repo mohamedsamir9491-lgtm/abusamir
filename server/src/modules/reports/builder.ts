@@ -79,8 +79,9 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       blocks.push(p('لا يشمل النطاق إجراءات تأكيد مستقلة مثل المصادقات الخارجية أو الجرد الفعلي أو فحص المستندات الأصلية ما لم يُذكر خلاف ذلك.'));
       break;
     case 'sources':
-      blocks.push({ type: 'table', columns: [{ key: 'name', label: 'المستند' }, { key: 'type', label: 'النوع' }, { key: 'status', label: 'الحالة' }, { key: 'rows', label: 'سطور البيانات', numeric: true }, { key: 'hash', label: 'بصمة الملف' }],
-        rows: (snap.documents as Record<string, unknown>[]).map((d) => ({ name: String(d.title ?? d.original_name), type: (DATA_TYPE_LABELS as Record<string, string>)[String(d.data_type ?? d.document_type)] ?? String(d.data_type ?? d.document_type), status: d.committed_at ? `معتمد ${fmtDate(String(d.committed_at).slice(0, 10), false)}` : 'مرفوع', rows: d.data_rows == null ? '—' : String(d.data_rows), hash: String(d.sha256).slice(0, 12) })) });
+      blocks.push({ type: 'table', columns: [{ key: 'name', label: 'المستند' }, { key: 'type', label: 'النوع' }, { key: 'uploaded', label: 'تاريخ الرفع' }, { key: 'status', label: 'الحالة' }, { key: 'rows', label: 'سطور البيانات', numeric: true }],
+        rows: (snap.documents as Record<string, unknown>[]).map((d) => ({ name: String(d.title ?? d.original_name), type: (DATA_TYPE_LABELS as Record<string, string>)[String(d.data_type ?? d.document_type)] ?? String(d.data_type ?? d.document_type), uploaded: fmtDate(String(d.uploaded_at ?? '').slice(0, 10), false), status: d.committed_at ? `معتمد ${fmtDate(String(d.committed_at).slice(0, 10), false)}` : 'مرفوع', rows: d.data_rows == null ? '—' : String(d.data_rows) })) });
+      blocks.push({ type: 'table', caption: 'البصمة الرقمية الكاملة للمستندات (SHA-256)', columns: [{ key: 'name', label: 'المستند' }, { key: 'hash', label: 'SHA-256' }], rows: (snap.documents as Record<string, unknown>[]).map((d) => ({ name: String(d.original_name), hash: String(d.sha256) })) });
       if (snap.tb) blocks.push(p(`آخر فحص لميزان المراجعة: ${fmtDate(snap.tb.run_at.slice(0, 10))}. حد الأهمية النسبية المستخدم: ${fmtMoney(snap.tb.summary.materiality as string)} ${curr} (${snap.tb.summary.materiality_basis}).`));
       break;
     case 'summary': {
@@ -96,8 +97,8 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
         const kf = st.key_figures;
         items.push(`صافي الإيرادات ${fmtMoney(kf.revenue)} ${curr}، مجمل الربح ${fmtMoney(kf.gross_profit)}، صافي ${D(kf.net_income ?? 0).lt(0) ? 'الخسارة' : 'الربح'} ${fmtMoney(kf.net_income)}.`);
         items.push(`إجمالي الأصول ${fmtMoney(kf.total_assets)}، إجمالي الالتزامات ${fmtMoney(kf.total_liabilities)}، حقوق الملكية ${fmtMoney(kf.total_equity)}.`);
-        if (snap.ratios) { const by = Object.fromEntries(snap.ratios.map((r) => [r.code, r])); items.push(`نسبة التداول ${fmtRatio(by.current_ratio?.value, 'ratio')}، هامش صافي الربح ${fmtRatio(by.net_margin?.value, 'pct')}، فترة التحصيل ${fmtRatio(by.dso?.value, 'days')}.`); }
-        if (st.cf.status === 'ok') { const op = st.cf.totals.find((t) => t.key === 'operating'); if (op) items.push(`صافي النقد من الأنشطة التشغيلية ${fmtMoney(op.value)} ${curr} مقابل ربح محاسبي ${fmtMoney(kf.net_income)} (يُميَّز الربح المحاسبي عن التدفق النقدي).`); }
+        if (snap.ratios) { const by = Object.fromEntries(snap.ratios.map((r) => [r.code, r])); const sv = (r: (typeof snap.ratios)[number] | undefined, u: string) => !r ? '—' : r.status === 'ok' ? fmtRatio(r.value, u) : r.status === 'not_meaningful' ? 'غير ذات معنى' : 'غير قابلة للاحتساب'; items.push(`نسبة التداول ${sv(by.current_ratio, 'ratio')}، هامش صافي الربح ${sv(by.net_margin, 'pct')}، فترة التحصيل ${sv(by.dso, 'days')}.`); }
+        if (st.cf.status === 'ok') { const op = st.cf.totals.find((t) => t.key === 'operating'); if (op) items.push(`صافي النقد من الأنشطة التشغيلية (مشتق من ميزان المراجعة، استرشادي) ${fmtMoney(op.value)} ${curr} مقابل نتيجة محاسبية ${fmtMoney(kf.net_income)}.`); }
       }
       if (snap.ai?.executive_summary_ar) { blocks.push({ type: 'list', items }); blocks.push({ type: 'heading', text: 'ملخص تحليلي (مساعد ذكي - تمت مراجعته)' }); blocks.push(p(String(snap.ai.executive_summary_ar))); }
       else blocks.push({ type: 'list', items: items.length ? items : ['لم تُنفذ فحوصات بعد لهذه الفترة.'] });
@@ -155,9 +156,10 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       const showF = !!sec.options?.show_formulas;
       const columns = [{ key: 'label', label: 'النسبة' }, { key: 'value', label: cur, numeric: true }, ...(hasPrior ? [{ key: 'prior', label: snap.prior!.label, numeric: true }] : []), { key: 'formula', label: 'المعادلة' }, ...(showF ? [{ key: 'inputs', label: 'المدخلات' }] : [])];
       const rows: Record<string, string | null>[] = [];
-      for (const g of groups) { rows.push({ label: gl[g], _group: '1' }); for (const r of snap.ratios.filter((x) => x.group === g)) rows.push({ label: r.label_ar, value: fmtRatio(r.value, r.unit), prior: hasPrior ? fmtRatio(r.prior_value ?? null, r.unit) : null, formula: r.formula_ar + (r.note && r.status === 'ok' ? ` (${r.note})` : ''), inputs: showF ? Object.entries(r.inputs).map(([k, v]) => `${k}=${v == null ? '—' : fmtMoney(v)}`).join('؛ ') : null }); }
+      const showVal = (r: (typeof snap.ratios)[number]) => r.status === 'ok' ? fmtRatio(r.value, r.unit) : r.status === 'not_meaningful' ? `غير ذات معنى${r.value ? ` (${fmtRatio(r.value, r.unit)})` : ''}` : 'غير قابلة للاحتساب';
+      for (const g of groups) { rows.push({ label: gl[g], _group: '1' }); for (const r of snap.ratios.filter((x) => x.group === g)) rows.push({ label: r.label_ar, value: showVal(r), prior: hasPrior ? fmtRatio(r.prior_value ?? null, r.unit) : null, formula: r.formula_ar + (r.note ? ` — ${r.note}` : ''), inputs: showF ? Object.entries(r.inputs).map(([k, v]) => `${k}=${v == null ? '—' : fmtMoney(v)}`).join('؛ ') : null }); }
       blocks.push({ type: 'table', columns, rows, repeat_header: true });
-      blocks.push(note('"بيانات غير كافية" تعني تعذر الاحتساب بشكل موثوق من البيانات المتاحة ولم يُفترض أي رقم.', 'info'));
+      blocks.push(note('"غير قابلة للاحتساب" تعني نقص البيانات؛ "غير ذات معنى" تعني أن المقام أو الإشارة تجعل النسبة بلا تفسير اقتصادي، ويُذكر السبب بجوار المعادلة. لم يُفترض أي رقم.', 'info'));
       break;
     }
     case 'variance': {
@@ -260,7 +262,8 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       blocks.push(p(snap.office.disclaimer_ar || 'أُعد هذا التقرير لأغراض الاستخدام الداخلي للعميل والمكتب بناءً على البيانات المقدمة من الإدارة، ولا يُعد تقرير مراجع حسابات مستقل ولا يتضمن رأيًا تأكيديًا على القوائم المالية. لا يتحمل المكتب مسؤولية أي قرار يُتخذ اعتمادًا عليه دون الرجوع إلى المستندات الأصلية والجهات المختصة.'));
       break;
     case 'signatures':
-      blocks.push({ type: 'kv', items: [{ label: 'أعدّه', value: meta.preparer ?? '______________' }, { label: 'راجعه', value: meta.reviewer ?? '______________' }, { label: 'اعتمده', value: meta.approver ?? '______________' }, { label: 'المفوض بالتوقيع', value: [snap.office.signatory_name, snap.office.signatory_title].filter(Boolean).join(' - ') || '______________' }] });
+      blocks.push({ type: 'kv', items: [{ label: 'التحقق الحسابي', value: 'آلي بمحرك البرنامج الحتمي (توازن الموازين، المعادلة المحاسبية، النسب)' }, { label: 'أعدّه', value: meta.preparer ?? '______________' }, { label: 'المراجعة المهنية', value: meta.reviewer ?? 'لم تتم مراجعة مهنية مستقلة بعد' }, { label: 'الاعتماد', value: meta.approver ?? 'غير معتمد' }, { label: 'المفوض بالتوقيع', value: [snap.office.signatory_name, snap.office.signatory_title].filter(Boolean).join(' - ') || '______________' }] });
+      blocks.push(note(`حالة هذا الإصدار: ${({ draft: 'مسودة - غير مراجعة وغير معتمدة', reviewed: 'تمت مراجعته مهنيًا من مستخدم مختلف عن المُعد - غير معتمد للإصدار', approved: 'معتمد للإصدار', issued: 'صادر' } as Record<string, string>)[meta.status] ?? meta.status}. النتائج غير مدققة ولا تمثل رأي مراجع مستقل.`, meta.status === 'draft' ? 'warning' : 'info'));
       break;
     case 'checklist':
       blocks.push({ type: 'list', items: (snap.ai?.review_checklist as string[] | undefined) ?? ['التحقق من توازن ميزان المراجعة.', 'مراجعة تصنيف الحسابات ذات الثقة المنخفضة.', 'تسوية الحسابات المعلقة.', 'مطابقة الذمم والبنوك مع السجلات الفرعية.', 'الحصول على تفسيرات الإدارة للتغيرات الجوهرية.', 'مراجعة التسويات المقترحة واعتمادها أو رفضها.'] });
