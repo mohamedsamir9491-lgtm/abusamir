@@ -98,8 +98,8 @@ export function computeRatios(kf: KF, opts: { periodDays?: number; priorKf?: KF 
     inputs: { revenue: rev, avg_total_assets: avgAssets }, value: nn(rev, avgAssets) && avgAssets!.gt(0) ? safeDiv(rev!, avgAssets!) : null, unit: 'times' });
   // التدفق النقدي
   push({ code: 'ocf_to_net_income', group: 'cash_flow', label_ar: 'التدفق النقدي التشغيلي ÷ صافي الربح', label_en: 'Operating cash flow to net income', formula_ar: 'صافي النقد من التشغيل ÷ صافي الربح', formula: 'operating_cash_flow / net_income',
-    inputs: { operating_cash_flow: ocf, net_income: ni }, value: nn(ocf, ni) && !ni!.isZero() ? safeDiv(ocf!, ni!) : null, unit: 'ratio',
-    note: ocf === null ? 'قائمة التدفقات النقدية غير متاحة' : undefined, interpretation_ar: 'يميز الربح المحاسبي عن النقد الفعلي؛ نسبة منخفضة باستمرار تستدعي التحقق من جودة الأرباح.' });
+    inputs: { operating_cash_flow: ocf, net_income: ni }, value: nn(ocf, ni) && ni!.gt(0) ? safeDiv(ocf!, ni!) : null, unit: 'ratio',
+    note: ocf === null ? 'قائمة التدفقات النقدية غير متاحة' : ni && ni.lte(0) ? 'صافي الربح صفر أو سالب؛ النسبة غير ذات معنى' : undefined, interpretation_ar: 'يميز الربح المحاسبي عن النقد الفعلي؛ نسبة منخفضة باستمرار تستدعي التحقق من جودة الأرباح.' });
   push({ code: 'ocf_to_current_liabilities', group: 'cash_flow', label_ar: 'التدفق النقدي التشغيلي ÷ الالتزامات المتداولة', label_en: 'Operating cash flow ratio', formula_ar: 'صافي النقد من التشغيل ÷ الالتزامات المتداولة', formula: 'operating_cash_flow / current_liabilities',
     inputs: { operating_cash_flow: ocf, current_liabilities: cl }, value: nn(ocf, cl) && !cl!.isZero() ? safeDiv(ocf!, cl!) : null, unit: 'ratio' });
   return out;

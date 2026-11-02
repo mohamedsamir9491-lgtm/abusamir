@@ -22,10 +22,18 @@ export async function collectSnapshot(engagementId: string, periodId: string, pr
   const office = await getOfficeSettings();
   const tbRun = await latestRun(periodId, 'tb_validation') as { id: string; summary: Record<string, unknown>; result: { accounts?: unknown[] } ; started_at: string } | undefined;
   const pkg = await getStatementsPackage(periodId);
-  const findings = await many(`SELECT f.*, d.title AS source_document_title FROM findings f LEFT JOIN source_documents d ON d.id = f.source_document_id WHERE f.period_id = $1 AND f.review_status <> 'rejected'
+  const findings = await many(`SELECT f.*, d.title AS source_document_title FROM findings f LEFT JOIN source_documents d ON d.id = f.source_document_id WHERE f.period_id = $1 AND f.review_status NOT IN ('rejected', 'resolved')
     ORDER BY CASE f.severity WHEN 'critical' THEN 5 WHEN 'high' THEN 4 WHEN 'medium' THEN 3 WHEN 'low' THEN 2 ELSE 1 END DESC, COALESCE(f.amount,0) DESC, f.finding_ref`, [periodId]);
   const adjustments = await many(`SELECT a.*, f.finding_ref FROM proposed_adjustments a LEFT JOIN findings f ON f.id = a.finding_id WHERE a.engagement_id = $1 AND (a.period_id = $2 OR a.period_id IS NULL) ORDER BY a.adj_ref`, [engagementId, periodId]);
-  const documents = await many(`SELECT d.id, d.title, d.document_type, d.status, d.uploaded_at, f.original_name, f.sha256, j.data_type, j.committed_at, j.row_count FROM source_documents d JOIN stored_files f ON f.id = d.file_id LEFT JOIN import_jobs j ON j.document_id = d.id AND j.status = 'committed' WHERE d.engagement_id = $1 AND d.deleted_at IS NULL ORDER BY d.uploaded_at`, [engagementId]);
+  // المستندات: آخر اعتماد لكل نوع بيانات وفترة (الاستيرادات المستبدلة لا تُعرض)، إضافة إلى المستندات غير المعتمدة
+  const documents = await many(`WITH committed AS (
+      SELECT DISTINCT ON (j.data_type, j.period_id) j.document_id, j.data_type, j.committed_at,
+             COALESCE((j.validation_report->>'ok')::int, 0) + COALESCE((j.validation_report->>'warnings')::int, 0) AS data_rows
+        FROM import_jobs j WHERE j.engagement_id = $1 AND j.status = 'committed' ORDER BY j.data_type, j.period_id, j.committed_at DESC)
+    SELECT d.id, d.title, d.document_type, d.status, d.uploaded_at, f.original_name, f.sha256, c.data_type, c.committed_at, c.data_rows
+      FROM source_documents d JOIN stored_files f ON f.id = d.file_id LEFT JOIN committed c ON c.document_id = d.id
+     WHERE d.engagement_id = $1 AND d.deleted_at IS NULL AND (c.document_id IS NOT NULL OR NOT EXISTS (SELECT 1 FROM import_jobs j2 WHERE j2.document_id = d.id AND j2.status = 'committed'))
+     ORDER BY d.uploaded_at`, [engagementId]);
   const ai = await latestAiAnalysis(periodId);
   const sub: Record<string, unknown> = {};
   for (const t of ['receivable', 'payable', 'fixed_asset', 'inventory', 'bank_transaction']) { const r = await latestRun(periodId, `subledger_${t}`); if (r) sub[t] = r; }

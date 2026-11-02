@@ -53,13 +53,14 @@ function renderBlock(b: ReportBlock): string {
     case 'paragraph': return b.text.trim() ? nl2p(b.text) : '';
     case 'heading': return `<h3>${esc(b.text)}</h3>`;
     case 'list': return `<${b.ordered ? 'ol' : 'ul'}>${b.items.map((i) => `<li>${esc(i)}</li>`).join('')}</${b.ordered ? 'ol' : 'ul'}>`;
-    case 'kv': return `<table class="kv"><tbody>${b.items.map((i) => `<tr><th>${esc(i.label)}</th><td>${esc(i.value)}</td></tr>`).join('')}</tbody></table>`;
+    case 'kv': return `<table class="kv keep"><tbody>${b.items.map((i) => `<tr><th>${esc(i.label)}</th><td>${esc(i.value)}</td></tr>`).join('')}</tbody></table>`;
     case 'note': return `<div class="note ${b.tone}">${esc(b.text)}</div>`;
     case 'page_break': return '<div class="page-break"></div>';
     case 'table': {
       const head = `<thead><tr>${b.columns.map((c) => `<th class="${c.numeric ? 'num' : ''}"${c.width ? ` style="width:${c.width}"` : ''}>${esc(c.label)}</th>`).join('')}</tr></thead>`;
       const row = (r: Record<string, string | null>, cls = '') => `<tr class="${cls}${r._group ? ' group' : ''}${r._total ? ' total' : ''}">${b.columns.map((c) => `<td class="${c.numeric ? 'num' : ''}">${esc(r[c.key] ?? '')}</td>`).join('')}</tr>`;
-      return `${b.caption ? `<div class="caption">${esc(b.caption)}</div>` : ''}<table class="data">${head}<tbody>${b.rows.map((r) => row(r)).join('')}${(b.total_rows ?? []).map((r) => row(r, 'total')).join('')}</tbody></table>`;
+      const keep = b.rows.length + (b.total_rows?.length ?? 0) <= 15 ? ' keep' : '';
+      return `${b.caption ? `<div class="caption">${esc(b.caption)}</div>` : ''}<table class="data${keep}">${head}<tbody>${b.rows.map((r) => row(r)).join('')}${(b.total_rows ?? []).map((r) => row(r, 'total')).join('')}</tbody></table>`;
     }
     case 'findings':
       return b.items.map((f) => `<div class="finding sev-${esc(f.severity)}">
@@ -82,7 +83,10 @@ export function baseCss(lh: OfficeLetterhead): string {
   h1{font-size:20pt;color:var(--primary);margin:0 0 6mm;text-align:center}
   h2{font-size:14pt;color:var(--primary);border-bottom:1.5px solid var(--primary);padding-bottom:1.5mm;margin:8mm 0 3mm;page-break-after:avoid}
   h3{font-size:12pt;margin:5mm 0 2mm;page-break-after:avoid}
-  p{margin:0 0 2.5mm;text-align:justify}
+  p{margin:0 0 2.5mm;text-align:justify;orphans:3;widows:3}
+  .keep{page-break-inside:avoid;break-inside:avoid}
+  h2+*{page-break-before:avoid}
+  ul,ol{orphans:2;widows:2}
   ul,ol{margin:0 0 3mm;padding-right:6mm}
   li{margin-bottom:1mm}
   table{border-collapse:collapse;width:100%;margin:2mm 0 4mm;font-size:10pt;page-break-inside:auto}
@@ -112,10 +116,12 @@ export function baseCss(lh: OfficeLetterhead): string {
   .f-ref{font-weight:700;color:var(--primary)}.f-title{font-weight:700;flex:1}
   .badge{font-size:8.5pt;padding:0.3mm 2mm;border-radius:2mm;background:#e8edf4}.badge.sev{background:#fbe9e7}
   .page-break{page-break-after:always}
-  .cover{text-align:center;padding:14mm 0 8mm}
-  .cover .t{font-size:22pt;font-weight:700;color:var(--primary);margin:6mm 0 3mm}
-  .cover .c{font-size:15pt;margin:2mm 0}
-  .cover .meta{font-size:11pt;color:#444;margin-top:5mm}
+  .cover{text-align:center;padding:6mm 0 4mm;page-break-inside:avoid}
+  .cover .t{font-size:20pt;font-weight:700;color:var(--primary);margin:4mm 0 2mm;line-height:1.4}
+  .cover .c{font-size:14pt;margin:1.5mm 0}
+  .cover .meta{font-size:10.5pt;color:#444;margin-top:3mm}
+  .cover-kv{page-break-inside:avoid}
+  .cover-kv table.kv{margin:4mm auto 0;width:80%}.cover-kv table.kv th,.cover-kv table.kv td{padding:1mm 2mm;font-size:10pt}
   .conf{display:inline-block;border:1px solid #c0392b;color:#c0392b;padding:0.5mm 4mm;border-radius:1mm;font-size:9.5pt;margin-top:4mm}
   .demo{display:inline-block;background:#fff3cd;border:1px solid #d49a00;padding:1mm 4mm;margin-top:3mm;font-weight:700}
   .signatures{display:flex;gap:10mm;margin-top:8mm;page-break-inside:avoid}
@@ -133,8 +139,9 @@ function letterheadHtml(lh: OfficeLetterhead, meta: ReportContent['meta']): stri
     return lh.letterhead_template_ar.replace(/\{\{(\w+)\}\}/g, (_, k: string) => esc(({ name_ar: lh.name_ar, name_en: lh.name_en, cr_number: lh.cr_number, license_number: lh.license_number, address_ar: lh.address_ar, phone: lh.phone, email: lh.email, website: lh.website, vat_number: lh.vat_number, reference_no: meta.reference_no, client_name: meta.client_name, logo: '' } as Record<string, string | null>)[k] ?? ''))
       .replace(/\{\{logo\}\}/g, lh.logo_data_url ? `<img src="${lh.logo_data_url}" style="max-height:${Math.max(8, lh.header_height_mm - 6)}mm">` : '');
   }
+  const nameAr = lh.name_ar || meta.title; const nameEn = lh.name_ar ? lh.name_en : '';
   return `<div class="lh" style="display:flex;align-items:center;justify-content:space-between;height:${lh.header_height_mm}mm;border-bottom:1.5px solid ${lh.primary_color};padding-bottom:1.5mm">
-    <div><div class="name">${esc(lh.name_ar)}</div><div class="en">${esc(lh.name_en)}</div>
+    <div><div class="name">${esc(nameAr)}</div><div class="en">${esc(nameEn)}</div>
       <div>${[lh.license_number ? `ترخيص رقم ${esc(lh.license_number)}${lh.license_authority ? ' - ' + esc(lh.license_authority) : ''}` : '', lh.cr_number ? `س.ت ${esc(lh.cr_number)}` : ''].filter(Boolean).join(' | ')}</div></div>
     <div style="text-align:left;direction:ltr;font-size:8.5pt;color:#555">${esc(meta.reference_no)}<br>${esc(meta.client_name)}</div>
     ${lh.logo_data_url ? `<img src="${lh.logo_data_url}" style="max-height:${Math.max(8, lh.header_height_mm - 6)}mm;max-width:45mm">` : ''}
@@ -157,7 +164,7 @@ export function renderReportHtml(content: ReportContent, lh: OfficeLetterhead, o
     <div class="meta">الفترة المالية: ${esc(m.period_label)} (${esc(m.period_range)})<br>مرجع التقرير: ${esc(m.reference_no)} | تاريخ الإعداد: ${esc(fmtDate(m.prepared_date))}<br>الحالة: ${esc({ draft: 'مسودة - غير معتمد', reviewed: 'تمت المراجعة - بانتظار الاعتماد', approved: 'معتمد للإصدار', issued: 'صادر' }[m.status] ?? m.status)}</div>
     <div class="conf">${esc(m.confidentiality)}</div>${m.is_demo ? '<br><span class="demo">بيانات تجريبية - ليست سجلات عميل فعلي</span>' : ''}
   </div>`);
-  if (cover) body.push(cover.blocks.map(renderBlock).join(''));
+  if (cover) body.push(`<div class="cover-kv">${cover.blocks.map(renderBlock).join('')}</div>`);
   body.push('<div class="page-break"></div>');
   for (const s of sections) {
     if (s.type === 'cover') continue;

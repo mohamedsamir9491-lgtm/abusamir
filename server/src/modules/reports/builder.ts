@@ -59,8 +59,7 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       blocks.push({ type: 'kv', items: [
         { label: 'العميل', value: meta.client_name }, { label: 'نوع الكيان', value: ENTITY_LABELS[snap.engagement.entity_type ?? ''] ?? '—' },
         ...(snap.engagement.cr_number ? [{ label: 'السجل التجاري', value: snap.engagement.cr_number }] : []), ...(snap.engagement.vat_number ? [{ label: 'الرقم الضريبي', value: snap.engagement.vat_number }] : []),
-        { label: 'الفترة المالية', value: `${cur} (${meta.period_range})` }, { label: 'نوع الارتباط', value: meta.engagement_type }, { label: 'إطار التقرير المالي', value: meta.framework },
-        { label: 'عملة العرض', value: curr }, { label: 'مرجع التقرير', value: meta.reference_no }, { label: 'تاريخ الإعداد', value: fmtDate(meta.prepared_date) }, { label: 'التصنيف', value: meta.confidentiality } ] });
+        { label: 'نوع الارتباط', value: meta.engagement_type }, { label: 'إطار التقرير المالي', value: meta.framework }, { label: 'عملة العرض', value: curr } ] });
       if (meta.is_demo) blocks.push(note('هذا التقرير مبني على بيانات تجريبية مُعلَّمة كبيانات اختبار وليست سجلات عميل فعلي.', 'warning'));
       break;
     case 'intro':
@@ -80,8 +79,8 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       blocks.push(p('لا يشمل النطاق إجراءات تأكيد مستقلة مثل المصادقات الخارجية أو الجرد الفعلي أو فحص المستندات الأصلية ما لم يُذكر خلاف ذلك.'));
       break;
     case 'sources':
-      blocks.push({ type: 'table', columns: [{ key: 'name', label: 'المستند' }, { key: 'type', label: 'النوع' }, { key: 'status', label: 'الحالة' }, { key: 'rows', label: 'الصفوف', numeric: true }, { key: 'hash', label: 'بصمة الملف (SHA-256)' }],
-        rows: (snap.documents as Record<string, unknown>[]).map((d) => ({ name: String(d.title ?? d.original_name), type: (DATA_TYPE_LABELS as Record<string, string>)[String(d.data_type ?? d.document_type)] ?? String(d.data_type ?? d.document_type), status: d.committed_at ? `معتمد ${fmtDate(String(d.committed_at).slice(0, 10), false)}` : 'مرفوع', rows: d.row_count == null ? '—' : String(d.row_count), hash: String(d.sha256).slice(0, 16) + '…' })) });
+      blocks.push({ type: 'table', columns: [{ key: 'name', label: 'المستند' }, { key: 'type', label: 'النوع' }, { key: 'status', label: 'الحالة' }, { key: 'rows', label: 'سطور البيانات', numeric: true }, { key: 'hash', label: 'بصمة الملف' }],
+        rows: (snap.documents as Record<string, unknown>[]).map((d) => ({ name: String(d.title ?? d.original_name), type: (DATA_TYPE_LABELS as Record<string, string>)[String(d.data_type ?? d.document_type)] ?? String(d.data_type ?? d.document_type), status: d.committed_at ? `معتمد ${fmtDate(String(d.committed_at).slice(0, 10), false)}` : 'مرفوع', rows: d.data_rows == null ? '—' : String(d.data_rows), hash: String(d.sha256).slice(0, 12) })) });
       if (snap.tb) blocks.push(p(`آخر فحص لميزان المراجعة: ${fmtDate(snap.tb.run_at.slice(0, 10))}. حد الأهمية النسبية المستخدم: ${fmtMoney(snap.tb.summary.materiality as string)} ${curr} (${snap.tb.summary.materiality_basis}).`));
       break;
     case 'summary': {
@@ -156,7 +155,7 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       const showF = !!sec.options?.show_formulas;
       const columns = [{ key: 'label', label: 'النسبة' }, { key: 'value', label: cur, numeric: true }, ...(hasPrior ? [{ key: 'prior', label: snap.prior!.label, numeric: true }] : []), { key: 'formula', label: 'المعادلة' }, ...(showF ? [{ key: 'inputs', label: 'المدخلات' }] : [])];
       const rows: Record<string, string | null>[] = [];
-      for (const g of groups) { rows.push({ label: gl[g], _group: '1' }); for (const r of snap.ratios.filter((x) => x.group === g)) rows.push({ label: r.label_ar, value: fmtRatio(r.value, r.unit), prior: hasPrior ? fmtRatio(r.prior_value ?? null, r.unit) : null, formula: r.formula_ar + (r.note ? ` (${r.note})` : ''), inputs: showF ? Object.entries(r.inputs).map(([k, v]) => `${k}=${v == null ? '—' : fmtMoney(v)}`).join('؛ ') : null }); }
+      for (const g of groups) { rows.push({ label: gl[g], _group: '1' }); for (const r of snap.ratios.filter((x) => x.group === g)) rows.push({ label: r.label_ar, value: fmtRatio(r.value, r.unit), prior: hasPrior ? fmtRatio(r.prior_value ?? null, r.unit) : null, formula: r.formula_ar + (r.note && r.status === 'ok' ? ` (${r.note})` : ''), inputs: showF ? Object.entries(r.inputs).map(([k, v]) => `${k}=${v == null ? '—' : fmtMoney(v)}`).join('؛ ') : null }); }
       blocks.push({ type: 'table', columns, rows, repeat_header: true });
       blocks.push(note('"بيانات غير كافية" تعني تعذر الاحتساب بشكل موثوق من البيانات المتاحة ولم يُفترض أي رقم.', 'info'));
       break;
