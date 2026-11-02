@@ -22,12 +22,12 @@ if [ ! -f .env ]; then
   ADMIN_PW="Ab$(rnd 4)!$(rnd 3)"
   cat > .env <<ENV
 DB_PASSWORD=$(rnd 24)
-APP_PORT=${APP_PORT:-4000}
+APP_PORT=${APP_PORT:-4050}
 JWT_SECRET=$(rnd 32)
 FILE_ENCRYPTION_KEY=$(rnd 32)
 # غيّرها إلى عنوان HTTPS بعد إعداد Reverse Proxy في DSM ثم: docker compose up -d
-CLIENT_ORIGIN=http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo localhost):${APP_PORT:-4000}
-COOKIE_SECURE=false
+CLIENT_ORIGIN=${PUBLIC_URL:-http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo localhost):${APP_PORT:-4050}}
+COOKIE_SECURE=${PUBLIC_URL:+true}
 SESSION_HOURS=12
 MAX_UPLOAD_MB=25
 ADMIN_EMAIL=admin@office.local
@@ -41,8 +41,13 @@ ENV
   chmod 600 .env
   echo "   أُنشئ ملف .env بمفاتيح عشوائية. كلمة مرور المدير الأولى محفوظة فيه (ADMIN_PASSWORD) ويُطلب تغييرها عند أول دخول."
 else
-  echo "   ملف .env موجود - لم يُغيَّر."
+  echo "   ملف .env موجود - تُحدَّث فقط القيم الممررة (APP_PORT / PUBLIC_URL)."
 fi
+# ضبط قيم اختيارية ممررة عبر البيئة: APP_PORT=4050 PUBLIC_URL=https://sahm5.synology.me:8088
+if [ -n "${APP_PORT:-}" ]; then sed -i "s|^APP_PORT=.*|APP_PORT=${APP_PORT}|" .env; fi
+if [ -n "${PUBLIC_URL:-}" ]; then sed -i "s|^CLIENT_ORIGIN=.*|CLIENT_ORIGIN=${PUBLIC_URL}|; s|^COOKIE_SECURE=.*|COOKIE_SECURE=true|" .env; fi
+grep -q '^COOKIE_SECURE=' .env || echo "COOKIE_SECURE=false" >> .env
+sed -i 's|^COOKIE_SECURE=$|COOKIE_SECURE=false|' .env
 echo "== [4/5] بناء صورة التطبيق (قد يستغرق 5-15 دقيقة أول مرة)"
 $DC build app
 echo "== [5/5] التشغيل"

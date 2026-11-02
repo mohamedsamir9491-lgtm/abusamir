@@ -7,7 +7,7 @@
 2. حمّل المشروع من GitHub كملف ZIP (الفرع `claude/accounting-platform`) وفك ضغطه داخل `src` بحيث يصبح الملف `src/Dockerfile` موجودًا.
 3. انسخ الملفين `deploy/synology/docker-compose.yml` و`deploy/synology/.env.example` إلى `docker/abusamir`، وأعد تسمية `.env.example` إلى `.env` وعدّل القيم (كلمة مرور قاعدة البيانات، `JWT_SECRET`، `ADMIN_PASSWORD`، `CLIENT_ORIGIN`).
 4. **Container Manager → Project → Create**: الاسم `abusamir`، المسار `docker/abusamir`، المصدر "Use existing docker-compose.yml" → Next → Build. أول بناء يستغرق عدة دقائق.
-5. بعد التشغيل افتح `http://<IP-الـNAS>:4000` وسجّل الدخول بـ `ADMIN_EMAIL`/`ADMIN_PASSWORD` ثم غيّر كلمة المرور.
+5. بعد التشغيل افتح `http://<IP-الـNAS>:4050` وسجّل الدخول بـ `ADMIN_EMAIL`/`ADMIN_PASSWORD` ثم غيّر كلمة المرور.
 
 ## الطريقة ب: عبر SSH (أسرع للتحديثات)
 ```bash
@@ -25,9 +25,9 @@ bash deploy.sh                          # يجلب الكود ويبني ويش�
 ## الوصول الآمن عبر HTTPS (Reverse Proxy في DSM)
 Control Panel → Login Portal → Advanced → **Reverse Proxy** → Create:
 - Source: HTTPS، hostname `sahm5.synology.me`، port مثل `4443` (أو subdomain مخصص) — واستخدم شهادة DSM الحالية.
-- Destination: HTTP، `localhost`، port `4000`.
+- Destination: HTTP، `localhost`، port `4050`.
 - في Custom Header فعّل **WebSocket** (اختياري) واضبط `CLIENT_ORIGIN` في `.env` على العنوان نفسه ثم أعد تشغيل الحاوية.
-افتح المنفذ 4443 في الراوتر/الجدار الناري إن أردت الوصول من الخارج، ولا تفتح 4000 مباشرة.
+افتح المنفذ 4443 في الراوتر/الجدار الناري إن أردت الوصول من الخارج، ولا تفتح 4050 مباشرة.
 
 ## النسخ الاحتياطي
 - بيانات قاعدة البيانات والملفات في `docker/abusamir/data` — أضف هذا المجلد إلى **Hyper Backup**.

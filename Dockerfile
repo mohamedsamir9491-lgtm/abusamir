@@ -6,8 +6,8 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY server/package.json server/
 COPY client/package.json client/
-RUN npm ci
+RUN npm ci --include=dev
 COPY . .
-RUN npm run build && FONT_DIR=/usr/local/share/fonts/abusamir ./scripts/install-fonts.sh
+RUN npm run build && FONT_DIR=/usr/local/share/fonts/abusamir ./scripts/install-fonts.sh && npm prune --omit=dev
 EXPOSE 4000
 CMD ["node", "server/dist/index.js"]
