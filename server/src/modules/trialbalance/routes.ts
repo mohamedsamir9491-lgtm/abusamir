@@ -4,7 +4,7 @@ import { badRequest } from '../../lib/errors.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
 import { loadEngagement, loadPeriod } from '../../middleware/scope.js';
 import { loadTbEntries, loadAccountMap, findPriorPeriod } from '../analysis/service.js';
-import { resolveMeta } from '../../engine/trialBalance.js';
+import { resolveMeta, prefixMapFor } from '../../engine/trialBalance.js';
 import { net, toStr, sum } from '../../engine/money.js';
 import { FS_LINE_MAP } from '../../engine/fsLines.js';
 
@@ -23,8 +23,9 @@ trialBalanceRouter.get('/', async (req, res, next) => {
     const prior = await findPriorPeriod(engagementId, e.client_id, periodId);
     const priorMap = new Map<string, string>();
     if (prior) for (const p of await loadTbEntries(prior.id)) priorMap.set(p.account_code, toStr(net(p.closing_debit, p.closing_credit)));
+    const pm = prefixMapFor(entries);
     const rows = entries.map((t) => {
-      const meta = resolveMeta(t, accounts);
+      const meta = resolveMeta(t, accounts, pm);
       return { ...t, opening_net: toStr(net(t.opening_debit, t.opening_credit)), movement_net: toStr(net(t.period_debit, t.period_credit)), closing_net: toStr(net(t.closing_debit, t.closing_credit)),
         account_type: meta.account_type, sub_type: meta.sub_type, normal_balance: meta.normal_balance, fs_line_code: meta.fs_line_code, fs_line_label: FS_LINE_MAP[meta.fs_line_code]?.label_ar ?? meta.fs_line_code,
         is_suspense: meta.is_suspense, in_chart: accounts.has(t.account_code), prior_closing_net: priorMap.get(t.account_code) ?? null };

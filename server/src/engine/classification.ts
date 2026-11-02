@@ -20,15 +20,28 @@ interface Rule { re: RegExp; type: AccountType; sub: string; nb: NormalBalance; 
 
 const RULES: Rule[] = [
   // مصاريف ذات كلمات مميزة تُفحص أولًا لتجنب التداخل مع قواعد الميزانية
-  { re: /(تكاليف تمويل|مصاريف تمويل|فوائد|عمولات بنكية|finance cost|interest expense|bank charges)/i, type: 'expense', sub: 'finance_cost', nb: 'debit', fs: 'FINANCE_COST', conf: 0.85 },
+  { re: /(تكاليف تمويل|مصاريف تمويل|مصروف تمويل|فوائد|عمولات بنكية|مصاريف بنكية|مصروفات بنكية|مصروف بنكي|رسوم بنكية|finance cost|interest expense|bank charges|bank fees)/i, type: 'expense', sub: 'finance_cost', nb: 'debit', fs: 'FINANCE_COST', conf: 0.85 },
+  { re: /^(?!.*مجمع).*((مصروف|مصاريف|مصروفات).*(استهلاك|إستهلاك|اهلاك|إهلاك|اهتلاك|إهتلاك|اطفاء|إطفاء)|(استهلاك|إستهلاك|اهلاك|إهلاك|اهتلاك|إهتلاك|اطفاء|إطفاء).*(مصروف|السنة|الفترة)|depreciation expense|amorti[sz]ation expense)/i, type: 'expense', sub: 'operating_expense', nb: 'debit', fs: 'DEPRECIATION_EXP', conf: 0.9 },
+  { re: /(إيرادات? مؤجل|ايرادات? مؤجل|الإيرادات (ال)?مؤجلة|الايرادات (ال)?مؤجلة|deferred (revenue|income)|unearned)/i, type: 'liability', sub: 'current_liability', nb: 'credit', fs: 'OTHER_CURRENT_LIABILITIES', conf: 0.9 },
+  { re: /(التزام(ات)? (عقود|عقد)? ?(ال)?(إيجار|ايجار)|lease liabilit).*(الحالي|متداول|قصير|current|short)/i, type: 'liability', sub: 'current_liability', nb: 'credit', fs: 'LEASE_LIAB_CURRENT', conf: 0.92 },
+  { re: /(التزام(ات)? (عقود|عقد)? ?(ال)?(إيجار|ايجار)|lease liabilit)/i, type: 'liability', sub: 'non_current_liability', nb: 'credit', fs: 'LEASE_LIAB_NON_CURRENT', conf: 0.9 },
+  { re: /(حق (ال)?استخدام|حقوق (ال)?استخدام|right.of.use|\brou\b|ifrs ?16)/i, type: 'asset', sub: 'non_current_asset', nb: 'debit', fs: 'ROU_ASSETS', conf: 0.9 },
+  { re: /((ذمم|مستحق|مطلوب|قرض|قروض|دفعات).*((ال)?شرك(ة|ات) (ال)?(تابعة|شقيقة|زميلة|أم)|(ال)?أطراف (ال)?ذات (ال)?علاقة|اطراف ذات علاقة|الشركة الأم|القابضة|subsidiar|affiliate|related part|parent))/i, type: 'asset', sub: 'current_asset', nb: 'debit', fs: 'RELATED_PARTY_DR', conf: 0.85 },
+  { re: /(جاري (شركة|شركات|الشركة|الشركات)|جاري (ال)?مجموعة|intercompany|inter-company|due (from|to) (group|parent|subsidiar|affiliate)|شركة (تابعة|شقيقة|زميلة|أم|قابضة).*جاري)/i, type: 'asset', sub: 'current_asset', nb: 'debit', fs: 'RELATED_PARTY_DR', conf: 0.85 },
+  { re: /((أرباح|ارباح|خسائر|خساير|خسارة).*(مرحلة|مرحّلة|مبقاة|محتجزة|متراكمة|مدورة|سابقة)|retained|accumulated (loss|profit|deficit)|carried forward)/i, type: 'equity', sub: 'equity', nb: 'credit', fs: 'RETAINED_EARNINGS', conf: 0.95 },
+  { re: /(رأس المال الإضافي|راس المال الإضافي|رأس مال إضافي|علاوة إصدار|share premium|additional paid|capital contribution)/i, type: 'equity', sub: 'equity', nb: 'credit', fs: 'ADDITIONAL_CAPITAL', conf: 0.95 },
   { re: /(تكلفة.*(مبيعات|إيراد|بضاعة|خدمات)|مشتريات|cost of (sales|revenue|goods)|cogs|purchases)/i, type: 'expense', sub: 'cost_of_sales', nb: 'debit', fs: 'COGS', conf: 0.85 },
-  { re: /^(?!.*مخصص).*(خسائر ائتمانية|ديون معدومة|مصروف.*(ديون|مشكوك)|bad debt|expected credit loss|impairment of receivable)/i, type: 'expense', sub: 'operating_expense', nb: 'debit', fs: 'ECL_EXP', conf: 0.85 },
+  { re: /^(?!.*مخصص).*(خسائر ائتمانية|(ال)?ديون (ال)?معدومة|مصروف.*(ديون|مشكوك)|bad debt|expected credit loss|impairment of receivable)/i, type: 'expense', sub: 'operating_expense', nb: 'debit', fs: 'ECL_EXP', conf: 0.85 },
+  { re: /(تأمينات مستردة|تأمينات مدفوعة|تأمين مسترد|ودائع لدى|ودائع مستردة|refundable deposit|security deposit|deposits? (paid|with))/i, type: 'asset', sub: 'non_current_asset', nb: 'debit', fs: 'OTHER_NON_CURRENT_ASSETS', conf: 0.85 },
+  { re: /(غرامات|تعويضات|penalt|fines)/i, type: 'expense', sub: 'other_expense', nb: 'debit', fs: 'OTHER_EXPENSE', conf: 0.75 },
+  // أي حساب يبدأ بكلمة مصروف/مصاريف/تكلفة هو مصروف (إشارة قوية تسبق قواعد الميزانية) ما لم يكن مستحقًا/مؤجلًا/مقدمًا
+  { re: /^(?!.*(مستحق|مؤجل|مقدم|accru|deferr|prepaid))(مصروف|مصاريف|مصروفات|م\.|تكلفة|تكاليف|نفقات|expense|expenses|cost of)/i, type: 'expense', sub: 'operating_expense', nb: 'debit', fs: 'ADMIN_EXP', conf: 0.8 },
   // حسابات معلقة ووسيطة (أولوية عالية)
   { re: /(معلق|وسيط|مؤقت|تسوية|suspense|clearing|temporary|unallocated|غير موزع)/i, type: 'other', sub: 'suspense', nb: 'debit', fs: 'SUSPENSE', conf: 0.9, suspense: true },
   // النقد والبنوك
   { re: /(بنك|مصرف|صندوق|نقد|نقدية|عهدة نقدية|bank|cash|petty)/i, type: 'asset', sub: 'current_asset', nb: 'debit', fs: 'CASH', conf: 0.85, bank: true },
   // مخصصات مقابل الذمم
-  { re: /(مخصص.*(ديون|ذمم|مشكوك|ائتمان)|خسائر ائتمانية|allowance.*(doubtful|receivable|credit)|ecl|bad debt provision)/i, type: 'asset', sub: 'contra_asset', nb: 'credit', fs: 'AR_ALLOWANCE', conf: 0.85 },
+  { re: /(مخصص.*(ديون|ذمم|مشكوك|ائتمان|معدوم)|allowance.*(doubtful|receivable|credit)|\becl\b|bad debt provision)/i, type: 'asset', sub: 'contra_asset', nb: 'credit', fs: 'AR_ALLOWANCE', conf: 0.85 },
   // الزكاة والضرائب
   { re: /(ضريبة القيمة المضافة|vat|قيمة مضافة).*(مدين|مدخلات|مستحق.*استرداد|input|receivable|recoverable)/i, type: 'asset', sub: 'current_asset', nb: 'debit', fs: 'VAT_RECEIVABLE', conf: 0.8 },
   { re: /(ضريبة القيمة المضافة|vat|قيمة مضافة)/i, type: 'liability', sub: 'current_liability', nb: 'credit', fs: 'VAT_PAYABLE', conf: 0.7 },
@@ -46,7 +59,7 @@ const RULES: Rule[] = [
   // المخزون
   { re: /(مخزون|بضاعة|مواد خام|إنتاج تحت التشغيل|inventor|stock|goods|raw material|wip)/i, type: 'asset', sub: 'current_asset', nb: 'debit', fs: 'INVENTORY', conf: 0.85 },
   // الأصول الثابتة
-  { re: /(مجمع.*(استهلاك|إهلاك|إطفاء)|accumulated (dep|amort))/i, type: 'asset', sub: 'contra_asset', nb: 'credit', fs: 'ACC_DEP', conf: 0.95 },
+  { re: /(مجمع.*(استهلاك|إستهلاك|اهلاك|إهلاك|اهتلاك|إهتلاك|اطفاء|إطفاء)|accumulated (dep|amort))/i, type: 'asset', sub: 'contra_asset', nb: 'credit', fs: 'ACC_DEP', conf: 0.95 },
   { re: /(مصروف|مصاريف).*(استهلاك|إهلاك|إطفاء)|(استهلاك|إهلاك|إطفاء).*(مصروف|السنة|الفترة)|depreciation|amorti[sz]ation/i, type: 'expense', sub: 'operating_expense', nb: 'debit', fs: 'DEPRECIATION_EXP', conf: 0.85 },
   { re: /(حق الاستخدام|right.of.use|rou)/i, type: 'asset', sub: 'non_current_asset', nb: 'debit', fs: 'ROU_ASSETS', conf: 0.9 },
   { re: /(غير ملموس|برامج|شهرة|تراخيص|intangible|software|goodwill|licen[cs]e)/i, type: 'asset', sub: 'non_current_asset', nb: 'debit', fs: 'INTANGIBLES', conf: 0.8 },
@@ -74,10 +87,34 @@ const RULES: Rule[] = [
   { re: /(خسائر|خسارة|loss)/i, type: 'expense', sub: 'other_expense', nb: 'debit', fs: 'OTHER_EXPENSE', conf: 0.6 },
 ];
 
-/** تصنيف حسب بادئة الرمز (الترقيم الشائع 1=أصول 2=التزامات 3=حقوق ملكية 4=إيرادات 5=مصاريف) */
-function byCodePrefix(code: string): Partial<Classification> | null {
+export type PrefixMap = Record<string, AccountType>;
+const PREFIX_DEFAULTS: Record<AccountType, { sub: string; nb: NormalBalance; fs: string; label: string }> = {
+  asset: { sub: 'current_asset', nb: 'debit', fs: 'OTHER_CURRENT_ASSETS', label: 'أصول' }, liability: { sub: 'current_liability', nb: 'credit', fs: 'OTHER_CURRENT_LIABILITIES', label: 'التزامات' },
+  equity: { sub: 'equity', nb: 'credit', fs: 'OTHER_RESERVES', label: 'حقوق ملكية' }, revenue: { sub: 'revenue', nb: 'credit', fs: 'REVENUE', label: 'إيرادات' }, expense: { sub: 'operating_expense', nb: 'debit', fs: 'ADMIN_EXP', label: 'مصاريف' }, other: { sub: 'unclassified', nb: 'debit', fs: 'UNMAPPED', label: 'أخرى' },
+};
+
+/** تعلّم دلالة البادئة الرقمية من دليل حسابات العميل نفسه: الأغلبية بين الحسابات المصنفة بثقة عالية من أسمائها */
+export function learnPrefixMap(accounts: { code: string; name: string | null | undefined }[]): PrefixMap {
+  const tally: Record<string, Record<string, number>> = {};
+  for (const a of accounts) {
+    const d = (a.code ?? '').trim()[0]; if (!d || !/\d/.test(d)) continue;
+    const c = classifyCore(a.code, (a.name ?? '').trim(), null);
+    if (c.confidence < 0.8 || c.account_type === 'other') continue;
+    tally[d] = tally[d] ?? {}; tally[d][c.account_type] = (tally[d][c.account_type] ?? 0) + 1;
+  }
+  const map: PrefixMap = {};
+  for (const [d, counts] of Object.entries(tally)) { const best = Object.entries(counts).sort((x, y) => y[1] - x[1])[0]; if (best && best[1] >= 1 && Object.keys(counts).length === 1 || (best && best[1] >= 2)) map[d] = best[0] as AccountType; }
+  return map;
+}
+
+/** تصنيف حسب بادئة الرمز: من الخريطة المتعلمة من دليل العميل، وإلا الترقيم الشائع 1=أصول 2=التزامات 3=حقوق ملكية 4=إيرادات 5=مصاريف */
+function byCodePrefix(code: string, prefixMap?: PrefixMap): Partial<Classification> | null {
   const c = code.trim();
   const first = c[0];
+  if (prefixMap && first && prefixMap[first]) {
+    const t = prefixMap[first]; const d = PREFIX_DEFAULTS[t];
+    return { account_type: t, sub_type: d.sub, normal_balance: d.nb, fs_line_code: d.fs, confidence: 0.45, reason: `بادئة الرمز ${first} (${d.label} حسب دليل العميل)` };
+  }
   switch (first) {
     case '1': return { account_type: 'asset', sub_type: 'current_asset', normal_balance: 'debit', fs_line_code: 'OTHER_CURRENT_ASSETS', confidence: 0.4, reason: 'بادئة الرمز 1 (أصول)' };
     case '2': return { account_type: 'liability', sub_type: 'current_liability', normal_balance: 'credit', fs_line_code: 'OTHER_CURRENT_LIABILITIES', confidence: 0.4, reason: 'بادئة الرمز 2 (التزامات)' };
@@ -88,9 +125,27 @@ function byCodePrefix(code: string): Partial<Classification> | null {
   }
 }
 
-export function classifyAccount(code: string, name: string | null | undefined): Classification {
+export function classifyAccount(code: string, name: string | null | undefined, balanceSide?: 'debit' | 'credit' | 'zero', prefixMap?: PrefixMap): Classification {
   const n = (name ?? '').trim();
-  const prefix = byCodePrefix(code ?? '');
+  const prefix = byCodePrefix(code ?? '', prefixMap);
+  const c = classifyCore(code, n, prefix);
+  // الحسابات الجارية (أطراف ذات علاقة/شركاء) ثنائية الاتجاه: يحدد جانب الرصيد عرضها كأصل أو التزام
+  if (balanceSide && balanceSide !== 'zero' && ['RELATED_PARTY_DR', 'RELATED_PARTY_CR'].includes(c.fs_line_code)) {
+    const dr = balanceSide === 'debit';
+    return { ...c, account_type: dr ? 'asset' : 'liability', sub_type: dr ? 'current_asset' : 'current_liability', normal_balance: dr ? 'debit' : 'credit', fs_line_code: dr ? 'RELATED_PARTY_DR' : 'RELATED_PARTY_CR', reason: c.reason + ' (جانب الرصيد يحدد العرض)' };
+  }
+  // عند تعارض الاسم مع بادئة الرمز نرجّح التصنيف المتفق مع جانب الرصيد
+  if (balanceSide && balanceSide !== 'zero' && prefix && c.confidence < 0.6 && c.account_type !== prefix.account_type) {
+    const sideMatchesPrefix = (balanceSide === 'debit') === (prefix.normal_balance === 'debit');
+    const sideMatchesName = (balanceSide === 'debit') === (c.normal_balance === 'debit');
+    if (sideMatchesPrefix && !sideMatchesName) {
+      return { account_type: prefix.account_type!, sub_type: prefix.sub_type!, normal_balance: prefix.normal_balance!, fs_line_code: prefix.fs_line_code!, is_suspense: false, is_bank: false, confidence: 0.5, reason: `${prefix.reason} (رُجّح لاتفاقه مع جانب الرصيد؛ الاسم يوحي بـ ${c.fs_line_code})` };
+    }
+  }
+  return c;
+}
+
+function classifyCore(code: string, n: string, prefix: Partial<Classification> | null): Classification {
   if (n) {
     for (const r of RULES) {
       if (r.re.test(n)) {

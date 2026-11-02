@@ -3,8 +3,8 @@ import { many, one, query, withTransaction, type Queryable } from '../../db/pool
 import { badRequest, notFound, unprocessable } from '../../lib/errors.js';
 import { parseNumber, toDb, D, toStr, splitNet, sum } from '../../engine/money.js';
 import { parseDate } from '../../lib/dates.js';
-import { classifyAccount } from '../../engine/classification.js';
-import { FIELDS, suggestMapping, detectHeaderRow, type DataType, DATA_TYPES } from './fields.js';
+import { classifyAccount, learnPrefixMap, type PrefixMap } from '../../engine/classification.js';
+import { FIELDS, suggestMapping, detectHeaderRow, compositeHeaders, type DataType, DATA_TYPES } from './fields.js';
 import { extractDocument, type ExtractionResult } from './parsers.js';
 import { getFile, readFileData } from '../files/storage.js';
 
@@ -44,7 +44,7 @@ export async function createImportJob(params: { documentId: string; dataType: st
   const sheet = extraction.sheets[0];
   const headerRow = sheet ? detectHeaderRow(sheet.rows) : 1;
   const headers = sheet ? (sheet.rows[headerRow - 1] ?? []) : [];
-  const mapping = sheet ? suggestMapping(params.dataType as DataType, headers) : {};
+  const mapping = sheet ? suggestMapping(params.dataType as DataType, compositeHeaders(sheet.rows, headerRow)) : {};
   const meta = { method: extraction.method, confidence: extraction.confidence, warnings: extraction.warnings, needs_human_verification: extraction.needs_human_verification,
     sheets: extraction.sheets.map((s) => ({ name: s.name, row_count: s.row_count })), text_preview: extraction.text_preview ?? null };
   return withTransaction(async (tx) => {
@@ -98,7 +98,7 @@ export async function updateMapping(jobId: string, input: { sheet_name?: string;
   if (!rows.length) throw badRequest('الورقة المحددة لا تحتوي على صفوف');
   const headerRow = input.header_row ?? (input.sheet_name && input.sheet_name !== job.sheet_name ? detectHeaderRow(rows.map((r) => r.cells)) : job.header_row);
   const headers = rows.find((r) => r.row_number === headerRow)?.cells ?? [];
-  const mapping = input.column_mapping ?? (input.sheet_name && input.sheet_name !== job.sheet_name ? suggestMapping(job.data_type, headers) : job.column_mapping);
+  const mapping = input.column_mapping ?? (input.sheet_name !== undefined && input.sheet_name !== job.sheet_name || (input.header_row !== undefined && input.header_row !== job.header_row) ? suggestMapping(job.data_type, compositeHeaders(rows.map((r) => r.cells), headerRow)) : job.column_mapping);
   await query(`UPDATE import_jobs SET sheet_name = $2, header_row = $3, detected_columns = $4, column_mapping = $5, options = $6, status = 'mapped', validation_report = NULL, updated_at = now() WHERE id = $1`,
     [jobId, sheet, headerRow, JSON.stringify(headers), JSON.stringify(mapping), JSON.stringify({ ...job.options, ...(input.options ?? {}) })]);
   return getJob(jobId);
@@ -247,6 +247,7 @@ export async function commitJob(jobId: string, userId: string): Promise<{ insert
     switch (job.data_type) {
       case 'trial_balance': {
         if (replace) { const r = await query('DELETE FROM trial_balance_entries WHERE period_id = $1', [job.period_id], tx); replaced = r.rowCount ?? 0; }
+        const prefixMap = learnPrefixMap(records.map((r) => ({ code: r.mapped.account_code ?? '', name: r.mapped.account_name })));
         for (const rec of records) {
           const m = rec.mapped;
           let od = D(m.opening_debit), oc = D(m.opening_credit), pd = D(m.period_debit), pc = D(m.period_credit), cd = D(m.closing_debit), cc = D(m.closing_credit);
@@ -257,7 +258,7 @@ export async function commitJob(jobId: string, userId: string): Promise<{ insert
           await query(`INSERT INTO trial_balance_entries (client_id, engagement_id, period_id, import_job_id, account_code, account_name, opening_debit, opening_credit, period_debit, period_credit, closing_debit, closing_credit, source_row)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`, [...base, jobId, m.account_code, m.account_name, toDb(od), toDb(oc), toDb(pd), toDb(pc), toDb(cd), toDb(cc), rec.row_number], tx);
           inserted++;
-          await ensureAccount(tx, job.client_id, m.account_code!, m.account_name);
+          await ensureAccount(tx, job.client_id, m.account_code!, m.account_name, cd.minus(cc).isZero() ? 'zero' : cd.minus(cc).gt(0) ? 'debit' : 'credit', prefixMap);
         }
         break;
       }
@@ -319,12 +320,17 @@ export async function commitJob(jobId: string, userId: string): Promise<{ insert
   });
 }
 
-async function ensureAccount(tx: PoolClient, clientId: string, code: string, name: string | null) {
-  const exists = await one('SELECT 1 FROM chart_of_accounts WHERE client_id = $1 AND code = $2', [clientId, code], tx);
-  if (exists) return;
-  const c = classifyAccount(code, name);
-  await query(`INSERT INTO chart_of_accounts (client_id, code, name_ar, account_type, sub_type, normal_balance, fs_line_code, is_suspense, is_bank) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT DO NOTHING`,
-    [clientId, code, name ?? code, c.account_type, c.sub_type, c.normal_balance, c.fs_line_code, c.is_suspense, c.is_bank], tx);
+async function ensureAccount(tx: PoolClient, clientId: string, code: string, name: string | null, side: 'debit' | 'credit' | 'zero', prefixMap: PrefixMap) {
+  const exists = await one<{ classification_source: string }>('SELECT classification_source FROM chart_of_accounts WHERE client_id = $1 AND code = $2', [clientId, code], tx);
+  const c = classifyAccount(code, name, side, prefixMap);
+  if (exists) {
+    // الحسابات المصنفة آليًا تُحدَّث مع كل استيراد؛ التصنيف اليدوي للمحاسب لا يُمس
+    if (exists.classification_source === 'auto') await query(`UPDATE chart_of_accounts SET name_ar = COALESCE($3, name_ar), account_type = $4, sub_type = $5, normal_balance = $6, fs_line_code = $7, is_suspense = $8, is_bank = $9, classification_confidence = $10, updated_at = now() WHERE client_id = $1 AND code = $2`,
+      [clientId, code, name, c.account_type, c.sub_type, c.normal_balance, c.fs_line_code, c.is_suspense, c.is_bank, c.confidence.toFixed(2)], tx);
+    return;
+  }
+  await query(`INSERT INTO chart_of_accounts (client_id, code, name_ar, account_type, sub_type, normal_balance, fs_line_code, is_suspense, is_bank, classification_confidence, classification_source) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'auto') ON CONFLICT DO NOTHING`,
+    [clientId, code, name ?? code, c.account_type, c.sub_type, c.normal_balance, c.fs_line_code, c.is_suspense, c.is_bank, c.confidence.toFixed(2)], tx);
 }
 function normalizeType(v: string | null): 'asset' | 'liability' | 'equity' | 'revenue' | 'expense' | null {
   if (!v) return null; const s = v.toLowerCase();

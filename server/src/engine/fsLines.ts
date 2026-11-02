@@ -30,6 +30,7 @@ export const FS_LINES: FsLine[] = [
   { code: 'EOSB', statement: 'sfp', section: 'non_current_liabilities', label_ar: 'مخصص مكافأة نهاية الخدمة', label_en: 'Employee end-of-service benefits', normal_sign: 'credit', sort_order: 135 },
   { code: 'OTHER_NON_CURRENT_LIABILITIES', statement: 'sfp', section: 'non_current_liabilities', label_ar: 'التزامات غير متداولة أخرى', label_en: 'Other non-current liabilities', normal_sign: 'credit', sort_order: 140 },
   { code: 'SHARE_CAPITAL', statement: 'sfp', section: 'equity', label_ar: 'رأس المال', label_en: 'Share capital', normal_sign: 'credit', sort_order: 150 },
+  { code: 'ADDITIONAL_CAPITAL', statement: 'sfp', section: 'equity', label_ar: 'رأس مال إضافي / علاوة إصدار', label_en: 'Additional paid-in capital / share premium', normal_sign: 'credit', sort_order: 152 },
   { code: 'STATUTORY_RESERVE', statement: 'sfp', section: 'equity', label_ar: 'الاحتياطي النظامي', label_en: 'Statutory reserve', normal_sign: 'credit', sort_order: 155 },
   { code: 'OTHER_RESERVES', statement: 'sfp', section: 'equity', label_ar: 'احتياطيات أخرى', label_en: 'Other reserves', normal_sign: 'credit', sort_order: 157 },
   { code: 'RETAINED_EARNINGS', statement: 'sfp', section: 'equity', label_ar: 'الأرباح المبقاة / (الخسائر المتراكمة)', label_en: 'Retained earnings / (accumulated losses)', normal_sign: 'credit', sort_order: 160 },

@@ -18,8 +18,8 @@ export async function loadTbEntries(periodId: string, db?: Queryable): Promise<T
 }
 
 export async function loadAccountMap(clientId: string, db?: Queryable): Promise<Map<string, AccountMeta>> {
-  const rows = await many<AccountMeta & { confidence: number | null }>(`SELECT code, name_ar, account_type, sub_type, normal_balance, COALESCE(fs_line_code, 'UNMAPPED') AS fs_line_code, is_suspense, is_bank FROM chart_of_accounts WHERE client_id = $1`, [clientId], db);
-  return new Map(rows.map((r) => [r.code, { ...r, confidence: 1 }]));
+  const rows = await many<AccountMeta & { classification_confidence: string }>(`SELECT code, name_ar, account_type, sub_type, normal_balance, COALESCE(fs_line_code, 'UNMAPPED') AS fs_line_code, is_suspense, is_bank, classification_confidence FROM chart_of_accounts WHERE client_id = $1`, [clientId], db);
+  return new Map(rows.map((r) => [r.code, { ...r, confidence: Number(r.classification_confidence) }]));
 }
 
 /** الفترة المقارنة: الفترة ذات الدور prior في الارتباط نفسه، أو أي فترة سابقة لنفس العميل تحتوي بيانات */

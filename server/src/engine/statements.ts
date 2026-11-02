@@ -1,6 +1,6 @@
 import { D, Decimal, ZERO, sum, net, toStr } from './money.js';
 import { FS_LINES, FS_LINE_MAP } from './fsLines.js';
-import { resolveMeta } from './trialBalance.js';
+import { resolveMeta, prefixMapFor } from './trialBalance.js';
 import type { TbEntry, AccountMeta } from './types.js';
 
 export interface LineValue {
@@ -27,8 +27,9 @@ export interface StatementPackage {
 /** حساب صافي الرصيد لكل بند من بنود القوائم */
 export function aggregateByLine(entries: TbEntry[], accounts?: Map<string, AccountMeta>, which: 'closing' | 'opening' = 'closing') {
   const map = new Map<string, { net: Decimal; accounts: { code: string; name: string | null; net: string }[] }>();
+  const pm = prefixMapFor(entries);
   for (const e of entries) {
-    const meta = resolveMeta(e, accounts);
+    const meta = resolveMeta(e, accounts, pm);
     const n = which === 'closing' ? net(e.closing_debit, e.closing_credit) : net(e.opening_debit, e.opening_credit);
     const cur = map.get(meta.fs_line_code) ?? { net: ZERO, accounts: [] };
     cur.net = cur.net.plus(n);
@@ -168,14 +169,12 @@ export function buildStatements(params: {
     const wcLiabs = ['AP', 'ACCRUALS', 'RELATED_PARTY_CR', 'VAT_PAYABLE', 'OTHER_CURRENT_LIABILITIES', 'EOSB', 'ZAKAT_TAX_PAYABLE'];
     cfRows.push({ section: 'operating', label_ar: 'صافي ربح / (خسارة) الفترة', label_en: 'Profit / (loss) for the period', value: toStr(plC.netIncome) });
     cfRows.push({ section: 'operating', label_ar: 'تعديلات: الاستهلاك والإطفاء', label_en: 'Adjustments: depreciation and amortisation', value: toStr(plC.depreciation) });
-    const eclExp = sum(plLines.filter((l) => l.code === 'ECL_EXP').map((l) => l.value));
-    if (!eclExp.isZero()) cfRows.push({ section: 'operating', label_ar: 'تعديلات: خسائر ائتمانية متوقعة', label_en: 'Adjustments: expected credit losses', value: toStr(eclExp) });
-    let op = plC.netIncome.plus(plC.depreciation).plus(eclExp);
+    // الخسائر الائتمانية غير النقدية = الزيادة في المخصص (الشطب المباشر ينعكس في تغير الذمم)
+    const allowDeltaCr = delta('AR_ALLOWANCE').neg();
+    if (!allowDeltaCr.isZero()) cfRows.push({ section: 'operating', label_ar: 'تعديلات: التغير في مخصص الخسائر الائتمانية', label_en: 'Adjustments: change in ECL allowance', value: toStr(allowDeltaCr) });
+    let op = plC.netIncome.plus(plC.depreciation).plus(allowDeltaCr);
     for (const c of wcAssets) { const d = delta(c); if (!d.isZero()) { cfRows.push({ section: 'operating', label_ar: `التغير في ${FS_LINE_MAP[c].label_ar}`, label_en: `Change in ${FS_LINE_MAP[c].label_en}`, value: toStr(d.neg()) }); op = op.minus(d); } }
     for (const c of wcLiabs) { const d = delta(c).neg(); if (!d.isZero()) { cfRows.push({ section: 'operating', label_ar: `التغير في ${FS_LINE_MAP[c].label_ar}`, label_en: `Change in ${FS_LINE_MAP[c].label_en}`, value: toStr(d) }); op = op.plus(d); } }
-    // تصحيح: المخصص للذمم يُعامل كمصروف غير نقدي؛ تغير الذمم محسوب بالإجمالي
-    const allowDelta = delta('AR_ALLOWANCE');
-    if (!allowDelta.isZero() && eclExp.isZero()) { cfRows.push({ section: 'operating', label_ar: 'التغير في مخصص الخسائر الائتمانية', label_en: 'Change in ECL allowance', value: toStr(allowDelta.neg()) }); op = op.minus(allowDelta); }
     cfTotals.push({ key: 'operating', label_ar: 'صافي النقد من الأنشطة التشغيلية', label_en: 'Net cash from operating activities', value: toStr(op) });
     let inv = ZERO;
     for (const c of ['PPE', 'INTANGIBLES', 'ROU_ASSETS', 'INVESTMENTS', 'OTHER_NON_CURRENT_ASSETS']) {

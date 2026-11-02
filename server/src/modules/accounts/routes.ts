@@ -6,7 +6,8 @@ import { badRequest, notFound } from '../../lib/errors.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
 import { audit } from '../../middleware/audit.js';
 import { FS_LINES } from '../../engine/fsLines.js';
-import { classifyAccount, SUB_TYPE_LABELS, TYPE_LABELS } from '../../engine/classification.js';
+import { classifyAccount, learnPrefixMap, SUB_TYPE_LABELS, TYPE_LABELS } from '../../engine/classification.js';
+import { D } from '../../engine/money.js';
 
 export const accountsRouter = Router();
 accountsRouter.use(authenticate, requirePermission('clients.view'));
@@ -33,9 +34,9 @@ accountsRouter.post('/', requirePermission('imports.run'), async (req, res, next
   try {
     const d = parse(acctSchema.extend({ client_id: z.string().uuid() }), req.body);
     if (d.fs_line_code && !(await one('SELECT 1 FROM fs_line_items WHERE code = $1', [d.fs_line_code]))) throw badRequest('بند القوائم غير معروف');
-    const row = await one<{ id: string }>(`INSERT INTO chart_of_accounts (client_id, code, name_ar, name_en, account_type, sub_type, normal_balance, parent_code, fs_line_code, is_suspense, is_bank, is_active)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (client_id, code) DO UPDATE SET name_ar = EXCLUDED.name_ar, name_en = EXCLUDED.name_en, account_type = EXCLUDED.account_type, sub_type = EXCLUDED.sub_type,
-      normal_balance = EXCLUDED.normal_balance, parent_code = EXCLUDED.parent_code, fs_line_code = EXCLUDED.fs_line_code, is_suspense = EXCLUDED.is_suspense, is_bank = EXCLUDED.is_bank, is_active = EXCLUDED.is_active, updated_at = now() RETURNING id`,
+    const row = await one<{ id: string }>(`INSERT INTO chart_of_accounts (client_id, code, name_ar, name_en, account_type, sub_type, normal_balance, parent_code, fs_line_code, is_suspense, is_bank, is_active, classification_confidence, classification_source)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,1,'manual') ON CONFLICT (client_id, code) DO UPDATE SET name_ar = EXCLUDED.name_ar, name_en = EXCLUDED.name_en, account_type = EXCLUDED.account_type, sub_type = EXCLUDED.sub_type,
+      normal_balance = EXCLUDED.normal_balance, parent_code = EXCLUDED.parent_code, fs_line_code = EXCLUDED.fs_line_code, is_suspense = EXCLUDED.is_suspense, is_bank = EXCLUDED.is_bank, is_active = EXCLUDED.is_active, classification_confidence = 1, classification_source = 'manual', updated_at = now() RETURNING id`,
       [d.client_id, d.code, d.name_ar, d.name_en ?? null, d.account_type, d.sub_type ?? null, d.normal_balance, d.parent_code ?? null, d.fs_line_code ?? null, d.is_suspense, d.is_bank, d.is_active]);
     await audit(req, { action: 'account.upserted', entityType: 'chart_of_accounts', entityId: row!.id, clientId: d.client_id, details: { code: d.code, fs_line_code: d.fs_line_code } });
     res.status(201).json({ id: row!.id });
@@ -50,7 +51,7 @@ accountsRouter.put('/:id', requirePermission('imports.run'), async (req, res, ne
     if (d.fs_line_code && !(await one('SELECT 1 FROM fs_line_items WHERE code = $1', [d.fs_line_code]))) throw badRequest('بند القوائم غير معروف');
     const keys = Object.keys(d) as (keyof typeof d)[];
     if (!keys.length) throw badRequest('لا توجد حقول');
-    await query(`UPDATE chart_of_accounts SET ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() WHERE id = $1`, [a.id, ...keys.map((k) => d[k] ?? null)]);
+    await query(`UPDATE chart_of_accounts SET ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, classification_confidence = 1, classification_source = 'manual', updated_at = now() WHERE id = $1`, [a.id, ...keys.map((k) => d[k] ?? null)]);
     await audit(req, { action: 'account.updated', entityType: 'chart_of_accounts', entityId: a.id, clientId: a.client_id, details: { code: a.code, ...d } });
     res.json({ ok: true });
   } catch (e) { next(e); }
@@ -60,13 +61,19 @@ accountsRouter.put('/:id', requirePermission('imports.run'), async (req, res, ne
 accountsRouter.post('/auto-classify', requirePermission('imports.run'), async (req, res, next) => {
   try {
     const d = parse(z.object({ client_id: z.string().uuid(), only_unmapped: z.boolean().default(true) }), req.body);
-    const rows = await many<{ id: string; code: string; name_ar: string; fs_line_code: string | null }>('SELECT id, code, name_ar, fs_line_code FROM chart_of_accounts WHERE client_id = $1', [d.client_id]);
+    const rows = await many<{ id: string; code: string; name_ar: string; fs_line_code: string | null; classification_source: string }>('SELECT id, code, name_ar, fs_line_code, classification_source FROM chart_of_accounts WHERE client_id = $1', [d.client_id]);
+    // جانب الرصيد من أحدث ميزان مراجعة للعميل يساعد على حسم الحسابات ثنائية الاتجاه
+    const sides = await many<{ account_code: string; net: string }>(`SELECT t.account_code, sum(t.closing_debit - t.closing_credit)::text AS net FROM trial_balance_entries t JOIN financial_periods p ON p.id = t.period_id
+      WHERE t.client_id = $1 AND p.end_date = (SELECT max(p2.end_date) FROM financial_periods p2 JOIN trial_balance_entries t2 ON t2.period_id = p2.id WHERE t2.client_id = $1) GROUP BY t.account_code`, [d.client_id]);
+    const sideMap = new Map(sides.map((x) => [x.account_code, D(x.net).isZero() ? 'zero' as const : D(x.net).gt(0) ? 'debit' as const : 'credit' as const]));
+    const prefixMap = learnPrefixMap(rows.map((r) => ({ code: r.code, name: r.name_ar })));
     let updated = 0;
     for (const r of rows) {
       if (d.only_unmapped && r.fs_line_code && r.fs_line_code !== 'UNMAPPED') continue;
-      const c = classifyAccount(r.code, r.name_ar);
-      await query('UPDATE chart_of_accounts SET account_type = $2, sub_type = $3, normal_balance = $4, fs_line_code = $5, is_suspense = $6, is_bank = $7, updated_at = now() WHERE id = $1',
-        [r.id, c.account_type, c.sub_type, c.normal_balance, c.fs_line_code, c.is_suspense, c.is_bank]);
+      if (r.classification_source === 'manual' && d.only_unmapped) continue;
+      const c = classifyAccount(r.code, r.name_ar, sideMap.get(r.code), prefixMap);
+      await query(`UPDATE chart_of_accounts SET account_type = $2, sub_type = $3, normal_balance = $4, fs_line_code = $5, is_suspense = $6, is_bank = $7, classification_confidence = $8, classification_source = 'auto', updated_at = now() WHERE id = $1`,
+        [r.id, c.account_type, c.sub_type, c.normal_balance, c.fs_line_code, c.is_suspense, c.is_bank, c.confidence.toFixed(2)]);
       updated++;
     }
     await audit(req, { action: 'accounts.auto_classified', entityType: 'client', entityId: d.client_id, clientId: d.client_id, details: { updated } });

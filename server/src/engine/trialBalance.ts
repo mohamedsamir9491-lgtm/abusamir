@@ -1,5 +1,5 @@
 import { D, Decimal, ZERO, sum, net, isZero, toStr, pct, safeDiv } from './money.js';
-import { classifyAccount } from './classification.js';
+import { classifyAccount, learnPrefixMap, type PrefixMap } from './classification.js';
 import type { TbEntry, AccountMeta, EngineFinding, Severity } from './types.js';
 
 export interface TbValidationOptions {
@@ -61,10 +61,13 @@ function detectColumns(entries: TbEntry[]) {
   };
 }
 
-export function resolveMeta(e: TbEntry, accounts?: Map<string, AccountMeta>): AccountMeta {
+export function prefixMapFor(entries: TbEntry[]): PrefixMap { return learnPrefixMap(entries.map((e) => ({ code: e.account_code, name: e.account_name }))); }
+
+export function resolveMeta(e: TbEntry, accounts?: Map<string, AccountMeta>, prefixMap?: PrefixMap): AccountMeta {
   const known = accounts?.get(e.account_code);
   if (known) return known;
-  const c = classifyAccount(e.account_code, e.account_name);
+  const nb = net(e.closing_debit, e.closing_credit);
+  const c = classifyAccount(e.account_code, e.account_name, nb.isZero() ? 'zero' : nb.gt(0) ? 'debit' : 'credit', prefixMap);
   return { code: e.account_code, name_ar: e.account_name ?? '', account_type: c.account_type, sub_type: c.sub_type,
     normal_balance: c.normal_balance, fs_line_code: c.fs_line_code, is_suspense: c.is_suspense, is_bank: c.is_bank, confidence: c.confidence };
 }
@@ -155,15 +158,17 @@ export function validateTrialBalance(entries: TbEntry[], opts: TbValidationOptio
   const priorMap = new Map<string, TbEntry>();
   for (const p of opts.priorEntries ?? []) priorMap.set(p.account_code.trim(), p);
 
+  const prefixMap = prefixMapFor(entries);
   for (const e of entries) {
-    const meta = resolveMeta(e, opts.accounts);
+    const meta = resolveMeta(e, opts.accounts, prefixMap);
     const openingNet = net(e.opening_debit, e.opening_credit);
     const movNet = net(e.period_debit, e.period_credit);
     const closingNet = net(e.closing_debit, e.closing_credit);
     const computed = openingNet.plus(movNet);
     const matches = cols.opening && cols.movements && cols.closing ? computed.minus(closingNet).abs().lte(tolerance) : true;
     const side: AccountAnalysis['balance_side'] = closingNet.isZero() ? 'zero' : closingNet.gt(0) ? 'debit' : 'credit';
-    const abnormal = side !== 'zero' && side !== meta.normal_balance && meta.account_type !== 'other';
+    const bilateral = ['RETAINED_EARNINGS', 'OWNER_CURRENT', 'RELATED_PARTY_DR', 'RELATED_PARTY_CR', 'OTHER_OPERATING'].includes(meta.fs_line_code);
+    const abnormal = side !== 'zero' && side !== meta.normal_balance && meta.account_type !== 'other' && !bilateral;
     typeTotals[meta.account_type] = (typeTotals[meta.account_type] ?? ZERO).plus(closingNet);
     if (meta.account_type === 'revenue') revenueTotal = revenueTotal.plus(closingNet.neg());
     if (meta.account_type === 'expense') expenseTotal = expenseTotal.plus(closingNet);
@@ -180,10 +185,13 @@ export function validateTrialBalance(entries: TbEntry[], opts: TbValidationOptio
 
   let materiality: Decimal; let basis: string;
   if (opts.materiality) { materiality = D(opts.materiality); basis = 'محددة من المحاسب'; }
-  else if (revenueTotal.gt(0)) { materiality = revenueTotal.mul('0.01'); basis = '1% من إجمالي الإيرادات (افتراض قابل للتعديل)'; }
-  else if (assetsTotal.gt(0)) { materiality = assetsTotal.mul('0.005'); basis = '0.5% من إجمالي الأصول (افتراض قابل للتعديل)'; }
-  else { materiality = D('1000'); basis = 'قيمة افتراضية 1,000 لعدم توفر أساس (يجب تحديدها)'; }
-  if (materiality.lt(1)) materiality = D('1');
+  else {
+    const byRev = revenueTotal.gt(0) ? revenueTotal.mul('0.01') : ZERO; const byAssets = assetsTotal.gt(0) ? assetsTotal.mul('0.005') : ZERO;
+    if (byRev.gte(byAssets) && byRev.gt(0)) { materiality = byRev; basis = '1% من إجمالي الإيرادات (افتراض قابل للتعديل)'; }
+    else if (byAssets.gt(0)) { materiality = byAssets; basis = '0.5% من إجمالي الأصول (افتراض قابل للتعديل)'; }
+    else { materiality = D('1000'); basis = 'قيمة افتراضية 1,000 لعدم توفر أساس (يجب تحديدها)'; }
+    if (materiality.lt(1000)) { materiality = D('1000'); basis += '؛ رُفع إلى الحد الأدنى 1,000'; }
+  }
   const sevByAmount = (amt: Decimal, base: Severity = 'medium'): Severity => amt.abs().gte(materiality) ? (base === 'medium' ? 'high' : base) : base;
 
   // ---------- فحوصات الحساب الواحد ----------
@@ -320,6 +328,21 @@ export function validateTrialBalance(entries: TbEntry[], opts: TbValidationOptio
       description: `مجمع الاستهلاك ${toStr(accDep.abs())} أكبر من تكلفة الأصول ${toStr(ppe)}؛ لا يمكن أن يتجاوز الاستهلاك التكلفة.`,
       amount: toStr(accDep.abs().minus(ppe)), fs_line_code: 'ACC_DEP', evidence: { ppe_cost: toStr(ppe), accumulated_depreciation: toStr(accDep.abs()) },
       recommendation: 'مراجعة سجل الأصول الثابتة وجدول الاستهلاك.', dedupe_key: 'TB-023' });
+  }
+  const capital = lineNet('SHARE_CAPITAL').neg(); const retained = lineNet('RETAINED_EARNINGS').neg();
+  const plNet = analyses.filter((a) => a.meta.account_type === 'revenue' || a.meta.account_type === 'expense').reduce((s2, a) => s2.plus(a.closing_net), ZERO).neg();
+  const accumulated = retained.plus(plNet);
+  if (capital.gt(0) && accumulated.lt(0) && accumulated.abs().gte(capital.mul('0.5'))) {
+    findings.push({ rule_code: 'TB-024', category: 'judgment', severity: accumulated.abs().gte(capital) ? 'critical' : 'high', title: `الخسائر المتراكمة (${toStr(accumulated.abs())}) بلغت ${accumulated.abs().div(capital).mul(100).toFixed(0)}% من رأس المال`,
+      description: `الخسائر المتراكمة شاملة نتيجة الفترة ${toStr(accumulated.abs())} مقابل رأس مال ${toStr(capital)}. بلوغ الخسائر نصف رأس المال يستوجب إجراءات بموجب نظام الشركات (يلزم التحقق من النص النافذ وإجراءاته)، ويثير مسألة الاستمرارية.`,
+      amount: toStr(accumulated.abs()), fs_line_code: 'RETAINED_EARNINGS', evidence: { capital: toStr(capital), retained_earnings: toStr(retained), period_result: toStr(plNet), accumulated: toStr(accumulated) },
+      calculation: `${toStr(retained)} + (${toStr(plNet)}) = ${toStr(accumulated)}`, recommendation: 'عرض الأمر على الشركاء/الجمعية العامة واتخاذ القرار النظامي (زيادة رأس المال، تخفيضه، أو الاستمرار بشروط).', dedupe_key: 'TB-024' });
+  }
+  for (const a of analyses.filter((x) => x.meta.fs_line_code === 'OWNER_CURRENT' && D(x.closing_net).gt(0))) {
+    findings.push({ rule_code: 'TB-025', category: 'accounting_issue', severity: D(a.closing_net).gte(materiality) ? 'high' : 'medium', title: `رصيد مدين على جاري الشريك/المساهم: ${a.account_name ?? a.account_code}`,
+      description: `حساب ${a.account_code} (${a.account_name}) يحمل رصيدًا مدينًا ${a.closing_net} أي مبلغًا مستحقًا على الشريك للشركة. يلزم التحقق من طبيعته (مسحوبات، قرض، مصاريف شخصية) وأثره النظامي والزكوي، وعرضه كذمم مدينة من أطراف ذات علاقة لا ضمن حقوق الملكية.`,
+      account_code: a.account_code, account_name: a.account_name, amount: a.closing_net, fs_line_code: 'OWNER_CURRENT', evidence: { closing_net: a.closing_net },
+      recommendation: 'الحصول على مصادقة الشريك ومستندات الحركات، وإعادة التصنيف إن لزم.', dedupe_key: `TB-025:${a.account_code}` });
   }
   const hasPl = analyses.some((a) => a.meta.account_type === 'revenue' || a.meta.account_type === 'expense');
   const netIncome = hasPl ? revenueTotal.minus(expenseTotal) : null;

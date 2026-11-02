@@ -5,7 +5,7 @@ import { getStatementsPackage, latestRun } from '../analysis/service.js';
 import { latestAiAnalysis } from '../ai/service.js';
 import { getOfficeSettings } from '../office/routes.js';
 import { loadTbEntries, loadAccountMap } from '../analysis/service.js';
-import { resolveMeta } from '../../engine/trialBalance.js';
+import { resolveMeta, prefixMapFor } from '../../engine/trialBalance.js';
 import { net, toStr } from '../../engine/money.js';
 import { FS_LINE_MAP } from '../../engine/fsLines.js';
 import type { AiAnalysis } from '../ai/schema.js';
@@ -33,7 +33,8 @@ export async function collectSnapshot(engagementId: string, periodId: string, pr
   const preparer = await one<{ full_name: string; role_code: string }>('SELECT full_name, role_code FROM users WHERE id = $1', [preparerId]);
   const entries = await loadTbEntries(periodId);
   const accounts = await loadAccountMap(engagement.client_id!);
-  const tbRows = entries.map((t) => { const m = resolveMeta(t, accounts); return { account_code: t.account_code, account_name: t.account_name, opening_net: toStr(net(t.opening_debit, t.opening_credit)), movement_net: toStr(net(t.period_debit, t.period_credit)), closing_debit: toStr(t.closing_debit), closing_credit: toStr(t.closing_credit), closing_net: toStr(net(t.closing_debit, t.closing_credit)), fs_line: FS_LINE_MAP[m.fs_line_code]?.label_ar ?? m.fs_line_code, account_type: m.account_type, source_row: t.source_row }; });
+  const pm = prefixMapFor(entries);
+  const tbRows = entries.map((t) => { const m = resolveMeta(t, accounts, pm); return { account_code: t.account_code, account_name: t.account_name, opening_net: toStr(net(t.opening_debit, t.opening_credit)), movement_net: toStr(net(t.period_debit, t.period_credit)), closing_debit: toStr(t.closing_debit), closing_credit: toStr(t.closing_credit), closing_net: toStr(net(t.closing_debit, t.closing_credit)), fs_line: FS_LINE_MAP[m.fs_line_code]?.label_ar ?? m.fs_line_code, account_type: m.account_type, source_row: t.source_row }; });
   const prior = pkg?.data.prior as { id: string; label: string } | null | undefined;
   return { generated_at: new Date().toISOString(), engagement, period, prior: prior ?? null, office, tb: tbRun ? { run_id: tbRun.id, summary: tbRun.summary, run_at: iso(tbRun.started_at)! } : null, tb_rows: tbRows,
     statements: pkg?.data.statements ?? null, ratios: pkg?.data.ratios ?? null, variance: pkg?.data.variance ?? null, findings, adjustments, documents: documents.map((d) => ({ ...d, uploaded_at: iso(d.uploaded_at), committed_at: iso(d.committed_at) })), ai: (ai?.result as AiSnapshot | null) ?? null, ai_run_at: iso(ai?.started_at), subledger: sub, journal: journal ?? null, preparer };

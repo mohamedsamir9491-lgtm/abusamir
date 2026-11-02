@@ -55,3 +55,13 @@ describe('dates and formatting', () => {
     expect(fmtMoney('1234567.891')).toBe('1,234,567.89'); expect(fmtMoney('-50')).toBe('(50.00)'); expect(fmtMoney(null)).toBe('—');
   });
 });
+
+describe('import auto-mapping on two-row ERP headers', () => {
+  it('maps signed opening/closing balance columns with bare debit/credit movements', async () => {
+    const { suggestMapping, compositeHeaders, detectHeaderRow } = await import('../src/modules/imports/fields.js');
+    const rows = [['', '', 'الرصيد الافتتاحي', '01/01/2026 - 01/11/2026', '01/01/2026 - 01/11/2026', 'الرصيد النهائي', ''], ['', '', '', '', '', '', ''], ['رمز', 'اسم الحساب', 'الرصيد', 'المدين', 'الدائن', 'الرصيد', 'Annotations'], ['100103', 'ضريبة', '21440.68', '7393.02', '0', '28833.7', '']];
+    const hr = detectHeaderRow(rows); expect(hr).toBe(3);
+    const m = suggestMapping('trial_balance', compositeHeaders(rows, hr));
+    expect(m).toEqual({ account_code: 0, account_name: 1, opening_balance: 2, period_debit: 3, period_credit: 4, closing_balance: 5 });
+  });
+});
