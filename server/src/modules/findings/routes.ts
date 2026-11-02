@@ -108,7 +108,7 @@ findingsRouter.delete('/:id', requirePermission('findings.edit'), async (req, re
   try {
     const f = await one<{ id: string; client_id: string; origin: string }>('SELECT id, client_id, origin FROM findings WHERE id = $1', [req.params.id]);
     if (!f) throw notFound('الملاحظة غير موجودة');
-    if (f.origin !== 'manual') throw badRequest('لا تُحذف ملاحظات المحرك أو الذكاء الاصطناعي؛ يمكن رفضها مع ذكر السبب للحفاظ على الأثر');
+    if (f.origin !== 'manual' && !req.user!.permissions.includes('data.delete')) throw badRequest('لا تُحذف ملاحظات المحرك أو الذكاء الاصطناعي؛ يمكن رفضها مع ذكر السبب للحفاظ على الأثر');
     await query('DELETE FROM findings WHERE id = $1', [f.id]);
     await audit(req, { action: 'finding.deleted', entityType: 'finding', entityId: f.id, clientId: f.client_id });
     res.json({ ok: true });

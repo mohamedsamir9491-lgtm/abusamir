@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { many, one, query } from '../../db/pool.js';
 import { parse } from '../../lib/validate.js';
-import { badRequest } from '../../lib/errors.js';
+import { badRequest, notFound } from '../../lib/errors.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
 import { audit } from '../../middleware/audit.js';
 import { createImportJob, previewJob, updateMapping, validateJob, commitJob, listRecords, getJob } from './service.js';
@@ -73,6 +73,18 @@ importsRouter.post('/:id/commit', requirePermission('imports.run'), async (req, 
     const r = await commitJob(req.params.id as string, req.user!.id);
     await audit(req, { action: 'import.committed', entityType: 'import_job', entityId: r.job.id, clientId: r.job.client_id, details: { inserted: r.inserted, replaced: r.replaced, data_type: r.job.data_type, period_id: r.job.period_id } });
     res.json(r);
+  } catch (e) { next(e); }
+});
+
+/** حذف مهمة استيراد بسجلاتها؛ إن كانت معتمدة تُحذف أسطر الميزان التي رُحّلت منها (الفترة تعود بلا ميزان حتى يُعاد الاستيراد) */
+importsRouter.delete('/:id', requirePermission('data.delete'), async (req, res, next) => {
+  try {
+    const j = await one<{ id: string; client_id: string; status: string; data_type: string; period_id: string | null }>('SELECT id, client_id, status, data_type, period_id FROM import_jobs WHERE id = $1', [req.params.id]);
+    if (!j) throw notFound('مهمة الاستيراد غير موجودة');
+    const tb = j.status === 'committed' ? await query('DELETE FROM trial_balance_entries WHERE import_job_id = $1', [j.id]) : null;
+    await query('DELETE FROM import_jobs WHERE id = $1', [j.id]);
+    await audit(req, { action: 'import.deleted', entityType: 'import_job', entityId: j.id, clientId: j.client_id, details: { status: j.status, data_type: j.data_type, tb_rows_removed: tb?.rowCount ?? 0 } });
+    res.json({ ok: true });
   } catch (e) { next(e); }
 });
 

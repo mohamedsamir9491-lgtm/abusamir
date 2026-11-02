@@ -42,6 +42,10 @@ export function Tabs({ tabs, active, onChange }: { tabs: { key: string; label: s
 export function Steps({ steps, current }: { steps: string[]; current: number }) {
   return <div className="steps">{steps.map((s, i) => <div key={s} className={`s ${i < current ? 'done' : i === current ? 'cur' : ''}`}><span className="n">{i < current ? '✓' : i + 1}</span>{s}</div>)}</div>;
 }
+/** زر حذف/إجراء خطر بتأكيد صريح؛ يستخدم في كل الشاشات لتوحيد السلوك */
+export function DangerButton({ label = 'حذف', text, onConfirm, small = true, disabled }: { label?: string; text: string; onConfirm: () => Promise<unknown> | void; small?: boolean; disabled?: boolean }) {
+  return <button className={`btn danger-outline${small ? ' sm' : ''}`} disabled={disabled} onClick={async (e) => { e.stopPropagation(); if (!confirm(text)) return; await onConfirm(); }}>{label}</button>;
+}
 export function Confirm({ text, onYes, onNo, danger }: { text: ReactNode; onYes: () => void; onNo: () => void; danger?: boolean }) {
   return <Modal title="تأكيد الإجراء" onClose={onNo}><div style={{ marginBottom: 14 }}>{text}</div><div className="row end"><button className="btn sec" onClick={onNo}>إلغاء</button><button className={`btn ${danger ? 'danger' : ''}`} onClick={onYes}>تأكيد</button></div></Modal>;
 }

@@ -88,8 +88,15 @@ clientsRouter.put('/:id', requirePermission('clients.manage'), async (req, res, 
 
 clientsRouter.delete('/:id', requirePermission('data.delete'), async (req, res, next) => {
   try {
-    const c = await one<{ id: string; legal_name_ar: string }>('SELECT id, legal_name_ar FROM clients WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
+    const hard = req.query.hard === 'true';
+    const c = await one<{ id: string; legal_name_ar: string }>(hard ? 'SELECT id, legal_name_ar FROM clients WHERE id = $1' : 'SELECT id, legal_name_ar FROM clients WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
     if (!c) throw notFound('العميل غير موجود');
+    if (hard) { // تطهير نهائي بكل البيانات
+      const { purgeClient } = await import('../system/cleanup.js');
+      await audit(req, { action: 'client.purged', entityType: 'client', entityId: c.id, clientId: c.id, details: { name: c.legal_name_ar } });
+      await purgeClient(c.id);
+      return res.json({ ok: true, purged: true });
+    }
     await query('UPDATE clients SET deleted_at = now(), is_active = FALSE WHERE id = $1', [c.id]);
     await audit(req, { action: 'client.archived', entityType: 'client', entityId: c.id, clientId: c.id, details: { name: c.legal_name_ar } });
     res.json({ ok: true });

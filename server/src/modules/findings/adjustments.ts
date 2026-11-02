@@ -91,6 +91,16 @@ adjustmentsRouter.post('/:id/status', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+adjustmentsRouter.delete('/:id', requirePermission('data.delete'), async (req, res, next) => {
+  try {
+    const a = await one<{ id: string; client_id: string; adj_ref: string; status: string }>('SELECT id, client_id, adj_ref, status FROM proposed_adjustments WHERE id = $1', [req.params.id]);
+    if (!a) throw notFound('التسوية غير موجودة');
+    await query('DELETE FROM proposed_adjustments WHERE id = $1', [a.id]);
+    await audit(req, { action: 'adjustment.deleted', entityType: 'adjustment', entityId: a.id, clientId: a.client_id, details: { adj_ref: a.adj_ref, status: a.status } });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 adjustmentsRouter.get('/:id', async (req, res, next) => {
   try {
     const a = await one(`SELECT a.*, f.finding_ref, f.title AS finding_title FROM proposed_adjustments a LEFT JOIN findings f ON f.id = a.finding_id WHERE a.id = $1`, [req.params.id]);

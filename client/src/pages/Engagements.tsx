@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { get, post, put, del } from '../api';
-import { Page, useLoad, Spinner, Empty, Modal, Field, useAction, Badge } from '../components/ui';
+import { Page, useLoad, Spinner, Empty, Modal, Field, useAction, Badge, DangerButton } from '../components/ui';
 import { ENG_STATUS, ENG_TYPE, FRAMEWORK, fmtDate, DOC_STATUS, IMPORT_STATUS } from '../format';
 import { useAuth } from '../auth';
 import { DocumentUpload } from './Upload';
@@ -33,11 +33,11 @@ export function EngagementForm({ clientId, onDone }: { clientId?: string; onDone
 }
 
 export function Engagements() {
-  const [sp] = useSearchParams(); const [open, setOpen] = useState(sp.get('new') === '1'); const nav = useNavigate(); const { can } = useAuth();
-  const { data, loading } = useLoad(() => get<{ engagements: Row[] }>('/engagements'), []);
+  const [sp] = useSearchParams(); const [open, setOpen] = useState(sp.get('new') === '1'); const nav = useNavigate(); const { can } = useAuth(); const { run: runL } = useAction();
+  const { data, loading, reload } = useLoad(() => get<{ engagements: Row[] }>('/engagements'), []);
   return <Page title="الارتباطات" sub="كل ارتباط يرتبط بعميل واحد وفتراته المالية" actions={can('clients.manage') && <button className="btn" onClick={() => setOpen(true)}>+ ارتباط جديد</button>}>
     <div className="card">{loading ? <Spinner /> : !data?.engagements.length ? <Empty text="لا توجد ارتباطات" /> : <table className="t"><thead><tr><th>الارتباط</th><th>العميل</th><th>النوع</th><th>الحالة</th><th>فترات</th><th>ملاحظات مفتوحة</th><th>آخر تحديث</th></tr></thead><tbody>
-      {data.engagements.map((e) => <tr key={String(e.id)} className="clickable" onClick={() => nav(`/engagements/${e.id}`)}><td><b>{e.title}</b></td><td>{e.client_name} {e.is_demo && <span className="demo-tag">تجريبي</span>}</td><td>{ENG_TYPE[String(e.engagement_type)]}</td><td><Badge k={String(e.status)} map={ENG_STATUS} /></td><td>{e.period_count}</td><td>{e.open_findings}</td><td>{fmtDate(String(e.updated_at))}</td></tr>)}</tbody></table>}</div>
+      {data.engagements.map((e) => <tr key={String(e.id)} className="clickable" onClick={() => nav(`/engagements/${e.id}`)}><td><b>{e.title}</b></td><td>{e.client_name} {e.is_demo && <span className="demo-tag">تجريبي</span>}</td><td>{ENG_TYPE[String(e.engagement_type)]}</td><td><Badge k={String(e.status)} map={ENG_STATUS} /></td><td>{e.period_count}</td><td>{e.open_findings}</td><td>{fmtDate(String(e.updated_at))}</td>{can('data.delete') && <td onClick={(ev) => ev.stopPropagation()}><DangerButton text={`حذف الارتباط "${e.title}" بكل فتراته ومستنداته وموازينه وملاحظاته وتقاريره؟ لا يمكن التراجع.`} onConfirm={async () => { await runL(() => del(`/engagements/${e.id}`), 'حُذف الارتباط'); reload(); }} /></td>}</tr>)}</tbody></table>}</div>
     {open && <Modal title="ارتباط جديد" onClose={() => setOpen(false)} wide><EngagementForm clientId={sp.get('client_id') ?? undefined} onDone={(id) => nav(`/engagements/${id}`)} /></Modal>}</Page>;
 }
 
@@ -50,7 +50,7 @@ export function EngagementDetail() {
   const e = data.engagement; const refresh = () => { reload(); reloadProg(); };
   const setStatus = (status: string) => run(() => put(`/engagements/${id}`, { status }), 'تم تحديث الحالة').then(refresh);
   return <Page title={String(e.title)} sub={<><Link to={`/clients/${e.client_id}`}>{e.client_name}</Link> {e.is_demo && <span className="demo-tag">تجريبي</span>} | {ENG_TYPE[String(e.engagement_type)]} | {FRAMEWORK[String(e.framework)]} | {e.currency}</>}
-    actions={<div className="row"><Link className="btn" to={`/engagements/${id}/letter`}>خطاب الارتباط</Link>{can('clients.manage') && <select value={String(e.status)} onChange={(ev) => setStatus(ev.target.value)}>{Object.entries(ENG_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>}</div>}>
+    actions={<div className="row"><Link className="btn" to={`/engagements/${id}/letter`}>خطاب الارتباط</Link>{can('data.delete') && <DangerButton small={false} label="حذف الارتباط" text={`حذف الارتباط "${e.title}" بكل بياناته؟ لا يمكن التراجع.`} onConfirm={async () => { await run(() => del(`/engagements/${id}`), 'حُذف الارتباط'); nav('/engagements'); }} />}{can('clients.manage') && <select value={String(e.status)} onChange={(ev) => setStatus(ev.target.value)}>{Object.entries(ENG_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>}</div>}>
     <div className="card"><h2>تقدم العمل حسب الفترة</h2>
       {prog?.periods.map((p) => { const steps = [['بيانات مستوردة', Number(p.tb_rows) > 0], ['فحص الميزان', !!p.tb_validated_at], ['القوائم والنسب', !!p.statements_at], ['مراجعة الملاحظات', Number(p.total_findings) > 0 && Number(p.open_findings) === 0], ['تقرير', Number(p.reports) > 0], ['اعتماد', Number(p.approved_reports) > 0]] as [string, boolean][]; const done = steps.filter((s) => s[1]).length;
         return <div key={String(p.period.id)} style={{ marginBottom: 12 }}><div className="row between"><b>{p.period.label} <span className="muted">({PERIOD_ROLE[String(p.period.role)]} | {fmtDate(String(p.period.start_date))} - {fmtDate(String(p.period.end_date))})</span></b><span className="muted">{p.tb_rows} سطر ميزان | {p.je_count} قيد | {p.sub_count} سجل فرعي | {p.open_findings}/{p.total_findings} ملاحظة مفتوحة</span></div>

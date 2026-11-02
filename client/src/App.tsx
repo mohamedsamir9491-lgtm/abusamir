@@ -20,6 +20,7 @@ import { Office } from './pages/Office';
 import { Users } from './pages/Users';
 import { Audit } from './pages/Audit';
 import { System } from './pages/System';
+import { Cleanup } from './pages/Cleanup';
 
 export default function App() {
   return <AuthProvider><ToastProvider><BrowserRouter><Routes>
@@ -42,6 +43,7 @@ export default function App() {
       <Route path="/users" element={<Users />} />
       <Route path="/audit" element={<Audit />} />
       <Route path="/system" element={<System />} />
+      <Route path="/cleanup" element={<Cleanup />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Route>
   </Routes></BrowserRouter></ToastProvider></AuthProvider>;

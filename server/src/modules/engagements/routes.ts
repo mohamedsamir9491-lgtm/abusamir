@@ -123,6 +123,18 @@ engagementsRouter.post('/:id/periods', requirePermission('clients.manage'), asyn
   } catch (e) { next(e); }
 });
 
+/** حذف ارتباط بكل بياناته (فترات، مستندات، استيرادات، موازين، ملاحظات، تقارير، خطاب) - لمالك النظام */
+engagementsRouter.delete('/:id', requirePermission('data.delete'), async (req, res, next) => {
+  try {
+    const e = await one<{ id: string; client_id: string; title: string }>('SELECT id, client_id, title FROM engagements WHERE id = $1', [req.params.id]);
+    if (!e) throw notFound('الارتباط غير موجود');
+    const counts = await one<Record<string, string>>(`SELECT (SELECT count(*) FROM generated_reports WHERE engagement_id = $1) AS reports, (SELECT count(*) FROM import_jobs WHERE engagement_id = $1) AS imports, (SELECT count(*) FROM findings WHERE engagement_id = $1) AS findings`, [e.id]);
+    await query('DELETE FROM engagements WHERE id = $1', [e.id]);
+    await audit(req, { action: 'engagement.deleted', entityType: 'engagement', entityId: e.id, clientId: e.client_id, details: { title: e.title, ...counts } });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 engagementsRouter.delete('/:id/periods/:pid', requirePermission('clients.manage'), async (req, res, next) => {
   try {
     const e = await loadEngagement(req.params.id as string);

@@ -26,6 +26,17 @@ templatesRouter.post('/', requirePermission('templates.manage'), async (req, res
   } catch (e) { next(e); }
 });
 
+templatesRouter.delete('/:id', requirePermission('templates.manage'), async (req, res, next) => {
+  try {
+    const t = await one<{ id: string; code: string; is_system: boolean }>('SELECT id, code, is_system FROM report_templates WHERE id = $1', [req.params.id]);
+    if (!t) throw notFound('القالب غير موجود');
+    if (t.is_system) throw badRequest('قوالب النظام لا تُحذف؛ يمكن تعطيلها');
+    await query('DELETE FROM report_templates WHERE id = $1', [t.id]);
+    await audit(req, { action: 'template.deleted', entityType: 'report_template', entityId: t.id, details: { code: t.code } });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 templatesRouter.put('/:id', requirePermission('templates.manage'), async (req, res, next) => {
   try {
     const d = parse(z.object({ name_ar: z.string().min(2).max(200).optional(), name_en: z.string().max(200).optional(), description: z.string().max(1000).nullable().optional(), sections: z.array(sectionSchema).min(1).optional(), is_active: z.boolean().optional() }), req.body);

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { get, post, put } from '../api';
-import { Page, useLoad, Spinner, Empty, Field, useAction, Steps, Badge, Modal } from '../components/ui';
+import { get, post, put, del } from '../api';
+import { Page, useLoad, Spinner, Empty, Field, useAction, Steps, Badge, Modal, DangerButton } from '../components/ui';
 import { IMPORT_STATUS, fmtDate } from '../format';
+import { useAuth } from '../auth';
 
 type Row = Record<string, string | number | null>;
 interface FieldDef { key: string; label_ar: string; type: string; required: boolean }
@@ -10,7 +11,7 @@ interface Job { id: string; document_id: string; engagement_id: string; period_i
 interface Report { total_rows: number; data_rows: number; ok: number; warnings: number; errors: number; skipped: number; can_commit: boolean; blocking_reasons: string[]; summary: Record<string, unknown>; issues: { code: string; level: string; message: string; count: number; rows: number[] }[] }
 
 export function ImportsList() {
-  const [sp] = useSearchParams(); const nav = useNavigate(); const { run, busy } = useAction();
+  const [sp] = useSearchParams(); const nav = useNavigate(); const { run, busy } = useAction(); const { can } = useAuth();
   const { data: engs } = useLoad(() => get<{ engagements: Row[] }>('/engagements'), []);
   const [eng, setEng] = useState(sp.get('engagement_id') ?? '');
   const { data: types } = useLoad(() => get<{ data_types: { code: string; label_ar: string }[] }>('/imports/data-types'), []);
@@ -26,8 +27,8 @@ export function ImportsList() {
       <Field label="نوع البيانات"><select value={dt} onChange={(e) => setDt(e.target.value)}>{types?.data_types.map((t) => <option key={t.code} value={t.code}>{t.label_ar}</option>)}</select></Field>
       <Field label="الفترة المالية"><select value={period} onChange={(e) => setPeriod(e.target.value)}><option value="">—</option>{det?.periods.map((p) => <option key={String(p.id)} value={String(p.id)}>{p.label}</option>)}</select></Field></div>
       <div className="row"><button className="btn" disabled={!doc || busy} onClick={start}>{busy ? 'جارٍ الاستخراج…' : 'بدء الاستيراد'}</button>{eng && <Link className="btn sec" to={`/upload?engagement_id=${eng}`}>رفع مستند جديد</Link>}</div></div>
-    <div className="card"><h2>مهام الاستيراد</h2>{!eng ? <Empty text="اختر ارتباطًا" /> : !jobs?.jobs.length ? <Empty text="لا توجد مهام" /> : <table className="t"><thead><tr><th>المستند</th><th>النوع</th><th>الفترة</th><th>الحالة</th><th>الطريقة</th><th>الصفوف</th><th>بواسطة</th><th>التاريخ</th></tr></thead><tbody>
-      {jobs.jobs.map((j) => <tr key={String(j.id)} className="clickable" onClick={() => nav(`/imports/${j.id}`)}><td>{j.original_name}</td><td>{types?.data_types.find((t) => t.code === j.data_type)?.label_ar ?? j.data_type}</td><td>{j.period_label ?? '—'}</td><td><Badge k={String(j.status)} map={IMPORT_STATUS} tone={j.status === 'committed' ? 'ok' : j.status === 'failed' ? 'danger' : 'neutral'} />{j.error_message && <div className="muted" style={{ color: 'var(--danger)' }}>{String(j.error_message)}</div>}</td><td>{(j.extraction_meta as unknown as { method?: string })?.method}</td><td>{j.row_count}</td><td>{j.created_by_name}</td><td>{fmtDate(String(j.created_at), { time: true })}</td></tr>)}</tbody></table>}</div>
+    <div className="card"><h2>مهام الاستيراد</h2>{!eng ? <Empty text="اختر ارتباطًا" /> : !jobs?.jobs.length ? <Empty text="لا توجد مهام" /> : <table className="t"><thead><tr><th>المستند</th><th>النوع</th><th>الفترة</th><th>الحالة</th><th>الطريقة</th><th>الصفوف</th><th>بواسطة</th><th>التاريخ</th>{can('data.delete') && <th></th>}</tr></thead><tbody>
+      {jobs.jobs.map((j) => <tr key={String(j.id)} className="clickable" onClick={() => nav(`/imports/${j.id}`)}><td>{j.original_name}</td><td>{types?.data_types.find((t) => t.code === j.data_type)?.label_ar ?? j.data_type}</td><td>{j.period_label ?? '—'}</td><td><Badge k={String(j.status)} map={IMPORT_STATUS} tone={j.status === 'committed' ? 'ok' : j.status === 'failed' ? 'danger' : 'neutral'} />{j.error_message && <div className="muted" style={{ color: 'var(--danger)' }}>{String(j.error_message)}</div>}</td><td>{(j.extraction_meta as unknown as { method?: string })?.method}</td><td>{j.row_count}</td><td>{j.created_by_name}</td><td>{fmtDate(String(j.created_at), { time: true })}</td>{can('data.delete') && <td onClick={(ev) => ev.stopPropagation()}><DangerButton text={j.status === 'committed' ? `حذف هذا الاستيراد المعتمد؟ ستُحذف أسطر الميزان التي رُحّلت منه (${j.row_count} سطر) وتعود الفترة بلا ميزان حتى يُعاد الاستيراد.` : 'حذف مهمة الاستيراد وسجلاتها؟'} onConfirm={async () => { await run(() => del(`/imports/${j.id}`), 'حُذفت مهمة الاستيراد'); reload(); }} /></td>}</tr>)}</tbody></table>}</div>
   </Page>;
 }
 

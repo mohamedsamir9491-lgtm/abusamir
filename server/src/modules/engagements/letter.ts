@@ -115,6 +115,14 @@ letterRouter.put('/', requirePermission('clients.manage'), async (req, res, next
     res.json({ letter: await loadLetter(id) });
   } catch (e) { next(e); }
 });
+letterRouter.delete('/', requirePermission('data.delete'), async (req, res, next) => {
+  try {
+    const id = String((req.params as P).id); const l = await loadLetter(id); if (!l) throw notFound('لا يوجد خطاب');
+    await query('DELETE FROM engagement_letters WHERE id = $1', [l.id]);
+    await audit(req, { action: 'engagement_letter.deleted', entityType: 'engagement', entityId: id, clientId: l.client_id, details: { letter_no: l.letter_no } });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
 letterRouter.get('/preview', async (req, res, next) => {
   try {
     const id = String((req.params as P).id); const l = await loadLetter(id);

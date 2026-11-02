@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { get, post, put } from '../api';
-import { Page, useLoad, Spinner, Empty, Modal, Field, useAction } from '../components/ui';
+import { get, post, put, del } from '../api';
+import { Page, useLoad, Spinner, Empty, Modal, Field, useAction, DangerButton } from '../components/ui';
 import { ENTITY, FRAMEWORK, ENG_STATUS, ENG_TYPE, fmtDate } from '../format';
 import { useAuth } from '../auth';
 
@@ -39,12 +39,12 @@ export function ClientForm({ initial, onDone }: { initial?: Client; onDone: (id?
 }
 
 export function Clients() {
-  const [q, setQ] = useState(''); const [open, setOpen] = useState(false); const nav = useNavigate(); const { can } = useAuth();
+  const [q, setQ] = useState(''); const [open, setOpen] = useState(false); const nav = useNavigate(); const { can } = useAuth(); const { run: runL } = useAction();
   const { data, loading, reload } = useLoad(() => get<{ clients: Client[] }>(`/clients?q=${encodeURIComponent(q)}`), [q]);
   return <Page title="العملاء" sub="كل عميل بسجلاته وارتباطاته منفصلًا" actions={can('clients.manage') && <button className="btn" onClick={() => setOpen(true)}>+ عميل جديد</button>}>
     <div className="card tight"><input placeholder="بحث بالاسم أو السجل التجاري…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-    <div className="card">{loading ? <Spinner /> : !data?.clients.length ? <Empty text="لا يوجد عملاء بعد" /> : <table className="t"><thead><tr><th>العميل</th><th>الكيان</th><th>السجل التجاري</th><th>الإطار</th><th>العملة</th><th>الارتباطات</th></tr></thead><tbody>
-      {data.clients.map((c) => <tr key={String(c.id)} className="clickable" onClick={() => nav(`/clients/${c.id}`)}><td><b>{c.legal_name_ar}</b> {c.is_demo && <span className="demo-tag">تجريبي</span>}<div className="muted">{c.legal_name_en}</div></td><td>{ENTITY[String(c.entity_type)]}</td><td className="mono">{c.cr_number ?? '—'}</td><td>{FRAMEWORK[String(c.accounting_framework)]}</td><td>{c.reporting_currency}</td><td>{c.engagement_count}</td></tr>)}
+    <div className="card">{loading ? <Spinner /> : !data?.clients.length ? <Empty text="لا يوجد عملاء بعد" /> : <table className="t"><thead><tr><th>العميل</th><th>الكيان</th><th>السجل التجاري</th><th>الإطار</th><th>العملة</th><th>الارتباطات</th>{can('data.delete') && <th></th>}</tr></thead><tbody>
+      {data.clients.map((c) => <tr key={String(c.id)} className="clickable" onClick={() => nav(`/clients/${c.id}`)}><td><b>{c.legal_name_ar}</b> {c.is_demo && <span className="demo-tag">تجريبي</span>}<div className="muted">{c.legal_name_en}</div></td><td>{ENTITY[String(c.entity_type)]}</td><td className="mono">{c.cr_number ?? '—'}</td><td>{FRAMEWORK[String(c.accounting_framework)]}</td><td>{c.reporting_currency}</td><td>{c.engagement_count}</td>{can('data.delete') && <td className="row" onClick={(ev) => ev.stopPropagation()}><DangerButton label="أرشفة" text={`أرشفة العميل ${c.legal_name_ar}؟ يختفي من القوائم ويبقى في قاعدة البيانات للتطهير لاحقًا.`} onConfirm={async () => { await runL(() => del(`/clients/${c.id}`), 'أُرشف العميل'); reload(); }} /><DangerButton label="تطهير نهائي" text={`تطهير العميل ${c.legal_name_ar} نهائيًا بكل ارتباطاته ومستنداته وموازينه وتقاريره؟ لا يمكن التراجع.`} onConfirm={async () => { await runL(() => del(`/clients/${c.id}?hard=true`), 'طُهّر العميل نهائيًا'); reload(); }} /></td>}</tr>)}
     </tbody></table>}</div>
     {open && <Modal title="عميل جديد" onClose={() => setOpen(false)} wide><ClientForm onDone={(id) => { setOpen(false); reload(); if (id) nav(`/clients/${id}`); }} /></Modal>}
   </Page>;

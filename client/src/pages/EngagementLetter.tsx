@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { get, post, put, download } from '../api';
-import { Page, useLoad, Spinner, Field, useAction } from '../components/ui';
+import { get, post, put, del, download } from '../api';
+import { Page, useLoad, Spinner, Field, useAction, DangerButton } from '../components/ui';
 import { useAuth } from '../auth';
 import { fmtDate } from '../format';
 
@@ -28,7 +28,7 @@ export function EngagementLetter() {
   const applyTemplate = async (code: string) => { if (!code) return; if (f.sections.length && !confirm('تطبيق هذا النموذج سيستبدل كل أقسام الخطاب الحالية بالصياغة الافتراضية للنموذج (لا يُحفظ حتى تضغط حفظ). متابعة؟')) return; const r = await run(() => post<{ fields: Fields }>(`/engagements/${id}/letter/reset`, { template_code: code, subject_detail: detail || null }), 'طُبق النموذج'); if (r) setF({ ...r.fields, fees_amount: f.fees_amount || r.fields.fees_amount }); };
   const setFee = (i: number, patch: Partial<FeeRow>) => setF({ fees_schedule: f.fees_schedule.map((x, k) => k === i ? { ...x, ...patch } : x) });
   return <Page title="خطاب الارتباط" sub={<><Link to={`/engagements/${id}`}>{f.engagement_title}</Link> | {f.engagement_type} | {l.letter_no ? `الرقم ${l.letter_no}` : 'لم يُحفظ بعد (يُمنح رقمًا عند الحفظ)'} | الحالة: {l.status === 'issued' ? 'صادر' : 'مسودة'}</>}
-    actions={<div className="row">{can('clients.manage') && <button className="btn sec" disabled={busy} onClick={() => save('draft')}>حفظ كمسودة</button>}{can('clients.manage') && <button className="btn" disabled={busy} onClick={() => save('issued')}>حفظ وتعليم كصادر</button>}{can('reports.export') && <button className="btn ok" disabled={busy} onClick={pdf}>PDF للطباعة</button>}</div>}>
+    actions={<div className="row">{can('clients.manage') && <button className="btn sec" disabled={busy} onClick={() => save('draft')}>حفظ كمسودة</button>}{can('clients.manage') && <button className="btn" disabled={busy} onClick={() => save('issued')}>حفظ وتعليم كصادر</button>}{can('reports.export') && <button className="btn ok" disabled={busy} onClick={pdf}>PDF للطباعة</button>}{can('data.delete') && data?.exists && <DangerButton small={false} label="حذف الخطاب" text={`حذف الخطاب ${l.letter_no ?? ''} نهائيًا؟`} onConfirm={async () => { await run(() => del(`/engagements/${id}/letter`), 'حُذف الخطاب'); reload(); }} />}</div>}>
     <div className="grid c2">
       <div className="card">
         {can('clients.manage') && <div className="card tight" style={{ marginBottom: 10, background: '#f6f8fb' }}><div className="row"><Field label="نموذج الخطاب (حسب الخدمة المقدمة لهذا العميل)"><select value={f.template_code} onChange={(e) => applyTemplate(e.target.value)} style={{ minWidth: 340 }}>{tpls?.templates.map((t) => <option key={t.code} value={t.code}>{t.name} - {t.standard}</option>)}</select></Field><Field label="موضوع الفحص / تفصيل (اختياري)" hint="مثال: الموظف فلان - عهدة الصندوق"><input value={detail} onChange={(e) => setDetail(e.target.value)} /></Field><button className="btn sec sm" style={{ alignSelf: 'end' }} disabled={busy} onClick={() => applyTemplate(f.template_code)}>إعادة تطبيق النموذج</button></div><div className="muted">{tpls?.templates.find((t) => t.code === f.template_code)?.description}</div></div>}

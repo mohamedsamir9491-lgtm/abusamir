@@ -24,6 +24,7 @@ import { reportsRouter } from './modules/reports/routes.js';
 import { templatesRouter } from './modules/reports/templates.routes.js';
 import { auditRouter } from './modules/audit/routes.js';
 import { systemRouter } from './modules/system/routes.js';
+import { cleanupRouter } from './modules/system/cleanup.js';
 import { dashboardRouter } from './modules/dashboard/routes.js';
 
 export function createApp() {
@@ -42,6 +43,7 @@ export function createApp() {
   app.use('/api/office', officeRouter);
   app.use('/api/clients', clientsRouter);
   app.use('/api/engagements/:id/letter', letterRouter);
+  app.use('/api/system/cleanup', cleanupRouter);
   app.use('/api/engagements', engagementsRouter);
   app.use('/api/documents', documentsRouter);
   app.use('/api/imports', importsRouter);

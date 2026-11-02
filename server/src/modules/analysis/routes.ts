@@ -135,6 +135,17 @@ analysisRouter.get('/group/latest', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+/** حذف تشغيل تحليل (نتائج فحص/قوائم/توحيد) - لمالك النظام */
+analysisRouter.delete('/runs/:id', requirePermission('data.delete'), async (req, res, next) => {
+  try {
+    const r = await one<{ id: string; client_id: string; run_type: string }>('SELECT id, client_id, run_type FROM analysis_runs WHERE id = $1', [req.params.id]);
+    if (!r) throw badRequest('التشغيل غير موجود');
+    await query('DELETE FROM analysis_runs WHERE id = $1', [r.id]);
+    await audit(req, { action: 'analysis_run.deleted', entityType: 'analysis_run', entityId: r.id, clientId: r.client_id, details: { run_type: r.run_type } });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 /** حالة اكتمال المراحل للارتباط (لعرض التقدم) */
 analysisRouter.get('/progress', async (req, res, next) => {
   try {
