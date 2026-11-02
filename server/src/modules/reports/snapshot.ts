@@ -34,6 +34,9 @@ export async function collectSnapshot(engagementId: string, periodId: string, pr
       FROM source_documents d JOIN stored_files f ON f.id = d.file_id LEFT JOIN committed c ON c.document_id = d.id
      WHERE d.engagement_id = $1 AND d.deleted_at IS NULL AND (c.document_id IS NOT NULL OR NOT EXISTS (SELECT 1 FROM import_jobs j2 WHERE j2.document_id = d.id AND j2.status = 'committed'))
      ORDER BY d.uploaded_at`, [engagementId]);
+  // مصادر التوحيد: مستندات كل شركة في المجموعة من آخر تشغيل توحيد على هذه الفترة (لتتبع كل مبلغ موحد إلى مستنده)
+  const consolidation = await latestRun(periodId, 'consolidation');
+  const groupSources = ((consolidation?.result as { sources?: Record<string, unknown>[] } | null)?.sources ?? []).map((x) => ({ id: x.import_id, title: x.title, document_type: x.document_type, status: 'committed', uploaded_at: x.uploaded_at, original_name: x.original_name, sha256: x.sha256, data_type: x.data_type, committed_at: x.committed_at, data_rows: x.data_rows, company: x.company, period: x.period, version_no: x.version_no, used_in: x.used_in }));
   const ai = await latestAiAnalysis(periodId);
   const sub: Record<string, unknown> = {};
   for (const t of ['receivable', 'payable', 'fixed_asset', 'inventory', 'bank_transaction']) { const r = await latestRun(periodId, `subledger_${t}`); if (r) sub[t] = r; }
@@ -45,6 +48,6 @@ export async function collectSnapshot(engagementId: string, periodId: string, pr
   const tbRows = entries.map((t) => { const m = resolveMeta(t, accounts, pm); return { account_code: t.account_code, account_name: t.account_name, opening_net: toStr(net(t.opening_debit, t.opening_credit)), movement_net: toStr(net(t.period_debit, t.period_credit)), closing_debit: toStr(t.closing_debit), closing_credit: toStr(t.closing_credit), closing_net: toStr(net(t.closing_debit, t.closing_credit)), fs_line: FS_LINE_MAP[m.fs_line_code]?.label_ar ?? m.fs_line_code, account_type: m.account_type, source_row: t.source_row }; });
   const prior = pkg?.data.prior as { id: string; label: string } | null | undefined;
   return { generated_at: new Date().toISOString(), engagement, period, prior: prior ?? null, office, tb: tbRun ? { run_id: tbRun.id, summary: tbRun.summary, run_at: iso(tbRun.started_at)! } : null, tb_rows: tbRows,
-    statements: pkg?.data.statements ?? null, ratios: pkg?.data.ratios ?? null, variance: pkg?.data.variance ?? null, findings, adjustments, documents: documents.map((d) => ({ ...d, uploaded_at: iso(d.uploaded_at), committed_at: iso(d.committed_at) })), ai: (ai?.result as AiSnapshot | null) ?? null, ai_run_at: iso(ai?.started_at), subledger: sub, journal: journal ?? null, preparer };
+    statements: pkg?.data.statements ?? null, ratios: pkg?.data.ratios ?? null, variance: pkg?.data.variance ?? null, findings, adjustments, documents: documents.map((d) => ({ ...d, uploaded_at: iso(d.uploaded_at), committed_at: iso(d.committed_at) })), group_documents: groupSources.map((d) => ({ ...d, uploaded_at: iso(d.uploaded_at as string), committed_at: iso(d.committed_at as string) })), ai: (ai?.result as AiSnapshot | null) ?? null, ai_run_at: iso(ai?.started_at), subledger: sub, journal: journal ?? null, preparer };
 }
 export type Snapshot = Awaited<ReturnType<typeof collectSnapshot>>;

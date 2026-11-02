@@ -68,55 +68,81 @@ const GRAND: TbEntry[] = [M('1101', 'بنك', { cd: '237686.81' }), M('202005', 
 const run = (subExtra: Partial<Parameters<typeof consolidate>[0]['subsidiaries'][0]> = {}, parent: TbEntry[] = OSOS, sub: TbEntry[] = GRAND) => consolidate({ parent: { key: 'p', label: 'الأم', entries: parent, periodLabel: 't' }, subsidiaries: [{ key: 'g', label: 'جراند', entries: sub, periodLabel: 't', ownership_pct: '100', investment_codes_in_parent: ['106021'], parent_account_codes_in_sub: ['202005'], sub_account_codes_in_parent: [], ...subExtra }], at_cost: [] });
 
 describe('consolidation worksheet', () => {
-  it('posts balanced elimination entries only and never balances through group equity', () => {
-    const r = run({ control_since: '2025-01-01', control_basis: 'incorporation' });
+  const INC = { control_since: '2025-01-01', control_basis: 'incorporation' as const };
+  it('posts balanced elimination entries only and never balances through equity or a suspense line', () => {
+    const r = run(INC);
     for (const e of r.worksheet.entries) expect(e.total_debit).toBe(e.total_credit);
     expect(r.worksheet.totals.eliminations_debit).toBe(r.worksheet.totals.eliminations_credit);
     expect(r.worksheet.totals.equation_difference).toBe('0.00');
-    // حقوق المجموعة = مجموع بنود حقوق الملكية بعد القيود، لا رقم مشتق
+    expect(r.worksheet.rows.some((x) => /SUSPENSE|PLUG|ACQ_DIFF/.test(x.code))).toBe(false);
+    expect(r.worksheet.entries.flatMap((e) => e.lines).some((l) => /SUSPENSE|PLUG|ACQ_DIFF/.test(l.line_code))).toBe(false);
     const eq = r.worksheet.rows.filter((x) => x.section === 'equity').reduce((a, x) => a + Number(x.consolidated), 0);
     expect(eq.toFixed(2)).toBe(r.group_equity_worksheet);
-    expect(r.worksheet.rows.some((x) => x.code === 'SHARE_CAPITAL' && x.consolidated === '1000000.00')).toBe(true); // رأس مال التابعة استُبعد كاملًا
+    expect(r.worksheet.rows.find((x) => x.code === 'SHARE_CAPITAL')?.consolidated).toBe('1000000.00'); // رأس مال التابعة استُبعد كاملًا (238,486.17 + 61,513.83)
   });
   it('reconciles investment vs capital from opening balance and movements (633.99 = 634.00 − 0.01)', () => {
-    const r = run({ control_since: '2025-01-01', control_basis: 'incorporation' });
-    const s = r.worksheet.subsidiaries[0];
+    const s = run(INC).worksheet.subsidiaries[0];
     expect(s.capital_matching.implied_paid_capital).toBe('237852.18');
     expect(s.capital_matching.investment_vs_implied_paid_capital).toBe('633.99');
-    expect(s.capital_matching.identity_opening).toBe('0.01'); // (رأس المال − المطالبة) − الاستثمار عند الافتتاح: الأم سجلت 0.01 أقل
-    expect(s.capital_matching.identity_period).toBe('634.00');
+    expect(s.capital_matching.identity_opening).toBe('0.01');   // (رأس المال − المطالبة) − الاستثمار عند الافتتاح
+    expect(s.capital_matching.identity_period).toBe('634.00');  // ما دفعته الأم في الفترة − ما أثبتته التابعة
     expect(s.capital_matching.identity_reconciles).toBe(true);
     expect(s.capital_matching.claim_matched_to_unpaid_capital).toBe('61513.83');
+    expect(s.capital_matching.claim_classification).toContain('مؤقت');
     expect(s.capital_matching.unmatched_sub_claim).toBe('633.99');
   });
   it('bridges the matching difference (633.99) to the equity contribution (799.36) via post-control results (165.37)', () => {
-    const r = run({ control_since: '2025-01-01', control_basis: 'incorporation' });
-    const b = r.worksheet.subsidiaries[0].bridge;
+    const r = run(INC); const b = r.worksheet.subsidiaries[0].bridge;
     expect(b.post_acquisition_results).toBe('-165.37');
-    expect(b.contribution_if_difference_written_off).toBe('-799.36');
     expect(b.contribution_with_difference_pending).toBe('-165.37');
+    expect(b.contribution_if_difference_written_off).toBe('-799.36');
     expect(r.subsidiaries[0].contribution_to_group_equity).toBe('-799.36');
   });
-  it('keeps unproven differences as a visible pending line and withholds approval', () => {
-    const r = run({ control_since: '2025-01-01', control_basis: 'incorporation' });
-    expect(r.status).toBe('pending');
-    expect(r.worksheet.rows.find((x) => x.code === 'IC_SUSPENSE')?.consolidated).toBe('633.99');
-    expect(r.group_equity_worksheet).toBe('999834.63');              // 1,000,000 − 165.37 (الفرق معلق)
-    expect(r.group_equity_if_pending_written_off).toBe('999200.64'); // إن عُدّ الفرق خسارة
-    expect(r.group_equity_before_adjustments).toBe(r.group_equity_if_pending_written_off); // المعادلة المباشرة = الحالة المحافِظة؛ غير معتمدة
-    expect(r.pending_reasons.length).toBeGreaterThan(0);
+  it('leaves unproven differences in their original line, logs them in the register, and withholds completion', () => {
+    const r = run(INC);
+    expect(r.status).toBe('incomplete');
+    const claimRow = r.worksheet.rows.find((x) => x.code === 'RELATED_PARTY_DR')!;
+    expect(claimRow.consolidated).toBe('633.99'); expect(claimRow.unreconciled).toBe('633.99'); // بقي أصلًا لدى التابعة، لا في حساب معلق
+    expect(r.worksheet.totals.unreconciled_total).toBe('633.99');
+    expect(r.worksheet.register.filter((x) => x.equity_effect === 'possible').map((x) => x.amount)).toEqual(['633.99']);
+    expect(r.worksheet.register.some((x) => x.equity_effect === 'none' && x.amount === '61513.83')).toBe(true); // التصنيف المؤقت مسجل
+    expect(r.group_equity_worksheet).toBe('999834.63');               // 1,000,000 − 165.37
+    expect(r.hypothesis_unreconciled_not_assets).toBe('999200.64');   // فرضية فقط
+    expect(r.group_equity_before_adjustments).toBe(r.hypothesis_unreconciled_not_assets);
+    expect(r.pending_reasons.some((x) => x.includes('سجل الفروق'))).toBe(true);
   });
-  it('is supported only when every balance has a proven counterpart and the control date is documented', () => {
-    const r = consolidate({ parent: { key: 'p', label: 'الأم', entries: PARENT, periodLabel: 't' }, subsidiaries: [{ key: 's', label: 'س', entries: SUB, periodLabel: 't', ownership_pct: '100', investment_codes_in_parent: ['1060'], parent_account_codes_in_sub: ['2050'], sub_account_codes_in_parent: [], control_since: '2024-06-01', control_basis: 'incorporation' }], at_cost: [] });
-    expect(r.status).toBe('supported'); expect(r.worksheet.totals.pending_items).toBe('0.00'); expect(r.group_equity_worksheet).toBe('820.00');
-    const r2 = consolidate({ parent: { key: 'p', label: 'الأم', entries: PARENT, periodLabel: 't' }, subsidiaries: [{ key: 's', label: 'س', entries: SUB, periodLabel: 't', ownership_pct: '100', investment_codes_in_parent: ['1060'], parent_account_codes_in_sub: ['2050'], sub_account_codes_in_parent: [] }], at_cost: [] });
-    expect(r2.status).toBe('pending'); expect(r2.pending_reasons.some((x) => x.includes('السيطرة'))).toBe(true);
+  it('does not classify the claim as unpaid capital when told its nature is other: both sides stay open with no equity effect', () => {
+    const r = run({ ...INC, claim_nature: 'other' });
+    const s = r.worksheet.subsidiaries[0];
+    expect(s.capital_matching.claim_matched_to_unpaid_capital).toBe('0.00');
+    expect(s.capital_matching.capital_not_covered).toBe('61513.83');
+    expect(r.worksheet.rows.find((x) => x.code === 'SHARE_CAPITAL')?.consolidated).toBe('1061513.83');
+    expect(r.worksheet.rows.find((x) => x.code === 'RELATED_PARTY_DR')?.consolidated).toBe('62147.82');
+    expect(r.worksheet.totals.equation_difference).toBe('0.00');
+    expect(r.worksheet.register.some((x) => x.line_code === 'SHARE_CAPITAL' && x.amount === '61513.83')).toBe(true);
   });
-  it('shows pre- and post-elimination balances per company and line', () => {
-    const r = run({ control_since: '2025-01-01', control_basis: 'incorporation' });
+  it('treats a documented unpaid subscription as supported and keeps a controlled company without data as incomplete scope', () => {
+    const ok = consolidate({ parent: { key: 'p', label: 'الأم', entries: PARENT, periodLabel: 't' }, subsidiaries: [{ key: 's', label: 'س', entries: SUB, periodLabel: 't', ownership_pct: '100', investment_codes_in_parent: ['1060'], parent_account_codes_in_sub: ['2050'], sub_account_codes_in_parent: [], control_since: '2024-06-01', control_basis: 'incorporation', claim_nature: 'unpaid_subscription' }], at_cost: [] });
+    expect(ok.status).toBe('supported'); expect(ok.worksheet.totals.unreconciled_total).toBe('0.00'); expect(ok.group_equity_worksheet).toBe('820.00'); expect(ok.worksheet.entries[0].support).toBe('documented');
+    const prov = consolidate({ parent: { key: 'p', label: 'الأم', entries: PARENT, periodLabel: 't' }, subsidiaries: [{ key: 's', label: 'س', entries: SUB, periodLabel: 't', ownership_pct: '100', investment_codes_in_parent: ['1060'], parent_account_codes_in_sub: ['2050'], sub_account_codes_in_parent: [], control_since: '2024-06-01', control_basis: 'incorporation' }], at_cost: [] });
+    expect(prov.status).toBe('incomplete'); expect(prov.worksheet.entries[0].support).toBe('provisional');
+    const scope = consolidate({ parent: { key: 'p', label: 'الأم', entries: PARENT, periodLabel: 't' }, subsidiaries: [], at_cost: [{ key: 'd', label: 'خاملة', investment_codes_in_parent: ['1060'], receivable_codes_in_parent: [], control: 'controlled' }] });
+    expect(scope.status).toBe('incomplete'); expect(scope.pending_reasons.some((x) => x.includes('نطاق التوحيد'))).toBe(true);
+  });
+  it('leaves an investment premium un-eliminated and flags it instead of creating a difference account', () => {
+    const r = consolidate({ parent: { key: 'p', label: 'الأم', entries: PARENT, periodLabel: 't' }, subsidiaries: [{ key: 's', label: 'س', entries: SUB, periodLabel: 't', ownership_pct: '60', investment_codes_in_parent: ['1060'], parent_account_codes_in_sub: ['2050'], sub_account_codes_in_parent: [], control_since: '2024-06-01', control_basis: 'acquisition' }], at_cost: [] });
+    const inv = r.worksheet.rows.find((x) => x.code === 'INVESTMENTS')!;
+    expect(inv.consolidated).toBe('60.00'); expect(inv.unreconciled).toBe('60.00'); // 240 − 60% × 300
+    expect(r.worksheet.rows.find((x) => x.code === 'NCI')?.consolidated).toBe('124.00'); // 40% × 310
+    expect(r.worksheet.totals.equation_difference).toBe('0.00');
+    expect(r.group_equity_before_adjustments).toBe('720.00'); // المعادلة المباشرة = ورقة العمل تحت فرضية شطب الفروق بحصة الأم
+  });
+  it('shows pre- and post-elimination balances per company and line with account references', () => {
+    const r = run(INC);
     const inv = r.worksheet.rows.find((x) => x.code === 'INVESTMENTS')!;
     expect(inv.per_company.p).toBe('238486.17'); expect(inv.aggregate).toBe('238486.17'); expect(inv.elimination_credit).toBe('238486.17'); expect(inv.consolidated).toBe('0.00');
+    expect(inv.evidence.p[0]).toContain('106021');
     const claim = r.worksheet.rows.find((x) => x.code === 'RELATED_PARTY_DR')!;
-    expect(claim.per_company.g).toBe('62147.82'); expect(claim.consolidated).toBe('0.00');
+    expect(claim.per_company.g).toBe('62147.82'); expect(claim.elimination_credit).toBe('61513.83'); expect(claim.consolidated).toBe('633.99');
   });
 });
