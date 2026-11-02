@@ -149,7 +149,7 @@ describe('consolidation worksheet', () => {
 
 describe('companies kept at cost (no statements)', () => {
   it('reports receivable and payable to a dormant company separately by balance side', () => {
-    const P2 = [...PARENT, E('1070', 'ذمم مدينة شركة خاملة', '100', '0'), E('2070', 'جاري شركة خاملة', '0', '7')];
+    const P2 = [...PARENT, E('1070', 'ذمم مدينة شركة خاملة', '100', '0'), E('2070', 'جاري شركة خاملة', '0', '7'), E('2099', 'ذمم دائنة أخرى', '0', '93')];
     const r = consolidate({ parent: { key: 'p', label: 'الأم', entries: P2, periodLabel: 't' }, subsidiaries: [], at_cost: [{ key: 'd', label: 'خاملة', investment_codes_in_parent: ['1060'], receivable_codes_in_parent: ['1070'], payable_codes_in_parent: ['2070'], control: 'unknown' }] });
     expect(r.at_cost[0].receivable_from_company).toBe('100.00'); expect(r.at_cost[0].payable_to_company).toBe('7.00');
     expect(r.worksheet.scope[0].receivable).toBe('100.00'); expect(r.worksheet.scope[0].payable).toBe('7.00');
