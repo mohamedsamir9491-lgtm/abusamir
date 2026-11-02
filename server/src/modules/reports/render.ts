@@ -148,7 +148,8 @@ export function baseCss(lh: OfficeLetterhead): string {
 }
 
 /** ترويسة المكتب (تتكرر على كل صفحة عبر position:fixed) */
-function letterheadHtml(lh: OfficeLetterhead, meta: ReportContent['meta']): string {
+export type LetterheadMeta = Pick<ReportContent['meta'], 'title' | 'reference_no' | 'client_name' | 'confidentiality'>;
+function letterheadHtml(lh: OfficeLetterhead, meta: LetterheadMeta): string {
   if (lh.letterhead_template_ar) {
     return lh.letterhead_template_ar.replace(/\{\{(\w+)\}\}/g, (_, k: string) => esc(({ name_ar: lh.name_ar, name_en: lh.name_en, cr_number: lh.cr_number, license_number: lh.license_number, address_ar: lh.address_ar, phone: lh.phone, email: lh.email, website: lh.website, vat_number: lh.vat_number, reference_no: meta.reference_no, client_name: meta.client_name, logo: '' } as Record<string, string | null>)[k] ?? ''))
       .replace(/\{\{logo\}\}/g, lh.logo_data_url ? `<img src="${lh.logo_data_url}" style="max-height:${Math.max(8, lh.header_height_mm - 6)}mm">` : '');
@@ -161,7 +162,7 @@ function letterheadHtml(lh: OfficeLetterhead, meta: ReportContent['meta']): stri
     ${lh.logo_data_url ? `<img src="${lh.logo_data_url}" style="max-height:${Math.max(8, lh.header_height_mm - 6)}mm;max-width:45mm">` : ''}
   </div>`;
 }
-function footerHtml(lh: OfficeLetterhead, meta: ReportContent['meta']): string {
+function footerHtml(lh: OfficeLetterhead, meta: LetterheadMeta): string {
   const lines = [lh.address_ar, [lh.phone ? `هاتف: ${lh.phone}` : '', lh.email ? `بريد: ${lh.email}` : '', lh.website ?? ''].filter(Boolean).join(' | '), lh.vat_number ? `الرقم الضريبي: ${lh.vat_number}` : '', lh.footer_ar].filter(Boolean);
   return `<div class="lh" style="height:${lh.footer_height_mm}mm;border-top:1px solid ${lh.primary_color};padding-top:1mm;font-size:8.5pt;display:flex;justify-content:space-between;align-items:flex-start">
     <div>${lines.map((l) => `<div>${esc(l)}</div>`).join('')}</div><div style="color:#c0392b;white-space:nowrap">${esc(meta.confidentiality)}</div></div>`;
@@ -187,17 +188,23 @@ export function renderReportHtml(content: ReportContent, lh: OfficeLetterhead, o
       <div class="box">${lh.signature_data_url ? `<img src="${lh.signature_data_url}">` : '<div style="height:22mm"></div>'}<div>${esc(lh.signatory_name ?? lh.name_ar)}</div><div style="font-size:9pt;color:#555">${esc(lh.signatory_title ?? '')}</div></div>
       <div class="box">${lh.stamp_data_url ? `<img src="${lh.stamp_data_url}">` : '<div style="height:22mm"></div>'}<div>${esc(lh.name_ar)}</div></div></div>`);
   }
-  const watermark = m.status === 'draft' ? `<div style="position:fixed;top:40%;left:0;right:0;text-align:center;font-size:60pt;color:rgba(192,57,43,0.12);transform:rotate(-20deg);z-index:0;pointer-events:none">مسودة</div>` : '';
+  const watermark = m.status === 'draft' ? 'مسودة' : null;
+  return wrapWithLetterhead(body.join('\n'), lh, m, { ...opts, watermark });
+}
+
+/** غلاف صفحة A4 بترويسة المكتب وتذييله (يتكرران على كل صفحة) - يُستخدم للتقارير وخطابات الارتباط وأي مستند رسمي */
+export function wrapWithLetterhead(bodyHtml: string, lh: OfficeLetterhead, meta: LetterheadMeta, opts: { forPdf?: boolean; watermark?: string | null; extraCss?: string } = {}): string {
+  const watermark = opts.watermark ? `<div style="position:fixed;top:40%;left:0;right:0;text-align:center;font-size:60pt;color:rgba(192,57,43,0.12);transform:rotate(-20deg);z-index:0;pointer-events:none">${esc(opts.watermark)}</div>` : '';
   const bg = lh.letterhead_bg_data_url ? `<img src="${lh.letterhead_bg_data_url}" style="position:fixed;top:-${lh.page_margin_top_mm}mm;left:-${lh.page_margin_left_mm}mm;width:210mm;height:297mm;z-index:-1">` : '';
-  const header = letterheadHtml(lh, m); const footer = footerHtml(lh, m);
+  const header = letterheadHtml(lh, meta); const footer = footerHtml(lh, meta);
   const pageCss = opts.forPdf ? `@page{size:A4;margin:${lh.page_margin_top_mm}mm ${lh.page_margin_right_mm}mm ${lh.page_margin_bottom_mm + 7}mm ${lh.page_margin_left_mm}mm}` : `body{padding:12mm;max-width:210mm;margin:0 auto;background:#fff}`;
   // أسلوب الجدول الغلافي: thead/tfoot يتكرران على كل صفحة لحجز مساحة الترويسة والتذييل الثابتين
-  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${esc(m.title)}</title><style>${baseCss(lh)}${pageCss}
+  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${esc(meta.title)}</title><style>${baseCss(lh)}${pageCss}${opts.extraCss ?? ''}
     .fixed-header{position:fixed;top:0;left:0;right:0;height:${lh.header_height_mm}mm}.fixed-footer{position:fixed;bottom:0;left:0;right:0;height:${lh.footer_height_mm}mm}
     table.wrap{width:100%;table-layout:fixed;border-collapse:collapse;margin:0}table.wrap>thead>tr>td{height:${lh.header_height_mm + 3}mm;padding:0;border:0}table.wrap>tfoot>tr>td{height:${lh.footer_height_mm + 6}mm;padding:0;border:0}table.wrap>tbody>tr>td{padding:0;border:0;width:100%;overflow:hidden}
     ${opts.forPdf ? '' : '.fixed-header,.fixed-footer{position:static}table.wrap>thead,table.wrap>tfoot{display:none}'}
   </style></head><body>${bg}${watermark}
     <div class="fixed-header">${header}</div><div class="fixed-footer">${footer}</div>
-    <table class="wrap"><thead><tr><td></td></tr></thead><tfoot><tr><td></td></tr></tfoot><tbody><tr><td>${body.join('\n')}</td></tr></tbody></table>
+    <table class="wrap"><thead><tr><td></td></tr></thead><tfoot><tr><td></td></tr></tfoot><tbody><tr><td>${bodyHtml}</td></tr></tbody></table>
   </body></html>`;
 }

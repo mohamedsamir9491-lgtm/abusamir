@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { get, post, put, download } from '../api';
+import { get, post, put, del, download } from '../api';
 import { Page, useLoad, Spinner, Empty, useAction, Badge, Modal, Field, Tabs } from '../components/ui';
 import { useScope } from '../components/Scope';
 import { REPORT_STATUS, fmtDate } from '../format';
@@ -13,12 +13,12 @@ interface Content { meta: Record<string, string | null | boolean>; sections: Sec
 
 export function Reports() {
   const { eng, period, Selector } = useScope(); const nav = useNavigate(); const { can } = useAuth(); const { run, busy } = useAction(); const [open, setOpen] = useState(false); const [tpl, setTpl] = useState(''); const [title, setTitle] = useState('');
-  const { data, loading } = useLoad(() => get<{ reports: Row[] }>(`/reports${eng ? `?engagement_id=${eng}` : ''}`), [eng]);
+  const { data, loading, reload } = useLoad(() => get<{ reports: Row[] }>(`/reports${eng ? `?engagement_id=${eng}` : ''}`), [eng]);
   const { data: tpls } = useLoad(() => get<{ templates: Row[] }>('/report-templates'), []);
   const create = async () => { const r = await run(() => post<{ id: string }>('/reports', { engagement_id: eng, period_id: period, template_id: tpl, title: title || undefined }), 'تم توليد التقرير كمسودة'); if (r) nav(`/reports/${r.id}`); };
   return <Page title="مركز التقارير" sub="توليد من قالب → تحرير الأقسام → مراجعة → اعتماد → تصدير PDF/Excel على ترويسة المكتب" actions={eng && period && can('reports.create') && <button className="btn" onClick={() => setOpen(true)}>+ تقرير جديد</button>}>
     <Selector />
-    <div className="card">{loading ? <Spinner /> : !data?.reports.length ? <Empty text="لا توجد تقارير" /> : <table className="t"><thead><tr><th>المرجع</th><th>العنوان</th><th>العميل</th><th>الفترة</th><th>الحالة</th><th>النسخة</th><th>المُعد</th><th>آخر تحديث</th></tr></thead><tbody>{data.reports.map((r) => <tr key={String(r.id)} className="clickable" onClick={() => nav(`/reports/${r.id}`)}><td className="mono">{r.reference_no}</td><td><b>{r.title}</b></td><td>{r.client_name} {r.is_demo && <span className="demo-tag">تجريبي</span>}</td><td>{r.period_label}</td><td><Badge k={String(r.status)} map={REPORT_STATUS} tone={r.status === 'approved' || r.status === 'issued' ? 'ok' : r.status === 'reviewed' ? 'warn' : 'neutral'} /></td><td>v{r.current_version_no}</td><td>{r.prepared_by_name}</td><td>{fmtDate(String(r.updated_at), { time: true })}</td></tr>)}</tbody></table>}</div>
+    <div className="card">{loading ? <Spinner /> : !data?.reports.length ? <Empty text="لا توجد تقارير" /> : <table className="t"><thead><tr><th>المرجع</th><th>العنوان</th><th>العميل</th><th>الفترة</th><th>الحالة</th><th>النسخة</th><th>المُعد</th><th>آخر تحديث</th>{can('reports.delete') && <th></th>}</tr></thead><tbody>{data.reports.map((r) => <tr key={String(r.id)} className="clickable" onClick={() => nav(`/reports/${r.id}`)}><td className="mono">{r.reference_no}</td><td><b>{r.title}</b></td><td>{r.client_name} {r.is_demo && <span className="demo-tag">تجريبي</span>}</td><td>{r.period_label}</td><td><Badge k={String(r.status)} map={REPORT_STATUS} tone={r.status === 'approved' || r.status === 'issued' ? 'ok' : r.status === 'reviewed' ? 'warn' : 'neutral'} /></td><td>v{r.current_version_no}</td><td>{r.prepared_by_name}</td><td>{fmtDate(String(r.updated_at), { time: true })}</td>{can('reports.delete') && <td onClick={(ev) => ev.stopPropagation()}><button className="btn sec sm" disabled={busy} onClick={async () => { if (!confirm(`حذف التقرير ${r.reference_no} نهائيًا؟ لا يمكن التراجع.`)) return; await run(() => del(`/reports/${r.id}`), 'حُذف التقرير'); reload(); }}>حذف</button></td>}</tr>)}</tbody></table>}</div>
     {open && <Modal title="تقرير جديد" onClose={() => setOpen(false)}><Field label="القالب"><select value={tpl} onChange={(e) => setTpl(e.target.value)}><option value="">— اختر —</option>{tpls?.templates.map((t) => <option key={String(t.id)} value={String(t.id)}>{t.name_ar}{t.is_system ? '' : ' (مخصص)'}</option>)}</select></Field>{tpl && <p className="muted">{tpls?.templates.find((t) => t.id === tpl)?.description}</p>}<Field label="العنوان (اختياري)"><input value={title} onChange={(e) => setTitle(e.target.value)} /></Field><div className="row end"><button className="btn" disabled={!tpl || busy} onClick={create}>توليد المسودة</button></div></Modal>}
   </Page>;
 }

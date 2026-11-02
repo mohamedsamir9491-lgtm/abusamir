@@ -6,6 +6,8 @@ import { Login, ChangePassword } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Clients, ClientDetail } from './pages/Clients';
 import { Engagements, EngagementDetail } from './pages/Engagements';
+import { EngagementLetter } from './pages/EngagementLetter';
+import { Consolidation } from './pages/Consolidation';
 import { UploadPage } from './pages/Upload';
 import { ImportsList, ImportJob } from './pages/Imports';
 import { TrialBalance } from './pages/TrialBalance';
@@ -26,11 +28,12 @@ export default function App() {
     <Route element={<Layout />}>
       <Route path="/" element={<Dashboard />} />
       <Route path="/clients" element={<Clients />} /><Route path="/clients/:id" element={<ClientDetail />} />
-      <Route path="/engagements" element={<Engagements />} /><Route path="/engagements/:id" element={<EngagementDetail />} />
+      <Route path="/engagements" element={<Engagements />} /><Route path="/engagements/:id" element={<EngagementDetail />} /><Route path="/engagements/:id/letter" element={<EngagementLetter />} />
       <Route path="/upload" element={<UploadPage />} />
       <Route path="/imports" element={<ImportsList />} /><Route path="/imports/:id" element={<ImportJob />} />
       <Route path="/trial-balance" element={<TrialBalance />} />
       <Route path="/analysis" element={<Analysis />} />
+      <Route path="/consolidation" element={<Consolidation />} />
       <Route path="/ai" element={<AIPage />} />
       <Route path="/findings" element={<Findings />} />
       <Route path="/reports" element={<Reports />} /><Route path="/reports/:id" element={<ReportEditor />} />

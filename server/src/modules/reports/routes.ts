@@ -68,6 +68,16 @@ reportsRouter.post('/', requirePermission('reports.create'), async (req, res, ne
   } catch (e) { next(e); }
 });
 
+/** حذف تقرير (لتنظيف التقارير غير السليمة): يتطلب صلاحية reports.delete؛ يُسجَّل في سجل التدقيق مع المرجع والحالة والعنوان */
+reportsRouter.delete('/:id', requirePermission('reports.delete'), async (req, res, next) => {
+  try {
+    const r = await loadReport(String(req.params.id));
+    await query('DELETE FROM generated_reports WHERE id = $1', [r.id]); // النسخ تُحذف تلقائيًا (ON DELETE CASCADE)؛ ملفات PDF/Excel المخزنة تبقى في المستودع للتدقيق
+    await audit(req, { action: 'report.delete', entityType: 'report', entityId: r.id, clientId: r.client_id, details: { reference_no: r.reference_no, title: r.title, status: r.status, versions: r.current_version_no } });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 reportsRouter.get('/:id', async (req, res, next) => {
   try {
     const r = await loadReport(req.params.id as string);

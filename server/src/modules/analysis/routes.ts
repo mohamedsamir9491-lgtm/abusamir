@@ -127,6 +127,14 @@ analysisRouter.post('/group/consolidate', requirePermission('analysis.run'), asy
   } catch (e) { next(e); }
 });
 
+/** آخر تشغيل توحيد على فترة الشركة الأم */
+analysisRouter.get('/group/latest', async (req, res, next) => {
+  try {
+    const periodId = String(req.query.period_id ?? ''); if (!periodId) throw badRequest('period_id مطلوب');
+    res.json({ run: await latestRun(periodId, 'consolidation') });
+  } catch (e) { next(e); }
+});
+
 /** حالة اكتمال المراحل للارتباط (لعرض التقدم) */
 analysisRouter.get('/progress', async (req, res, next) => {
   try {

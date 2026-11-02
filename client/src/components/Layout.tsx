@@ -3,7 +3,7 @@ import { useAuth } from '../auth';
 
 const NAV = [
   ['/', 'لوحة التحكم', 'clients.view'], ['/clients', 'العملاء', 'clients.view'], ['/engagements', 'الارتباطات', 'clients.view'], ['/upload', 'رفع المستندات', 'documents.upload'], ['/imports', 'الاستيراد والتحقق', 'clients.view'],
-  ['/trial-balance', 'ميزان المراجعة', 'clients.view'], ['/analysis', 'التحليل المالي', 'clients.view'], ['/ai', 'المحاسب الذكي', 'clients.view'], ['/findings', 'الملاحظات والتسويات', 'clients.view'], ['/reports', 'التقارير', 'clients.view'],
+  ['/trial-balance', 'ميزان المراجعة', 'clients.view'], ['/analysis', 'التحليل المالي', 'clients.view'], ['/consolidation', 'التوحيد الدفتري', 'clients.view'], ['/ai', 'المحاسب الذكي', 'clients.view'], ['/findings', 'الملاحظات والتسويات', 'clients.view'], ['/reports', 'التقارير', 'clients.view'],
   ['/templates', 'قوالب التقارير', 'clients.view'], ['/office', 'ترويسة المكتب', 'clients.view'], ['/users', 'المستخدمون والصلاحيات', 'users.manage'], ['/audit', 'سجل التدقيق', 'audit.view'], ['/system', 'إعدادات النظام', 'audit.view'],
 ] as const;
 

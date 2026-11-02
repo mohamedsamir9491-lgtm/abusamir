@@ -1,6 +1,6 @@
 /** قوالب التقارير النظامية: فصل العرض (الأقسام) عن الحسابات والنتائج */
 export type SectionType = 'cover' | 'intro' | 'scope' | 'sources' | 'summary' | 'tb_summary' | 'findings' | 'statements_sfp' | 'statements_pl' | 'statements_cf' | 'statements_ce'
-  | 'ratios' | 'variance' | 'aging' | 'adjustments' | 'documents_needed' | 'questions' | 'ai_commentary' | 'risks' | 'recommendations' | 'limitations' | 'disclaimer' | 'appendix_tb' | 'appendix_accounts' | 'signatures' | 'custom_text' | 'fixed_assets' | 'inventory' | 'bank' | 'checklist';
+  | 'ratios' | 'variance' | 'aging' | 'adjustments' | 'documents_needed' | 'questions' | 'ai_commentary' | 'risks' | 'recommendations' | 'limitations' | 'disclaimer' | 'appendix_tb' | 'appendix_accounts' | 'signatures' | 'custom_text' | 'fixed_assets' | 'inventory' | 'bank' | 'checklist' | 'consolidation';
 
 export interface TemplateSection { key: string; type: SectionType; title_ar: string; title_en: string; enabled: boolean; order: number; options?: Record<string, unknown> }
 export interface SystemTemplate { code: string; report_type: string; name_ar: string; name_en: string; description: string; sections: TemplateSection[] }
@@ -56,5 +56,5 @@ export const SECTION_TYPE_LABELS: Record<SectionType, string> = {
   cover: 'صفحة الغلاف', intro: 'مقدمة', scope: 'النطاق والهدف', sources: 'مصادر البيانات', summary: 'ملخص تنفيذي', tb_summary: 'نتائج فحص الميزان', findings: 'الملاحظات', statements_sfp: 'قائمة المركز المالي',
   statements_pl: 'قائمة الربح أو الخسارة', statements_cf: 'قائمة التدفقات النقدية', statements_ce: 'التغيرات في حقوق الملكية', ratios: 'النسب المالية', variance: 'مقارنة الفترات', aging: 'أعمار الذمم', adjustments: 'التسويات',
   documents_needed: 'المستندات المطلوبة', questions: 'أسئلة للإدارة', ai_commentary: 'التعليق التحليلي', risks: 'تقييم المخاطر', recommendations: 'التوصيات', limitations: 'القيود', disclaimer: 'إخلاء المسؤولية', appendix_tb: 'ملحق الميزان',
-  appendix_accounts: 'ملحق الحسابات', signatures: 'التوقيعات', custom_text: 'نص حر', fixed_assets: 'الأصول الثابتة', inventory: 'المخزون', bank: 'المطابقة البنكية', checklist: 'قائمة مراجعة',
+  appendix_accounts: 'ملحق الحسابات', signatures: 'التوقيعات', custom_text: 'نص حر', consolidation: 'التوحيد الدفتري للمجموعة (ورقة العمل والقيود وسجل الفروق)', fixed_assets: 'الأصول الثابتة', inventory: 'المخزون', bank: 'المطابقة البنكية', checklist: 'قائمة مراجعة',
 };
