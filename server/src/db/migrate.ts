@@ -7,7 +7,8 @@ import { logger } from '../lib/logger.js';
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 export async function runMigrations(): Promise<string[]> {
-  const dir = path.join(here, 'migrations');
+  // عند التشغيل من dist تُقرأ ملفات SQL من نسخة البناء أو من المصدر
+  const dir = [path.join(here, 'migrations'), path.resolve(here, '../../src/db/migrations')].find((d) => fs.existsSync(d)) ?? path.join(here, 'migrations');
   const files = fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
   const client = await pool.connect();
   const applied: string[] = [];
