@@ -1,0 +1,61 @@
+import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import { pinoHttp } from 'pino-http';
+import { config } from './config.js';
+import { logger } from './lib/logger.js';
+import { errorHandler, notFoundHandler } from './middleware/errors.js';
+import { authRouter } from './modules/auth/routes.js';
+import { usersRouter } from './modules/users/routes.js';
+import { officeRouter } from './modules/office/routes.js';
+import { clientsRouter } from './modules/clients/routes.js';
+import { engagementsRouter } from './modules/engagements/routes.js';
+import { documentsRouter } from './modules/documents/routes.js';
+import { importsRouter } from './modules/imports/routes.js';
+import { accountsRouter } from './modules/accounts/routes.js';
+import { trialBalanceRouter } from './modules/trialbalance/routes.js';
+import { analysisRouter } from './modules/analysis/routes.js';
+import { findingsRouter } from './modules/findings/routes.js';
+import { adjustmentsRouter } from './modules/findings/adjustments.js';
+import { aiRouter } from './modules/ai/routes.js';
+import { reportsRouter } from './modules/reports/routes.js';
+import { templatesRouter } from './modules/reports/templates.routes.js';
+import { auditRouter } from './modules/audit/routes.js';
+import { systemRouter } from './modules/system/routes.js';
+import { dashboardRouter } from './modules/dashboard/routes.js';
+
+export function createApp() {
+  const app = express();
+  app.set('trust proxy', 1);
+  app.disable('x-powered-by');
+  app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'same-site' } }));
+  app.use(cors({ origin: config.clientOrigin, credentials: true }));
+  app.use(cookieParser());
+  app.use(express.json({ limit: '5mb' }));
+  if (!config.isTest) app.use(pinoHttp({ logger, autoLogging: { ignore: (req: { url?: string }) => req.url?.startsWith('/api/health') ?? false } }));
+
+  app.get('/api/health', (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+  app.use('/api/auth', authRouter);
+  app.use('/api/users', usersRouter);
+  app.use('/api/office', officeRouter);
+  app.use('/api/clients', clientsRouter);
+  app.use('/api/engagements', engagementsRouter);
+  app.use('/api/documents', documentsRouter);
+  app.use('/api/imports', importsRouter);
+  app.use('/api/accounts', accountsRouter);
+  app.use('/api/trial-balance', trialBalanceRouter);
+  app.use('/api/analysis', analysisRouter);
+  app.use('/api/findings', findingsRouter);
+  app.use('/api/adjustments', adjustmentsRouter);
+  app.use('/api/ai', aiRouter);
+  app.use('/api/reports', reportsRouter);
+  app.use('/api/report-templates', templatesRouter);
+  app.use('/api/audit', auditRouter);
+  app.use('/api/system', systemRouter);
+  app.use('/api/dashboard', dashboardRouter);
+
+  app.use('/api', notFoundHandler);
+  app.use(errorHandler);
+  return app;
+}

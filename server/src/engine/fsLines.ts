@@ -1,0 +1,58 @@
+/** بنود القوائم المالية المرجعية - تُستخدم في ربط الحسابات بالقوائم */
+export interface FsLine { code: string; statement: 'sfp' | 'pl' | 'oci' | 'ce' | 'cf'; section: string; label_ar: string; label_en: string; normal_sign: 'debit' | 'credit'; sort_order: number }
+
+export const FS_LINES: FsLine[] = [
+  // ---- قائمة المركز المالي ----
+  { code: 'CASH', statement: 'sfp', section: 'current_assets', label_ar: 'النقد وما في حكمه', label_en: 'Cash and cash equivalents', normal_sign: 'debit', sort_order: 10 },
+  { code: 'AR', statement: 'sfp', section: 'current_assets', label_ar: 'الذمم المدينة التجارية', label_en: 'Trade receivables', normal_sign: 'debit', sort_order: 20 },
+  { code: 'AR_ALLOWANCE', statement: 'sfp', section: 'current_assets', label_ar: 'مخصص الخسائر الائتمانية المتوقعة', label_en: 'Allowance for expected credit losses', normal_sign: 'credit', sort_order: 21 },
+  { code: 'OTHER_RECEIVABLES', statement: 'sfp', section: 'current_assets', label_ar: 'ذمم مدينة أخرى ومصاريف مدفوعة مقدمًا', label_en: 'Other receivables and prepayments', normal_sign: 'debit', sort_order: 25 },
+  { code: 'RELATED_PARTY_DR', statement: 'sfp', section: 'current_assets', label_ar: 'مستحق من أطراف ذات علاقة', label_en: 'Due from related parties', normal_sign: 'debit', sort_order: 27 },
+  { code: 'INVENTORY', statement: 'sfp', section: 'current_assets', label_ar: 'المخزون', label_en: 'Inventories', normal_sign: 'debit', sort_order: 30 },
+  { code: 'VAT_RECEIVABLE', statement: 'sfp', section: 'current_assets', label_ar: 'ضريبة القيمة المضافة مستحقة الاسترداد', label_en: 'VAT receivable', normal_sign: 'debit', sort_order: 35 },
+  { code: 'OTHER_CURRENT_ASSETS', statement: 'sfp', section: 'current_assets', label_ar: 'أصول متداولة أخرى', label_en: 'Other current assets', normal_sign: 'debit', sort_order: 40 },
+  { code: 'PPE', statement: 'sfp', section: 'non_current_assets', label_ar: 'الممتلكات والآلات والمعدات', label_en: 'Property, plant and equipment', normal_sign: 'debit', sort_order: 50 },
+  { code: 'ACC_DEP', statement: 'sfp', section: 'non_current_assets', label_ar: 'مجمع الاستهلاك', label_en: 'Accumulated depreciation', normal_sign: 'credit', sort_order: 51 },
+  { code: 'INTANGIBLES', statement: 'sfp', section: 'non_current_assets', label_ar: 'الأصول غير الملموسة', label_en: 'Intangible assets', normal_sign: 'debit', sort_order: 55 },
+  { code: 'ROU_ASSETS', statement: 'sfp', section: 'non_current_assets', label_ar: 'أصول حق الاستخدام', label_en: 'Right-of-use assets', normal_sign: 'debit', sort_order: 57 },
+  { code: 'INVESTMENTS', statement: 'sfp', section: 'non_current_assets', label_ar: 'الاستثمارات', label_en: 'Investments', normal_sign: 'debit', sort_order: 60 },
+  { code: 'OTHER_NON_CURRENT_ASSETS', statement: 'sfp', section: 'non_current_assets', label_ar: 'أصول غير متداولة أخرى', label_en: 'Other non-current assets', normal_sign: 'debit', sort_order: 65 },
+  { code: 'AP', statement: 'sfp', section: 'current_liabilities', label_ar: 'الذمم الدائنة التجارية', label_en: 'Trade payables', normal_sign: 'credit', sort_order: 100 },
+  { code: 'ACCRUALS', statement: 'sfp', section: 'current_liabilities', label_ar: 'مصاريف مستحقة وذمم دائنة أخرى', label_en: 'Accrued expenses and other payables', normal_sign: 'credit', sort_order: 105 },
+  { code: 'RELATED_PARTY_CR', statement: 'sfp', section: 'current_liabilities', label_ar: 'مستحق إلى أطراف ذات علاقة', label_en: 'Due to related parties', normal_sign: 'credit', sort_order: 107 },
+  { code: 'VAT_PAYABLE', statement: 'sfp', section: 'current_liabilities', label_ar: 'ضريبة القيمة المضافة المستحقة', label_en: 'VAT payable', normal_sign: 'credit', sort_order: 110 },
+  { code: 'ZAKAT_TAX_PAYABLE', statement: 'sfp', section: 'current_liabilities', label_ar: 'مخصص الزكاة وضريبة الدخل', label_en: 'Zakat and income tax payable', normal_sign: 'credit', sort_order: 112 },
+  { code: 'SHORT_TERM_LOANS', statement: 'sfp', section: 'current_liabilities', label_ar: 'قروض قصيرة الأجل والجزء المتداول من القروض', label_en: 'Short-term borrowings and current portion of loans', normal_sign: 'credit', sort_order: 115 },
+  { code: 'LEASE_LIAB_CURRENT', statement: 'sfp', section: 'current_liabilities', label_ar: 'التزامات عقود إيجار - متداولة', label_en: 'Lease liabilities - current', normal_sign: 'credit', sort_order: 117 },
+  { code: 'OTHER_CURRENT_LIABILITIES', statement: 'sfp', section: 'current_liabilities', label_ar: 'التزامات متداولة أخرى', label_en: 'Other current liabilities', normal_sign: 'credit', sort_order: 120 },
+  { code: 'LONG_TERM_LOANS', statement: 'sfp', section: 'non_current_liabilities', label_ar: 'قروض طويلة الأجل', label_en: 'Long-term borrowings', normal_sign: 'credit', sort_order: 130 },
+  { code: 'LEASE_LIAB_NON_CURRENT', statement: 'sfp', section: 'non_current_liabilities', label_ar: 'التزامات عقود إيجار - غير متداولة', label_en: 'Lease liabilities - non-current', normal_sign: 'credit', sort_order: 132 },
+  { code: 'EOSB', statement: 'sfp', section: 'non_current_liabilities', label_ar: 'مخصص مكافأة نهاية الخدمة', label_en: 'Employee end-of-service benefits', normal_sign: 'credit', sort_order: 135 },
+  { code: 'OTHER_NON_CURRENT_LIABILITIES', statement: 'sfp', section: 'non_current_liabilities', label_ar: 'التزامات غير متداولة أخرى', label_en: 'Other non-current liabilities', normal_sign: 'credit', sort_order: 140 },
+  { code: 'SHARE_CAPITAL', statement: 'sfp', section: 'equity', label_ar: 'رأس المال', label_en: 'Share capital', normal_sign: 'credit', sort_order: 150 },
+  { code: 'STATUTORY_RESERVE', statement: 'sfp', section: 'equity', label_ar: 'الاحتياطي النظامي', label_en: 'Statutory reserve', normal_sign: 'credit', sort_order: 155 },
+  { code: 'OTHER_RESERVES', statement: 'sfp', section: 'equity', label_ar: 'احتياطيات أخرى', label_en: 'Other reserves', normal_sign: 'credit', sort_order: 157 },
+  { code: 'RETAINED_EARNINGS', statement: 'sfp', section: 'equity', label_ar: 'الأرباح المبقاة / (الخسائر المتراكمة)', label_en: 'Retained earnings / (accumulated losses)', normal_sign: 'credit', sort_order: 160 },
+  { code: 'OWNER_CURRENT', statement: 'sfp', section: 'equity', label_ar: 'جاري الشركاء / المالك', label_en: 'Partners\' / owner\'s current account', normal_sign: 'credit', sort_order: 165 },
+  { code: 'DIVIDENDS', statement: 'sfp', section: 'equity', label_ar: 'توزيعات أرباح / مسحوبات', label_en: 'Dividends / drawings', normal_sign: 'debit', sort_order: 170 },
+  // ---- قائمة الربح أو الخسارة ----
+  { code: 'REVENUE', statement: 'pl', section: 'revenue', label_ar: 'الإيرادات', label_en: 'Revenue', normal_sign: 'credit', sort_order: 200 },
+  { code: 'SALES_RETURNS', statement: 'pl', section: 'revenue', label_ar: 'مردودات ومسموحات المبيعات', label_en: 'Sales returns and allowances', normal_sign: 'debit', sort_order: 205 },
+  { code: 'COGS', statement: 'pl', section: 'cost_of_sales', label_ar: 'تكلفة الإيرادات / المبيعات', label_en: 'Cost of revenue / sales', normal_sign: 'debit', sort_order: 210 },
+  { code: 'SELLING_EXP', statement: 'pl', section: 'operating_expenses', label_ar: 'مصاريف بيع وتسويق', label_en: 'Selling and marketing expenses', normal_sign: 'debit', sort_order: 220 },
+  { code: 'ADMIN_EXP', statement: 'pl', section: 'operating_expenses', label_ar: 'مصاريف عمومية وإدارية', label_en: 'General and administrative expenses', normal_sign: 'debit', sort_order: 225 },
+  { code: 'DEPRECIATION_EXP', statement: 'pl', section: 'operating_expenses', label_ar: 'مصاريف الاستهلاك والإطفاء', label_en: 'Depreciation and amortisation', normal_sign: 'debit', sort_order: 230 },
+  { code: 'ECL_EXP', statement: 'pl', section: 'operating_expenses', label_ar: 'خسائر ائتمانية متوقعة', label_en: 'Expected credit losses', normal_sign: 'debit', sort_order: 232 },
+  { code: 'OTHER_OPERATING', statement: 'pl', section: 'operating_expenses', label_ar: 'مصاريف / (إيرادات) تشغيلية أخرى', label_en: 'Other operating expenses / (income)', normal_sign: 'debit', sort_order: 235 },
+  { code: 'OTHER_INCOME', statement: 'pl', section: 'non_operating', label_ar: 'إيرادات أخرى', label_en: 'Other income', normal_sign: 'credit', sort_order: 240 },
+  { code: 'FINANCE_COST', statement: 'pl', section: 'non_operating', label_ar: 'تكاليف تمويل', label_en: 'Finance costs', normal_sign: 'debit', sort_order: 245 },
+  { code: 'FINANCE_INCOME', statement: 'pl', section: 'non_operating', label_ar: 'إيرادات تمويل', label_en: 'Finance income', normal_sign: 'credit', sort_order: 247 },
+  { code: 'OTHER_EXPENSE', statement: 'pl', section: 'non_operating', label_ar: 'مصاريف أخرى', label_en: 'Other expenses', normal_sign: 'debit', sort_order: 250 },
+  { code: 'ZAKAT_TAX_EXP', statement: 'pl', section: 'zakat_tax', label_ar: 'الزكاة وضريبة الدخل', label_en: 'Zakat and income tax', normal_sign: 'debit', sort_order: 260 },
+  { code: 'OCI', statement: 'oci', section: 'oci', label_ar: 'الدخل الشامل الآخر', label_en: 'Other comprehensive income', normal_sign: 'credit', sort_order: 270 },
+  // ---- غير مصنف ----
+  { code: 'SUSPENSE', statement: 'sfp', section: 'unclassified', label_ar: 'حسابات معلقة / وسيطة', label_en: 'Suspense / clearing accounts', normal_sign: 'debit', sort_order: 900 },
+  { code: 'UNMAPPED', statement: 'sfp', section: 'unclassified', label_ar: 'حسابات غير مربوطة', label_en: 'Unmapped accounts', normal_sign: 'debit', sort_order: 999 },
+];
+
+export const FS_LINE_MAP: Record<string, FsLine> = Object.fromEntries(FS_LINES.map((l) => [l.code, l]));

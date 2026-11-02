@@ -1,0 +1,7 @@
+# معالجة المستندات (اختيارية - تُحسّن استخراج PDF و XLS)
+pdfplumber>=0.11
+openpyxl>=3.1
+xlrd>=2.0
+# OCR اختياري: يتطلب tesseract مثبتًا على النظام مع حزمة اللغة العربية (tesseract-ocr-ara)
+# pytesseract>=0.3
+# pillow>=10

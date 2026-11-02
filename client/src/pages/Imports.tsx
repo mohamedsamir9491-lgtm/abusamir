@@ -1,0 +1,76 @@
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { get, post, put } from '../api';
+import { Page, useLoad, Spinner, Empty, Field, useAction, Steps, Badge, Modal } from '../components/ui';
+import { IMPORT_STATUS, fmtDate } from '../format';
+
+type Row = Record<string, string | number | null>;
+interface FieldDef { key: string; label_ar: string; type: string; required: boolean }
+interface Job { id: string; document_id: string; engagement_id: string; period_id: string | null; data_type: string; status: string; sheet_name: string | null; header_row: number; detected_columns: string[]; column_mapping: Record<string, number>; options: Record<string, unknown>; extraction_meta: { method: string; confidence: number; warnings: string[]; needs_human_verification: boolean; sheets: { name: string; row_count: number }[]; text_preview?: string | null }; validation_report: Report | null; row_count: number; error_message: string | null }
+interface Report { total_rows: number; data_rows: number; ok: number; warnings: number; errors: number; skipped: number; can_commit: boolean; blocking_reasons: string[]; summary: Record<string, unknown>; issues: { code: string; level: string; message: string; count: number; rows: number[] }[] }
+
+export function ImportsList() {
+  const [sp] = useSearchParams(); const nav = useNavigate(); const { run, busy } = useAction();
+  const { data: engs } = useLoad(() => get<{ engagements: Row[] }>('/engagements'), []);
+  const [eng, setEng] = useState(sp.get('engagement_id') ?? '');
+  const { data: types } = useLoad(() => get<{ data_types: { code: string; label_ar: string }[] }>('/imports/data-types'), []);
+  const { data: det } = useLoad(() => eng ? get<{ periods: Row[]; documents: Row[] }>(`/engagements/${eng}`) : Promise.resolve(null), [eng]);
+  const { data: jobs, reload } = useLoad(() => eng ? get<{ jobs: Row[] }>(`/imports?engagement_id=${eng}`) : Promise.resolve({ jobs: [] }), [eng]);
+  const [doc, setDoc] = useState(sp.get('document_id') ?? ''); const [dt, setDt] = useState('trial_balance'); const [period, setPeriod] = useState('');
+  useEffect(() => { if (det && !period) setPeriod(String(det.periods.find((p) => p.role === 'current')?.id ?? det.periods[0]?.id ?? '')); if (det && doc) { const d = det.documents.find((x) => x.id === doc); if (d && d.document_type !== 'unknown' && types?.data_types.some((t) => t.code === d.document_type)) setDt(String(d.document_type)); if (d?.period_id) setPeriod(String(d.period_id)); } }, [det, doc, types]); // eslint-disable-line
+  const start = async () => { const r = await run(() => post<{ job: Job }>('/imports', { document_id: doc, data_type: dt, period_id: period || null })); if (r) { if (r.job.status === 'failed') { reload(); } else nav(`/imports/${r.job.id}`); } };
+  return <Page title="الاستيراد والتحقق" sub="معالج من مراحل: استخراج → تحديد الورقة والعناوين → ربط الأعمدة → التحقق → تأكيد الاعتماد">
+    <div className="card"><div className="grid c4">
+      <Field label="الارتباط"><select value={eng} onChange={(e) => { setEng(e.target.value); setDoc(''); }}><option value="">— اختر —</option>{engs?.engagements.map((e) => <option key={String(e.id)} value={String(e.id)}>{e.client_name} — {e.title}</option>)}</select></Field>
+      <Field label="المستند"><select value={doc} onChange={(e) => setDoc(e.target.value)} disabled={!det}><option value="">— اختر —</option>{det?.documents.map((d) => <option key={String(d.id)} value={String(d.id)}>{d.original_name} ({d.status})</option>)}</select></Field>
+      <Field label="نوع البيانات"><select value={dt} onChange={(e) => setDt(e.target.value)}>{types?.data_types.map((t) => <option key={t.code} value={t.code}>{t.label_ar}</option>)}</select></Field>
+      <Field label="الفترة المالية"><select value={period} onChange={(e) => setPeriod(e.target.value)}><option value="">—</option>{det?.periods.map((p) => <option key={String(p.id)} value={String(p.id)}>{p.label}</option>)}</select></Field></div>
+      <div className="row"><button className="btn" disabled={!doc || busy} onClick={start}>{busy ? 'جارٍ الاستخراج…' : 'بدء الاستيراد'}</button>{eng && <Link className="btn sec" to={`/upload?engagement_id=${eng}`}>رفع مستند جديد</Link>}</div></div>
+    <div className="card"><h2>مهام الاستيراد</h2>{!eng ? <Empty text="اختر ارتباطًا" /> : !jobs?.jobs.length ? <Empty text="لا توجد مهام" /> : <table className="t"><thead><tr><th>المستند</th><th>النوع</th><th>الفترة</th><th>الحالة</th><th>الطريقة</th><th>الصفوف</th><th>بواسطة</th><th>التاريخ</th></tr></thead><tbody>
+      {jobs.jobs.map((j) => <tr key={String(j.id)} className="clickable" onClick={() => nav(`/imports/${j.id}`)}><td>{j.original_name}</td><td>{types?.data_types.find((t) => t.code === j.data_type)?.label_ar ?? j.data_type}</td><td>{j.period_label ?? '—'}</td><td><Badge k={String(j.status)} map={IMPORT_STATUS} tone={j.status === 'committed' ? 'ok' : j.status === 'failed' ? 'danger' : 'neutral'} />{j.error_message && <div className="muted" style={{ color: 'var(--danger)' }}>{String(j.error_message)}</div>}</td><td>{(j.extraction_meta as unknown as { method?: string })?.method}</td><td>{j.row_count}</td><td>{j.created_by_name}</td><td>{fmtDate(String(j.created_at), { time: true })}</td></tr>)}</tbody></table>}</div>
+  </Page>;
+}
+
+export function ImportJob() {
+  const { id } = useParams(); const nav = useNavigate(); const { run, busy } = useAction();
+  const { data, loading, reload } = useLoad(() => get<{ job: Job; fields: FieldDef[]; rows: { row_number: number; cells: string[] }[] }>(`/imports/${id}?limit=40`), [id]);
+  const [mapping, setMapping] = useState<Record<string, number>>({}); const [headerRow, setHeaderRow] = useState(1); const [sheet, setSheet] = useState(''); const [allowErr, setAllowErr] = useState(false); const [replace, setReplace] = useState(true); const [confirm, setConfirm] = useState(false);
+  const [recStatus, setRecStatus] = useState(''); const { data: recs } = useLoad(() => recStatus ? get<{ records: { row_number: number; status: string; messages: { level: string; message: string }[]; mapped: Record<string, string | null> }[]; total: number }>(`/imports/${id}/records?status=${recStatus}&limit=200`) : Promise.resolve(null), [id, recStatus, data?.job.status]);
+  useEffect(() => { if (data) { setMapping(data.job.column_mapping); setHeaderRow(data.job.header_row); setSheet(data.job.sheet_name ?? ''); setAllowErr(!!data.job.options.allow_error_rows); setReplace(data.job.options.replace_existing !== false); } }, [data]);
+  if (loading || !data) return <Spinner />;
+  const { job, fields, rows } = data; const headers = rows.find((r) => r.row_number === headerRow)?.cells ?? job.detected_columns;
+  const stepIdx = job.status === 'committed' ? 4 : job.status === 'validated' ? 3 : job.status === 'mapped' ? 2 : job.status === 'extracted' ? 1 : 0;
+  const saveMapping = async () => { await run(() => put(`/imports/${id}/mapping`, { sheet_name: sheet || undefined, header_row: headerRow, column_mapping: mapping, options: { allow_error_rows: allowErr, replace_existing: replace } }), 'تم حفظ الربط'); reload(); };
+  const validate = async () => { await run(() => put(`/imports/${id}/mapping`, { sheet_name: sheet || undefined, header_row: headerRow, column_mapping: mapping, options: { allow_error_rows: allowErr, replace_existing: replace } })); const r = await run(() => post<{ report: Report }>(`/imports/${id}/validate`), 'اكتمل التحقق'); if (r) reload(); };
+  const commit = async () => { setConfirm(false); const r = await run(() => post<{ inserted: number; replaced: number }>(`/imports/${id}/commit`, { confirm: true }), 'تم اعتماد البيانات'); if (r) { reload(); } };
+  const rep = job.validation_report; const unmapped = fields.filter((f) => f.required && mapping[f.key] === undefined);
+  return <Page title={`مهمة استيراد: ${job.data_type}`} sub={<><Link to={`/engagements/${job.engagement_id}`}>العودة للارتباط</Link> | الطريقة: {job.extraction_meta.method} | ثقة الاستخراج: {Math.round((job.extraction_meta.confidence ?? 0) * 100)}% | الحالة: {IMPORT_STATUS[job.status]}</>}
+    actions={job.status === 'committed' && <Link className="btn" to={`/trial-balance?engagement_id=${job.engagement_id}&period_id=${job.period_id}`}>الانتقال لميزان المراجعة</Link>}>
+    <Steps steps={['رفع', 'تحديد الورقة والعناوين', 'ربط الأعمدة', 'التحقق', 'الاعتماد']} current={stepIdx} />
+    {job.extraction_meta.needs_human_verification && <div className="alert warn">الاستخراج من هذا الملف تقريبي ويتطلب تحققًا بشريًا من الأعمدة والأرقام قبل الاعتماد.</div>}
+    {job.extraction_meta.warnings?.map((w, i) => <div key={i} className="alert warn">{w}</div>)}
+    {job.error_message && <div className="alert danger">{job.error_message}</div>}
+    {job.status !== 'committed' && job.status !== 'failed' && <>
+      <div className="card"><h2>1. الورقة وصف العناوين</h2><div className="row">
+        <Field label="ورقة العمل"><select value={sheet} onChange={(e) => setSheet(e.target.value)}>{job.extraction_meta.sheets?.map((s) => <option key={s.name} value={s.name}>{s.name} ({s.row_count} صف)</option>)}</select></Field>
+        <Field label="رقم صف العناوين"><input type="number" min={1} value={headerRow} onChange={(e) => setHeaderRow(Number(e.target.value))} style={{ width: 90 }} /></Field>
+        <div className="field"><label>&nbsp;</label><button className="btn sec" onClick={saveMapping} disabled={busy}>تحديث المعاينة</button></div></div>
+        <div className="tscroll" style={{ maxHeight: 260 }}><table className="t"><thead><tr><th>#</th>{headers.map((h, i) => <th key={i}>{h || <i className="muted">عمود {i + 1}</i>}</th>)}</tr></thead><tbody>{rows.filter((r) => r.row_number > headerRow).slice(0, 15).map((r) => <tr key={r.row_number}><td className="muted">{r.row_number}</td>{headers.map((_, i) => <td key={i} className={/^[-+()\d.,\s]+$/.test(r.cells[i] ?? '') && r.cells[i] ? 'num' : ''}>{r.cells[i]}</td>)}</tr>)}</tbody></table></div></div>
+      <div className="card"><h2>2. ربط الأعمدة بالحقول المحاسبية</h2><p className="muted">الربط المقترح تلقائيًا من عناوين الأعمدة؛ راجعه وعدّله. الحقول المعلمة بـ * مطلوبة.</p>
+        <div className="grid c3">{fields.map((f) => <Field key={f.key} label={`${f.label_ar}${f.required ? ' *' : ''} (${f.type === 'number' ? 'رقم' : f.type === 'date' ? 'تاريخ' : 'نص'})`}><select value={mapping[f.key] ?? ''} onChange={(e) => { const m = { ...mapping }; if (e.target.value === '') delete m[f.key]; else m[f.key] = Number(e.target.value); setMapping(m); }}><option value="">— غير مربوط —</option>{headers.map((h, i) => <option key={i} value={i}>{h || `عمود ${i + 1}`}</option>)}</select></Field>)}</div>
+        {unmapped.length > 0 && <div className="alert danger">حقول مطلوبة غير مربوطة: {unmapped.map((f) => f.label_ar).join('، ')}</div>}
+        <div className="row"><label className="row"><input type="checkbox" checked={replace} onChange={(e) => setReplace(e.target.checked)} /> استبدال بيانات هذا النوع للفترة إن وُجدت (يُسجل في التدقيق)</label><label className="row"><input type="checkbox" checked={allowErr} onChange={(e) => setAllowErr(e.target.checked)} /> تجاهل الصفوف الخاطئة عند الاعتماد (تُسجل كصفوف مستبعدة)</label></div>
+        <div className="row" style={{ marginTop: 10 }}><button className="btn sec" onClick={saveMapping} disabled={busy}>حفظ الربط</button><button className="btn" onClick={validate} disabled={busy || unmapped.length > 0}>{busy ? <Spinner /> : '3. تشغيل التحقق'}</button></div></div></>}
+    {rep && <div className="card"><h2>تقرير التحقق</h2><div className="grid c4"><div className="stat"><div className="v">{rep.data_rows}</div><div className="l">صف بيانات</div></div><div className="stat"><div className="v" style={{ color: 'var(--ok)' }}>{rep.ok}</div><div className="l">سليم</div></div><div className="stat warn"><div className="v">{rep.warnings}</div><div className="l">تحذير</div></div><div className="stat danger"><div className="v">{rep.errors}</div><div className="l">خطأ</div></div></div>
+      {!!rep.summary.balance_check && <div className="alert info">فحص التوازن (المدين − الدائن): {Object.entries(rep.summary.balance_check as Record<string, string>).map(([k, v]) => <span key={k} className="chip">{k}: <b className="mono">{v}</b></span>)}</div>}
+      {!!rep.summary.totals && <div className="row">{Object.entries(rep.summary.totals as Record<string, string>).map(([k, v]) => <span key={k} className="chip">{k}: <b className="mono">{v}</b></span>)}</div>}
+      {rep.issues.length > 0 && <table className="t" style={{ marginTop: 10 }}><thead><tr><th>المستوى</th><th>المشكلة</th><th>العدد</th><th>الصفوف</th></tr></thead><tbody>{rep.issues.map((i) => <tr key={i.code}><td><Badge k={i.level} map={{ error: 'خطأ', warning: 'تحذير', info: 'معلومة' }} tone={i.level === 'error' ? 'danger' : i.level === 'warning' ? 'warn' : 'neutral'} /></td><td>{i.message}</td><td>{i.count}</td><td className="mono" style={{ fontSize: 11 }}>{i.rows.slice(0, 20).join(', ')}{i.rows.length > 20 ? '…' : ''}</td></tr>)}</tbody></table>}
+      {rep.blocking_reasons.map((b, i) => <div key={i} className="alert danger">{b}</div>)}
+      <div className="row" style={{ marginTop: 10 }}><select value={recStatus} onChange={(e) => setRecStatus(e.target.value)}><option value="">عرض الصفوف حسب الحالة…</option><option value="error">الأخطاء</option><option value="warning">التحذيرات</option><option value="skipped">المستبعدة</option><option value="ok">السليمة</option></select>
+        {job.status === 'validated' && rep.can_commit && <button className="btn ok" onClick={() => setConfirm(true)} disabled={busy}>4. اعتماد البيانات وترحيلها</button>}{job.status === 'committed' && <span className="badge ok">تم الاعتماد</span>}</div>
+      {recs && <div className="tscroll" style={{ marginTop: 10, maxHeight: 300 }}><table className="t"><thead><tr><th>الصف</th><th>الحالة</th><th>القيم المربوطة</th><th>الرسائل</th></tr></thead><tbody>{recs.records.map((r) => <tr key={r.row_number}><td>{r.row_number}</td><td>{r.status}</td><td className="mono" style={{ fontSize: 11 }}>{JSON.stringify(r.mapped)}</td><td>{r.messages.map((m) => m.message).join('؛ ')}</td></tr>)}</tbody></table></div>}</div>}
+    {confirm && <Modal title="تأكيد اعتماد البيانات" onClose={() => setConfirm(false)}><p>سيتم ترحيل <b>{rep?.ok ?? 0} + {rep?.warnings ?? 0}</b> صفًا إلى سجلات الفترة{replace ? ' مع استبدال البيانات السابقة من النوع نفسه' : ''}. الملف الأصلي والصفوف الخام تبقى محفوظة للتتبع. هل تؤكد؟</p><div className="row end"><button className="btn sec" onClick={() => setConfirm(false)}>إلغاء</button><button className="btn ok" onClick={commit}>تأكيد الاعتماد</button></div></Modal>}
+    {job.status === 'committed' && <div className="alert ok">تم اعتماد البيانات. الخطوة التالية: <Link to={`/trial-balance?engagement_id=${job.engagement_id}&period_id=${job.period_id}`}>تشغيل الفحوصات المحاسبية</Link>.</div>}
+    <div className="row"><button className="btn sec sm" onClick={() => nav(-1)}>رجوع</button></div>
+  </Page>;
+}

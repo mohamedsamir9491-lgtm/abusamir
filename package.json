@@ -1,0 +1,20 @@
+{
+  "name": "abusamir-accounting-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "منصة التحليل المالي والتقارير المحاسبية لمكتب محاسبة مهني - Arabic-first financial analysis platform",
+  "workspaces": ["server", "client"],
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w server && npm run build -w client",
+    "start": "npm run start -w server",
+    "migrate": "npm run migrate -w server",
+    "seed": "npm run seed -w server",
+    "test": "npm test -w server",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": { "node": ">=20" }
+}
