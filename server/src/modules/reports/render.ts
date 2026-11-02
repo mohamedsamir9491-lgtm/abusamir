@@ -86,6 +86,9 @@ export function baseCss(lh: OfficeLetterhead): string {
   ul,ol{margin:0 0 3mm;padding-right:6mm}
   li{margin-bottom:1mm}
   table{border-collapse:collapse;width:100%;margin:2mm 0 4mm;font-size:10pt;page-break-inside:auto}
+  table.data{table-layout:fixed}
+  table.data th.num{white-space:normal}
+  section,.cover{max-width:100%;overflow-wrap:anywhere}
   thead{display:table-header-group}
   tr{page-break-inside:avoid}
   table.data th{background:var(--primary);color:#fff;padding:1.6mm 2mm;text-align:right;font-weight:700;border:1px solid #c9d1dc}
@@ -170,7 +173,7 @@ export function renderReportHtml(content: ReportContent, lh: OfficeLetterhead, o
   // أسلوب الجدول الغلافي: thead/tfoot يتكرران على كل صفحة لحجز مساحة الترويسة والتذييل الثابتين
   return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${esc(m.title)}</title><style>${baseCss(lh)}${pageCss}
     .fixed-header{position:fixed;top:0;left:0;right:0;height:${lh.header_height_mm}mm}.fixed-footer{position:fixed;bottom:0;left:0;right:0;height:${lh.footer_height_mm}mm}
-    table.wrap{width:100%;border-collapse:collapse;margin:0}table.wrap>thead>tr>td{height:${lh.header_height_mm + 3}mm;padding:0;border:0}table.wrap>tfoot>tr>td{height:${lh.footer_height_mm + 6}mm;padding:0;border:0}table.wrap>tbody>tr>td{padding:0;border:0}
+    table.wrap{width:100%;table-layout:fixed;border-collapse:collapse;margin:0}table.wrap>thead>tr>td{height:${lh.header_height_mm + 3}mm;padding:0;border:0}table.wrap>tfoot>tr>td{height:${lh.footer_height_mm + 6}mm;padding:0;border:0}table.wrap>tbody>tr>td{padding:0;border:0;width:100%;overflow:hidden}
     ${opts.forPdf ? '' : '.fixed-header,.fixed-footer{position:static}table.wrap>thead,table.wrap>tfoot{display:none}'}
   </style></head><body>${bg}${watermark}
     <div class="fixed-header">${header}</div><div class="fixed-footer">${footer}</div>
