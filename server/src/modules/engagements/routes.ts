@@ -10,7 +10,7 @@ import { loadEngagement } from '../../middleware/scope.js';
 export const engagementsRouter = Router();
 engagementsRouter.use(authenticate, requirePermission('clients.view'));
 
-const ENGAGEMENT_TYPES = ['management_analysis', 'agreed_upon_review', 'bookkeeping', 'tax_analysis', 'assurance_audit'] as const;
+const ENGAGEMENT_TYPES = ['management_analysis', 'valuation', 'group_valuation', 'agreed_upon_review', 'bookkeeping', 'tax_analysis', 'compilation', 'assurance_audit'] as const;
 const STATUSES = ['planning', 'data_collection', 'analysis', 'review', 'reporting', 'closed'] as const;
 
 const engagementSchema = z.object({

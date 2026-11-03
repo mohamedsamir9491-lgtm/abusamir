@@ -1,5 +1,6 @@
 import type { Snapshot } from './snapshot.js';
 import type { TemplateSection } from './templates.js';
+import { defaultValuation, valuationTermsRows, BASIS_LABELS, type ValuationTerms } from '../engagements/letterTemplates.js';
 import { fmtMoney, fmtRatio, fmtDate, ENGAGEMENT_TYPE_LABELS, FRAMEWORK_LABELS, ENTITY_LABELS, REVIEW_STATUS_LABELS, ADJ_STATUS_LABELS, todayIso } from './format.js';
 import { SEVERITY_LABELS, CATEGORY_LABELS, type Severity, type FindingCategory } from '../../engine/types.js';
 import { D } from '../../engine/money.js';
@@ -276,6 +277,25 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       blocks.push({ type: 'table', columns: [{ key: 'account_code', label: 'الرمز' }, { key: 'account_name', label: 'اسم الحساب' }, { key: 'fs_line', label: 'بند القوائم' }, { key: 'opening_net', label: 'افتتاحي (صافي)', numeric: true }, { key: 'movement_net', label: 'حركات (صافي)', numeric: true }, { key: 'closing_debit', label: 'ختامي مدين', numeric: true }, { key: 'closing_credit', label: 'ختامي دائن', numeric: true }, { key: 'source_row', label: 'الصف' }],
         rows: snap.tb_rows.map((r) => ({ account_code: r.account_code, account_name: r.account_name, fs_line: r.fs_line, opening_net: fmtMoney(r.opening_net), movement_net: fmtMoney(r.movement_net), closing_debit: fmtMoney(r.closing_debit), closing_credit: fmtMoney(r.closing_credit), source_row: r.source_row == null ? '' : String(r.source_row) })), repeat_header: true });
       break;
+    case 'valuation_terms': {
+      const L = snap.engagement_letter as { letter_no: string | null; status: string; letter_date: string; fields: { options?: { include_valuation?: boolean }; valuation?: ValuationTerms; entity_name?: string; summary_period?: string } } | null;
+      if (!L || !L.fields.options?.include_valuation || !L.fields.valuation) { blocks.push(note('لا توجد شروط تقييم في خطاب ارتباط هذا الارتباط. فعّل "إدراج جزء التقييم المالي" في شاشة خطاب الارتباط وحدد أساس القيمة وتاريخ التقييم، ثم أعد توليد هذا القسم.', 'warning')); break; }
+      const v = { ...defaultValuation({ entity: L.fields.entity_name ?? '', period: L.fields.summary_period ?? '' }), ...L.fields.valuation } as ValuationTerms;
+      blocks.push(p(`يُعد هذا الجزء من التقرير وفق شروط التقييم المتفق عليها في خطاب الارتباط رقم ${L.letter_no ?? '—'} (${L.status === 'issued' ? 'صادر' : 'مسودة'}) بتاريخ ${fmtDate(L.letter_date, false)}.`));
+      blocks.push({ type: 'kv', items: valuationTermsRows(v).map(([label, value]) => ({ label, value })) });
+      const c = snap.consolidation as Record<string, unknown> | null;
+      const asset = v.approaches.includes('asset'); const income = v.approaches.includes('income'); const market = v.approaches.includes('market');
+      blocks.push({ type: 'table', caption: 'حالة تنفيذ أساليب التقييم المتفق عليها', columns: [{ key: 'a', label: 'الأسلوب', width: '34%' }, { key: 's', label: 'الحالة في هذا التقرير', width: '30%' }, { key: 'n', label: 'المدخلات المطلوبة / الملاحظة', width: '36%' }],
+        rows: [
+          ...(asset ? [{ a: 'أسلوب الأصول', s: c ? `منفَّذ دفتريًا: حقوق المجموعة ${fmtMoney(String(c.group_equity_worksheet ?? c.group_equity_before_adjustments ?? '0'))} (${c.status === 'supported' ? 'مدعومة' : 'غير مكتملة'})` : 'غير منفَّذ بعد', n: v.basis === 'book' ? 'القيمة الدفترية هي أساس القيمة المتفق عليه' : 'يلزم إعادة قياس الأصول والالتزامات الجوهرية للوصول إلى صافي الأصول المعدل' }] : []),
+          ...(income ? [{ a: 'أسلوب الدخل (DCF)', s: 'غير منفَّذ بعد', n: 'توقعات الإدارة لخمس سنوات وافتراضاتها، ومعدل الخصم، ومعدل النمو النهائي' }] : []),
+          ...(market ? [{ a: 'أسلوب السوق', s: 'غير منفَّذ بعد', n: 'بيانات شركات أو صفقات مقارنة موثوقة ومضاعفاتها' }] : []),
+        ] });
+      if (v.basis !== 'book' && !(income || market)) blocks.push(note(`أساس القيمة المتفق عليه (${BASIS_LABELS[v.basis]}) يتطلب عادةً أسلوبًا إضافيًا غير دفتري؛ راجع اختيار الأساليب في الخطاب.`, 'warning'));
+      if (v.basis !== 'book') blocks.push(note(`النتائج الدفترية في هذا التقرير لا تمثل ${BASIS_LABELS[v.basis]} المتفق عليها في الخطاب ما لم تُنفَّذ الأساليب المطلوبة ويُوفَّق بينها.`, 'danger'));
+      if (v.licensed_valuer === 'required') blocks.push(note('الغرض يتطلب تقريرًا من مقيّم مرخّص من الهيئة السعودية للمقيمين المعتمدين (تقييم)؛ لا يُصدر هذا التقرير بصفة تقييم معتمد ما لم يوقّعه مقيّم مرخّص.', 'warning'));
+      break;
+    }
     case 'consolidation': {
       const c = snap.consolidation as Record<string, unknown> | null;
       if (!c) { blocks.push(note('لم يُشغَّل التوحيد الدفتري لهذه الفترة بعد. شغّله من صفحة "التوحيد" ثم أعد توليد هذا القسم.', 'warning')); break; }

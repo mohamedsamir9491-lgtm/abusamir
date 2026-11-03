@@ -25,7 +25,7 @@ export function fmtRatio(v: string | null | undefined, unit: string): string {
 export const fmtDate = (iso: string | null | undefined, hijri = true) => formatDateAr(iso, hijri);
 export const todayIso = () => new Date().toISOString().slice(0, 10);
 
-export const ENGAGEMENT_TYPE_LABELS: Record<string, string> = { management_analysis: 'تحليل مالي إداري داخلي', agreed_upon_review: 'مراجعة محاسبية وفق إجراءات متفق عليها', bookkeeping: 'دعم محاسبي ومسك دفاتر', tax_analysis: 'تحليل ضريبي وزكوي', assurance_audit: 'ارتباط تأكيد / مراجعة مستقلة' };
+export const ENGAGEMENT_TYPE_LABELS: Record<string, string> = { management_analysis: 'تحليل مالي إداري داخلي', valuation: 'تقييم شركة وتقدير القيمة السوقية/العادلة', group_valuation: 'تقييم دفتري وتوحيد قوائم مجموعة', compilation: 'تجميع قوائم مالية', agreed_upon_review: 'مراجعة محاسبية وفق إجراءات متفق عليها', bookkeeping: 'دعم محاسبي ومسك دفاتر', tax_analysis: 'تحليل ضريبي وزكوي', assurance_audit: 'ارتباط تأكيد / مراجعة مستقلة' };
 export const FRAMEWORK_LABELS: Record<string, string> = { ifrs: 'المعايير الدولية للتقرير المالي (IFRS) المعتمدة في المملكة العربية السعودية', ifrs_smes: 'المعيار الدولي للتقرير المالي للمنشآت الصغيرة والمتوسطة المعتمد في المملكة', other: 'إطار آخر (محدد في ملف العميل)', unspecified: 'لم يُحدد إطار التقرير المالي بعد' };
 export const ENTITY_LABELS: Record<string, string> = { llc: 'شركة ذات مسؤولية محدودة', jsc: 'شركة مساهمة', sole: 'مؤسسة فردية', partnership: 'شركة تضامن / توصية', branch: 'فرع شركة أجنبية', nonprofit: 'جهة غير ربحية', other: 'أخرى' };
 export const STATUS_LABELS: Record<string, string> = { draft: 'مسودة', reviewed: 'تمت المراجعة', approved: 'معتمد للإصدار', issued: 'صادر' };
