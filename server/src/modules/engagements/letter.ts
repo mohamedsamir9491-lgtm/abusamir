@@ -11,6 +11,7 @@ import { loadLetterhead, wrapWithLetterhead } from '../reports/render.js';
 import { htmlToPdf } from '../reports/pdf.js';
 import { saveFile, getFile, readFileData } from '../files/storage.js';
 import { fmtDate, ENGAGEMENT_TYPE_LABELS, ENTITY_LABELS } from '../reports/format.js';
+import { listComponents } from './group.js';
 import { LETTER_TEMPLATES, templateFor, ORDINALS, DEFAULT_OPTIONS, defaultValuation, BASIS_LABELS, valuationTermsRows, type LetterFields, type LetterSection, type LetterOptions, type ValuationTerms } from './letterTemplates.js';
 
 /**
@@ -75,7 +76,14 @@ function pickKnown(old: Record<string, unknown>): Partial<LetterFields> { const 
 
 /** نص الضريبة بحسب اختيار المستخدم */
 function vatText(o: LetterOptions): string { return o.vat_mode === 'hidden' ? '' : o.vat_mode === 'inclusive' ? `شاملة ضريبة القيمة المضافة (${o.vat_rate}%)` : `غير شاملة ضريبة القيمة المضافة (${o.vat_rate}%) التي تُضاف على الفاتورة`; }
-function letterHtml(l: { letter_no: string | null; letter_date: string; status: string; fields: LetterFields }, lh: Awaited<ReturnType<typeof loadLetterhead>>, forPdf: boolean) {
+/** شركات المجموعة المشمولة بخطاب ارتباط المجموعة (من بيانات الارتباط، لا تُحفظ في الخطاب لتبقى محدثة) */
+type LetterEntity = { name: string; cr_number: string | null; role: 'parent' | 'subsidiary' | 'at_cost'; ownership_pct: string | null };
+async function letterEntities(engagementId: string): Promise<LetterEntity[]> {
+  const comps = await listComponents(engagementId); if (!comps.length) return [];
+  const p = await one<{ legal_name_ar: string; cr_number: string | null }>('SELECT c.legal_name_ar, c.cr_number FROM engagements e JOIN clients c ON c.id = e.client_id WHERE e.id = $1', [engagementId]);
+  return [{ name: p?.legal_name_ar ?? '', cr_number: p?.cr_number ?? null, role: 'parent', ownership_pct: null }, ...comps.map((c) => ({ name: c.client_name, cr_number: c.cr_number, role: c.entity_role, ownership_pct: c.ownership_pct }))];
+}
+function letterHtml(l: { letter_no: string | null; letter_date: string; status: string; fields: LetterFields }, lh: Awaited<ReturnType<typeof loadLetterhead>>, forPdf: boolean, entities: LetterEntity[] = []) {
   const f = l.fields; const o: LetterOptions = { ...DEFAULT_OPTIONS, ...(f.options ?? {}) }; const issued = l.status === 'issued'; // التوقيع والختم يظهران على النسخة الصادرة فقط
   const vat = vatText(o);
   const list = (s: LetterSection) => !s.items.length || s.items_style === 'none' ? '' : s.items_style === 'bullets' ? `<ul>${s.items.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : `<ol>${s.items.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>`;
@@ -89,8 +97,17 @@ function letterHtml(l: { letter_no: string | null; letter_date: string; status: 
   const valSection = v ? { title: 'شروط التقييم المتفق عليها', html: valTable } : null;
   const blocks: { title: string; html: string }[] = f.sections.map((s) => ({ title: s.title, html: `${/الأتعاب/.test(s.title) ? feeLine : ''}${paras(s.paragraphs)}${list(s)}${/الأتعاب/.test(s.title) ? feeTable : ''}${paras(s.after ?? [])}` }));
   if (valSection) { const at = Math.max(0, blocks.findIndex((b) => /نطاق/.test(b.title))); blocks.splice(at + 1, 0, valSection); } // بعد "نطاق العمل" مباشرة
+  if (entities.length) {
+    const RL: Record<string, string> = { parent: 'الشركة الأم', subsidiary: 'شركة تابعة', at_cost: 'استثمار (بلا قوائم مقدمة)' };
+    const SC: Record<string, string> = { parent: 'قوائم منفصلة + القوائم الموحدة للمجموعة', subsidiary: 'قوائم منفصلة + إدخالها في التوحيد', at_cost: 'إدراج بالتكلفة لدى الأم إلى حين تقديم قوائمها' };
+    const pct = (v: string | null) => v ? `${Number(v).toLocaleString('en-US', { maximumFractionDigits: 8 })}%` : '—';
+    const html = `<p>يشمل هذا الارتباط الشركات التالية، ويُعد لكل منها تحليل وتقييم منفصل على أساس ميزان مراجعتها، إضافة إلى التوحيد الدفتري للمجموعة، وتُعرض النتائج في تقرير واحد ما لم يُتفق كتابيًا على غير ذلك:</p><table class="ltab"><thead><tr><th>م</th><th>الشركة</th><th>السجل التجاري</th><th>العلاقة</th><th>نسبة الملكية</th><th>نطاق العمل</th></tr></thead><tbody>${entities.map((e, i) => `<tr><td>${i + 1}</td><td>${esc(e.name)}</td><td>${esc(e.cr_number ?? '—')}</td><td>${esc(RL[e.role] ?? e.role)}</td><td>${e.role === 'parent' ? '—' : pct(e.ownership_pct)}</td><td>${esc(SC[e.role] ?? '')}</td></tr>`).join('')}</tbody></table>`;
+    const at = blocks.findIndex((b) => /نطاق/.test(b.title));
+    blocks.splice(at >= 0 ? at + 1 : 0, 0, { title: 'الشركات المشمولة بالارتباط', html });
+  }
   const sections = blocks.map((b, i) => `<div class="sec"><h3>${esc(ORDINALS[i] ?? String(i + 1))}: ${esc(b.title)}</h3>${b.html}</div>`).join('');
   const rows: string[] = [`<tr><th>الخدمة</th><td>${esc(f.summary_service)}</td></tr>`, `<tr><th>الفترة / تاريخ العمل</th><td>${esc(f.summary_period)}</td></tr>`, `<tr><th>المخرجات</th><td>${esc(f.summary_deliverables)}</td></tr>`, `<tr><th>مبلغ الأتعاب</th><td>${amount}</td></tr>`];
+  if (entities.length) rows.splice(1, 0, `<tr><th>الشركات المشمولة</th><td>${entities.map((e) => esc(e.name)).join('، ')}</td></tr>`);
   if (v) rows.splice(1, 0, `<tr><th>أساس القيمة وتاريخ التقييم</th><td>${esc(BASIS_LABELS[v.basis])} - ${esc(v.valuation_date ? fmtDate(v.valuation_date, false) : 'يُحدد كتابيًا')}</td></tr>`);
   if (o.show_duration) rows.push(`<tr><th>المدة المتوقعة</th><td>${esc(f.duration)}</td></tr>`);
   if (o.show_contacts) rows.push(`<tr><th>جهة الاتصال - المكتب</th><td>${esc(f.office_contact)}</td></tr>`, `<tr><th>جهة الاتصال - العميل</th><td>${esc(f.client_contact || '______')}</td></tr>`);
@@ -161,7 +178,7 @@ letterRouter.post('/preview', async (req, res, next) => {
     const id = String((req.params as P).id);
     const d = parse(z.object({ letter_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), status: z.enum(['draft', 'issued']).default('draft'), fields: fieldsSchema }), req.body);
     const l = await loadLetter(id); const lh = await loadLetterhead(await getOfficeSettings());
-    res.type('html').send(letterHtml({ letter_no: l?.letter_no ?? null, letter_date: d.letter_date, status: d.status, fields: d.fields as unknown as LetterFields }, lh, false));
+    res.type('html').send(letterHtml({ letter_no: l?.letter_no ?? null, letter_date: d.letter_date, status: d.status, fields: d.fields as unknown as LetterFields }, lh, false, await letterEntities(id)));
   } catch (e) { next(e); }
 });
 letterRouter.get('/preview', async (req, res, next) => {
@@ -169,14 +186,14 @@ letterRouter.get('/preview', async (req, res, next) => {
     const id = String((req.params as P).id); const l = await loadLetter(id);
     const lh = await loadLetterhead(await getOfficeSettings());
     const data = l ?? { letter_no: null, letter_date: new Date().toISOString().slice(0, 10), status: 'draft', fields: await defaults(id) };
-    res.type('html').send(letterHtml(data, lh, false));
+    res.type('html').send(letterHtml(data, lh, false, await letterEntities(id)));
   } catch (e) { next(e); }
 });
 letterRouter.post('/pdf', requirePermission('reports.export'), async (req, res, next) => {
   try {
     const id = String((req.params as P).id); const l = await loadLetter(id); if (!l) throw notFound('احفظ الخطاب أولًا');
     const lh = await loadLetterhead(await getOfficeSettings());
-    const pdf = await htmlToPdf(letterHtml(l, lh, true), lh);
+    const pdf = await htmlToPdf(letterHtml(l, lh, true, await letterEntities(id)), lh);
     const f = await saveFile({ purpose: 'engagement_letter', subdir: 'letters', originalName: `${l.letter_no ?? 'letter'}.pdf`, mime: 'application/pdf', data: pdf, userId: req.user!.id });
     await query('UPDATE engagement_letters SET pdf_file_id = $1, updated_at = now() WHERE id = $2', [f.id, l.id]);
     await audit(req, { action: 'engagement_letter.pdf', entityType: 'engagement', entityId: id, clientId: l.client_id, details: { letter_no: l.letter_no, file_id: f.id } });

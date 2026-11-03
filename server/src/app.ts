@@ -12,6 +12,7 @@ import { officeRouter } from './modules/office/routes.js';
 import { clientsRouter } from './modules/clients/routes.js';
 import { engagementsRouter } from './modules/engagements/routes.js';
 import { letterRouter } from './modules/engagements/letter.js';
+import { groupRouter } from './modules/engagements/group.js';
 import { documentsRouter } from './modules/documents/routes.js';
 import { importsRouter } from './modules/imports/routes.js';
 import { accountsRouter } from './modules/accounts/routes.js';
@@ -46,6 +47,7 @@ export function createApp() {
   app.use('/api/office', officeRouter);
   app.use('/api/clients', clientsRouter);
   app.use('/api/engagements/:id/letter', letterRouter);
+  app.use('/api/engagements/:id/components', groupRouter);
   app.use('/api/system/cleanup', cleanupRouter);
   app.use('/api/engagements', engagementsRouter);
   app.use('/api/documents', documentsRouter);

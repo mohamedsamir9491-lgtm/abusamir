@@ -9,6 +9,35 @@ import { resolveMeta, prefixMapFor } from '../../engine/trialBalance.js';
 import { net, toStr } from '../../engine/money.js';
 import { FS_LINE_MAP } from '../../engine/fsLines.js';
 import type { AiAnalysis } from '../ai/schema.js';
+import { buildStatements } from '../../engine/statements.js';
+import { groupCompaniesForPeriod, listComponents, prefillSetup } from '../engagements/group.js';
+
+/** شركات المجموعة لفترة التقرير: قوائم كل شركة مبنية مباشرة من ميزانها المعتمد (منفصلة، دون استبعادات) */
+async function collectGroupCompanies(engagementId: string, periodId: string, consolidation: Record<string, unknown> | null) {
+  const comps = await listComponents(engagementId);
+  if (!comps.length) return null;
+  const { companies } = await groupCompaniesForPeriod(engagementId, periodId);
+  const pre = await prefillSetup(engagementId, periodId).catch(() => null);
+  const atCostRun = ((consolidation?.at_cost as Record<string, string>[] | undefined) ?? []);
+  const out = [];
+  for (const c of companies) {
+    let statements = null as null | ReturnType<typeof buildStatements>;
+    if (c.period_id && c.tb_rows > 0) {
+      const entries = await loadTbEntries(c.period_id); const accounts = await loadAccountMap(c.client_id);
+      statements = buildStatements({ current: entries, accounts, periodLabel: c.period_label });
+    }
+    const tbRun = c.period_id ? await latestRun(c.period_id, 'tb_validation') : null;
+    const openFindings = c.period_id ? Number((await one<{ n: string }>(`SELECT count(*) AS n FROM findings WHERE period_id = $1 AND review_status IN ('open','under_review')`, [c.period_id]))?.n ?? 0) : 0;
+    // تكلفة الاستثمار لدى الأم: من آخر تشغيل توحيد إن وُجد، وإلا من الحسابات المقترحة بالاسم
+    const sug = pre?.companies.find((x) => x.engagement_id === c.engagement_id);
+    const parentAcc = (pre?.parent.accounts ?? {}) as Record<string, { net: number }>;
+    const runCost = atCostRun.find((x) => x.label === c.name)?.investment_cost;
+    const investmentCost = runCost ?? (sug ? String(sug.suggested.investment_codes_in_parent.reduce((a, code) => a + (parentAcc[code]?.net ?? 0), 0).toFixed(2)) : null);
+    out.push({ name: c.name, role: c.role, ownership_pct: c.ownership_pct, cr_number: c.cr_number, period_label: c.period_label, tb_rows: c.tb_rows, tb_checked: !!tbRun, open_findings: openFindings, investment_cost: c.role === 'parent' ? null : investmentCost,
+      statements: statements ? { sfp: { lines: statements.sfp.lines, totals: statements.sfp.totals, balanced: statements.sfp.balanced }, pl: { lines: statements.pl.lines, totals: statements.pl.totals }, key_figures: statements.key_figures } : null });
+  }
+  return out;
+}
 
 export type AiSnapshot = AiAnalysis & { _verification?: { unverified_numbers?: string[]; model?: string } };
 
@@ -48,7 +77,8 @@ export async function collectSnapshot(engagementId: string, periodId: string, pr
   const pm = prefixMapFor(entries);
   const tbRows = entries.map((t) => { const m = resolveMeta(t, accounts, pm); return { account_code: t.account_code, account_name: t.account_name, opening_net: toStr(net(t.opening_debit, t.opening_credit)), movement_net: toStr(net(t.period_debit, t.period_credit)), closing_debit: toStr(t.closing_debit), closing_credit: toStr(t.closing_credit), closing_net: toStr(net(t.closing_debit, t.closing_credit)), fs_line: FS_LINE_MAP[m.fs_line_code]?.label_ar ?? m.fs_line_code, account_type: m.account_type, source_row: t.source_row }; });
   const prior = pkg?.data.prior as { id: string; label: string } | null | undefined;
+  const groupCompanies = engagement.group_engagement_id ? null : await collectGroupCompanies(engagementId, periodId, (consolidation?.result as Record<string, unknown> | null) ?? null);
   return { generated_at: new Date().toISOString(), engagement, period, prior: prior ?? null, office, tb: tbRun ? { run_id: tbRun.id, summary: tbRun.summary, run_at: iso(tbRun.started_at)! } : null, tb_rows: tbRows,
-    statements: pkg?.data.statements ?? null, ratios: pkg?.data.ratios ?? null, variance: pkg?.data.variance ?? null, findings, adjustments, documents: documents.map((d) => ({ ...d, uploaded_at: iso(d.uploaded_at), committed_at: iso(d.committed_at) })), consolidation: (consolidation?.result as Record<string, unknown> | null) ?? null, engagement_letter: letter ?? null, consolidation_run_at: iso(consolidation?.started_at as string | undefined), group_documents: groupSources.map((d) => ({ ...d, uploaded_at: iso(d.uploaded_at as string), committed_at: iso(d.committed_at as string) })), ai: (ai?.result as AiSnapshot | null) ?? null, ai_run_at: iso(ai?.started_at), subledger: sub, journal: journal ?? null, preparer };
+    statements: pkg?.data.statements ?? null, ratios: pkg?.data.ratios ?? null, variance: pkg?.data.variance ?? null, findings, adjustments, documents: documents.map((d) => ({ ...d, uploaded_at: iso(d.uploaded_at), committed_at: iso(d.committed_at) })), consolidation: (consolidation?.result as Record<string, unknown> | null) ?? null, group_companies: groupCompanies, engagement_letter: letter ?? null, consolidation_run_at: iso(consolidation?.started_at as string | undefined), group_documents: groupSources.map((d) => ({ ...d, uploaded_at: iso(d.uploaded_at as string), committed_at: iso(d.committed_at as string) })), ai: (ai?.result as AiSnapshot | null) ?? null, ai_run_at: iso(ai?.started_at), subledger: sub, journal: journal ?? null, preparer };
 }
 export type Snapshot = Awaited<ReturnType<typeof collectSnapshot>>;

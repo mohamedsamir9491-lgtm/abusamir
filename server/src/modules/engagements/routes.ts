@@ -37,7 +37,9 @@ engagementsRouter.get('/', async (req, res, next) => {
     const rows = await many(
       `SELECT e.*, c.legal_name_ar AS client_name, c.is_demo,
               (SELECT count(*) FROM financial_periods p WHERE p.engagement_id = e.id) AS period_count,
-              (SELECT count(*) FROM findings f WHERE f.engagement_id = e.id AND f.review_status IN ('open','under_review')) AS open_findings
+              (SELECT count(*) FROM findings f WHERE f.engagement_id = e.id AND f.review_status IN ('open','under_review')) AS open_findings,
+              (SELECT count(*) FROM engagements x WHERE x.group_engagement_id = e.id) AS component_count,
+              (SELECT g.title FROM engagements g WHERE g.id = e.group_engagement_id) AS group_title
          FROM engagements e JOIN clients c ON c.id = e.client_id
         WHERE c.deleted_at IS NULL AND ($1::uuid IS NULL OR e.client_id = $1)
         ORDER BY e.updated_at DESC`, [clientId]);
@@ -68,7 +70,7 @@ engagementsRouter.post('/', requirePermission('clients.manage'), async (req, res
 engagementsRouter.get('/:id', async (req, res, next) => {
   try {
     const e = await one(`SELECT e.*, c.legal_name_ar AS client_name, c.legal_name_en AS client_name_en, c.is_demo, c.cr_number, c.vat_number,
-      c.accounting_framework AS client_framework, c.fiscal_year_end_month, c.fiscal_year_end_day, (SELECT r.title FROM engagements r WHERE r.id = e.rolled_from_engagement_id) AS rolled_from_title FROM engagements e JOIN clients c ON c.id = e.client_id WHERE e.id = $1`, [req.params.id]);
+      c.accounting_framework AS client_framework, c.fiscal_year_end_month, c.fiscal_year_end_day, (SELECT r.title FROM engagements r WHERE r.id = e.rolled_from_engagement_id) AS rolled_from_title, (SELECT g.title FROM engagements g WHERE g.id = e.group_engagement_id) AS group_title, (SELECT count(*) FROM engagements x WHERE x.group_engagement_id = e.id) AS component_count FROM engagements e JOIN clients c ON c.id = e.client_id WHERE e.id = $1`, [req.params.id]);
     if (!e) throw notFound('الارتباط غير موجود');
     const periods = await many('SELECT * FROM financial_periods WHERE engagement_id = $1 ORDER BY start_date', [req.params.id]);
     const documents = await many(`SELECT d.*, f.original_name, f.size_bytes, f.mime_type, u.full_name AS uploaded_by_name
@@ -122,6 +124,11 @@ engagementsRouter.post('/:id/periods', requirePermission('clients.manage'), asyn
     const row = await one<{ id: string }>(
       `INSERT INTO financial_periods (client_id, engagement_id, label, start_date, end_date, period_type, role) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
       [e.client_id, e.id, d.label, d.start_date, d.end_date, d.period_type === 'quarter' || d.period_type === 'month' ? d.period_type : periodType(d.start_date, d.end_date), d.role]);
+    // فترات شركات المجموعة تتبع فترات ارتباط المجموعة
+    await query(`INSERT INTO financial_periods (client_id, engagement_id, label, start_date, end_date, period_type, role)
+      SELECT x.client_id, x.id, $2, $3, $4, $5, $6 FROM engagements x WHERE x.group_engagement_id = $1
+        AND NOT EXISTS (SELECT 1 FROM financial_periods q WHERE q.engagement_id = x.id AND q.start_date = $3 AND q.end_date = $4)`,
+      [e.id, d.label, d.start_date, d.end_date, d.period_type === 'quarter' || d.period_type === 'month' ? d.period_type : periodType(d.start_date, d.end_date), d.role]);
     await audit(req, { action: 'period.created', entityType: 'financial_period', entityId: row!.id, clientId: e.client_id, details: d });
     res.status(201).json({ id: row!.id });
   } catch (e) { next(e); }
@@ -131,6 +138,7 @@ engagementsRouter.post('/:id/periods', requirePermission('clients.manage'), asyn
 async function nextYearProposal(engagementId: string) {
   const e = await one<Record<string, string | number | null>>(`SELECT e.*, c.legal_name_ar AS client_name, c.fiscal_year_end_month AS fy_m, c.fiscal_year_end_day AS fy_d FROM engagements e JOIN clients c ON c.id = e.client_id WHERE e.id = $1`, [engagementId]);
   if (!e) throw notFound('الارتباط غير موجود');
+  if (e.group_engagement_id) throw badRequest('هذه شركة ضمن مجموعة؛ أنشئ ارتباط السنة التالية من ارتباط المجموعة وستنتقل الشركات معه');
   const cur = await one<{ id: string; label: string; start_date: string; end_date: string }>(`SELECT id, label, start_date::text AS start_date, end_date::text AS end_date FROM financial_periods WHERE engagement_id = $1 ORDER BY (role = 'current') DESC, end_date DESC LIMIT 1`, [engagementId]);
   if (!cur) throw badRequest('لا توجد فترة في هذا الارتباط لترحيلها');
   const m = Number(e.fy_m ?? 12), dd = Number(e.fy_d ?? 31);
@@ -156,6 +164,13 @@ engagementsRouter.post('/:id/next-year', requirePermission('clients.manage'), as
     const row = await one<{ id: string }>(`INSERT INTO engagements (client_id, title, engagement_type, framework, currency, description, created_by, rolled_from_engagement_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
       [x.e.client_id, d.title ?? x.title, x.e.engagement_type, x.e.framework, x.e.currency, x.e.description ?? null, req.user!.id, x.e.id]);
     await query(`INSERT INTO financial_periods (client_id, engagement_id, label, start_date, end_date, period_type, role) VALUES ($1,$2,$3,$4,$5,$6,'current')`, [x.e.client_id, row!.id, label, start, end, periodType(start, end)]);
+    // شركات المجموعة تنتقل مع ارتباط السنة التالية بنفس العلاقة ونسبة الملكية
+    const comps = await many<{ client_id: string; client_name: string; entity_role: string; ownership_pct: string }>(`SELECT x.client_id, c.legal_name_ar AS client_name, x.entity_role, x.ownership_pct::text AS ownership_pct FROM engagements x JOIN clients c ON c.id = x.client_id WHERE x.group_engagement_id = $1`, [x.e.id]);
+    for (const c of comps) {
+      const ce = await one<{ id: string }>(`INSERT INTO engagements (client_id, title, engagement_type, framework, currency, created_by, group_engagement_id, entity_role, ownership_pct, rolled_from_engagement_id)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,(SELECT id FROM engagements WHERE group_engagement_id = $10 AND client_id = $1 LIMIT 1)) RETURNING id`, [c.client_id, `${d.title ?? x.title} – ${c.client_name}`, x.e.engagement_type, x.e.framework, x.e.currency, req.user!.id, row!.id, c.entity_role, c.ownership_pct, x.e.id]);
+      await query(`INSERT INTO financial_periods (client_id, engagement_id, label, start_date, end_date, period_type, role) VALUES ($1,$2,$3,$4,$5,$6,'current')`, [c.client_id, ce!.id, label, start, end, periodType(start, end)]);
+    }
     await audit(req, { action: 'engagement.rolled_forward', entityType: 'engagement', entityId: row!.id, clientId: String(x.e.client_id), details: { from: x.e.id, period: { start, end }, comparison_period: x.cur.id } });
     res.status(201).json({ id: row!.id });
   } catch (e) { next(e); }
@@ -178,6 +193,13 @@ engagementsRouter.delete('/:id/periods/:pid', requirePermission('clients.manage'
     const e = await loadEngagement(req.params.id as string);
     const used = await one('SELECT 1 FROM trial_balance_entries WHERE period_id = $1 LIMIT 1', [req.params.pid]);
     if (used) throw badRequest('لا يمكن حذف فترة تحتوي على بيانات مستوردة');
+    const pr = await one<{ start_date: string; end_date: string }>('SELECT start_date::text AS start_date, end_date::text AS end_date FROM financial_periods WHERE id = $1 AND engagement_id = $2', [req.params.pid, e.id]);
+    if (pr) {
+      const compUsed = await one<{ title: string }>(`SELECT x.title FROM financial_periods q JOIN engagements x ON x.id = q.engagement_id WHERE x.group_engagement_id = $1 AND q.start_date = $2 AND q.end_date = $3
+        AND EXISTS (SELECT 1 FROM trial_balance_entries t WHERE t.period_id = q.id) LIMIT 1`, [e.id, pr.start_date, pr.end_date]);
+      if (compUsed) throw badRequest(`لا يمكن حذف الفترة: شركة في المجموعة لديها ميزان معتمد لها (${compUsed.title})`);
+      await query(`DELETE FROM financial_periods q USING engagements x WHERE x.id = q.engagement_id AND x.group_engagement_id = $1 AND q.start_date = $2 AND q.end_date = $3`, [e.id, pr.start_date, pr.end_date]);
+    }
     await query('DELETE FROM financial_periods WHERE id = $1 AND engagement_id = $2', [req.params.pid, e.id]);
     await audit(req, { action: 'period.deleted', entityType: 'financial_period', entityId: req.params.pid as string, clientId: e.client_id });
     res.json({ ok: true });

@@ -33,7 +33,9 @@ trialBalanceRouter.get('/', async (req, res, next) => {
     const totals = { opening_debit: toStr(sum(entries.map((x) => x.opening_debit))), opening_credit: toStr(sum(entries.map((x) => x.opening_credit))), period_debit: toStr(sum(entries.map((x) => x.period_debit))), period_credit: toStr(sum(entries.map((x) => x.period_credit))), closing_debit: toStr(sum(entries.map((x) => x.closing_debit))), closing_credit: toStr(sum(entries.map((x) => x.closing_credit))) };
     const lastRun = await one(`SELECT id, summary, started_at FROM analysis_runs WHERE period_id = $1 AND run_type = 'tb_validation' AND status = 'completed' ORDER BY started_at DESC LIMIT 1`, [periodId]);
     const source = await one(`SELECT j.id AS import_job_id, j.committed_at, d.id AS document_id, f.original_name FROM import_jobs j JOIN source_documents d ON d.id = j.document_id JOIN stored_files f ON f.id = d.file_id WHERE j.period_id = $1 AND j.data_type = 'trial_balance' AND j.status = 'committed' ORDER BY j.committed_at DESC LIMIT 1`, [periodId]);
-    res.json({ rows, totals, prior, last_run: lastRun ?? null, source: source ?? null });
+    // ميزان واحد مصدره أكثر من ملف = خلط محتمل لموازين شركات مختلفة في فترة واحدة
+    const srcFiles = await many<{ original_name: string; rows: string }>(`SELECT f.original_name, count(*)::text AS rows FROM trial_balance_entries t JOIN import_jobs j ON j.id = t.import_job_id JOIN source_documents d ON d.id = j.document_id JOIN stored_files f ON f.id = d.file_id WHERE t.period_id = $1 GROUP BY f.original_name`, [periodId]);
+    res.json({ rows, totals, prior, last_run: lastRun ?? null, source: source ?? null, source_files: srcFiles });
   } catch (e) { next(e); }
 });
 

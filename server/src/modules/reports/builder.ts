@@ -51,7 +51,7 @@ function statementTable(lines: { code: string; label_ar: string; section: string
     if (!ls.length && !(totalAfter[g] ?? []).some((k) => byKey[k])) continue;
     if (ls.length) rows.push({ label: sectionLabels[g] ?? g, current: '', prior: '', _group: '1' });
     for (const l of ls) rows.push({ label: l.label_ar, current: fmtMoney(l.value), prior: hasPrior ? fmtMoney(l.prior_value ?? '0') : null });
-    for (const k of totalAfter[g] ?? []) { const t = byKey[k]; if (t) rows.push({ label: t.label_ar, current: fmtMoney(t.value), prior: hasPrior ? fmtMoney(t.prior_value ?? '0') : null, _total: '1' }); }
+    for (const k of totalAfter[g] ?? []) { const t = byKey[k]; if (t && !(k === g && !ls.length)) rows.push({ label: t.label_ar, current: fmtMoney(t.value), prior: hasPrior ? fmtMoney(t.prior_value ?? '0') : null, _total: '1' }); }
   }
   return { type: 'table', columns, rows, repeat_header: true };
 }
@@ -305,6 +305,49 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       if (v.licensed_valuer === 'required') blocks.push(note('الغرض يتطلب تقريرًا من مقيّم مرخّص من الهيئة السعودية للمقيمين المعتمدين (تقييم)؛ لا يُصدر هذا التقرير بصفة تقييم معتمد ما لم يوقّعه مقيّم مرخّص.', 'warning'));
       break;
     }
+    case 'group_companies': {
+      const gc = (snap as { group_companies?: Record<string, any>[] | null }).group_companies; // eslint-disable-line @typescript-eslint/no-explicit-any
+      if (!gc || !gc.length) { blocks.push(note('لا توجد شركات مضافة إلى هذه المجموعة. أضفها من صفحة الارتباط ← «شركات المجموعة» ثم أعد توليد القسم.', 'warning')); break; }
+      const ROLE: Record<string, string> = { parent: 'الشركة الأم', subsidiary: 'شركة تابعة', at_cost: 'استثمار بالتكلفة' };
+      const pct = (v: unknown) => `${Number(v ?? 0).toLocaleString('en-US', { maximumFractionDigits: 8 })}%`;
+      blocks.push({ type: 'table', caption: 'شركات المجموعة المشمولة بالارتباط', columns: [{ key: 'n', label: 'الشركة' }, { key: 'r', label: 'العلاقة' }, { key: 'o', label: 'نسبة الملكية' }, { key: 'cr', label: 'السجل التجاري' }, { key: 's', label: 'حالة البيانات' }],
+        rows: gc.map((c) => ({ n: c.name, r: ROLE[c.role] ?? c.role, o: c.role === 'parent' ? '—' : pct(c.ownership_pct), cr: c.cr_number ?? '—', s: c.statements ? `ميزان معتمد (${c.tb_rows} حساب)${c.tb_checked ? ' مفحوص' : ' - لم تُشغَّل الفحوصات'}${c.open_findings ? ` | ${c.open_findings} ملاحظة مفتوحة` : ''}` : c.role === 'at_cost' ? 'بلا قوائم - تُعرض بالتكلفة' : 'لا يوجد ميزان معتمد' })) });
+      // القوائم المنفصلة لكل شركة (كما في دفاترها، دون استبعادات التوحيد)
+      const SFP_LABELS = { current_assets: 'الأصول المتداولة', non_current_assets: 'الأصول غير المتداولة', current_liabilities: 'الالتزامات المتداولة', non_current_liabilities: 'الالتزامات غير المتداولة', equity: 'حقوق الملكية', unclassified: 'غير مصنف' };
+      const PL_LABELS = { revenue: 'الإيرادات', cost_of_sales: 'تكلفة الإيرادات', operating_expenses: 'المصاريف التشغيلية', non_operating: 'بنود غير تشغيلية', zakat_tax: 'الزكاة والضريبة', oci: 'الدخل الشامل الآخر' };
+      const full = (sec.options?.detail ?? 'full') === 'full';
+      for (const c of gc) {
+        if (!c.statements) continue;
+        const st = c.statements;
+        blocks.push({ type: 'heading', text: `${c.name} (${ROLE[c.role] ?? c.role}) - القوائم المنفصلة` } as ReportBlock);
+        if (full) {
+          blocks.push(p(`قائمة المركز المالي كما في ${meta.period_end ?? ''}`));
+          blocks.push(statementTable(st.sfp.lines, st.sfp.totals, false, SFP_LABELS, ['non_current_assets', 'current_assets', 'unclassified', 'equity', 'non_current_liabilities', 'current_liabilities'], { non_current_assets: ['non_current_assets'], current_assets: ['current_assets'], unclassified: ['total_assets'], equity: ['net_income_in_equity', 'total_equity'], non_current_liabilities: ['non_current_liabilities'], current_liabilities: ['current_liabilities', 'total_liabilities', 'total_liabilities_equity'] }));
+          blocks.push(p(`قائمة الربح أو الخسارة ${meta.period_phrase ?? ''}`));
+          blocks.push(statementTable(st.pl.lines, st.pl.totals, false, PL_LABELS, ['revenue', 'cost_of_sales', 'operating_expenses', 'non_operating', 'zakat_tax', 'oci'], { revenue: ['net_revenue'], cost_of_sales: ['gross_profit'], operating_expenses: ['operating_profit'], non_operating: ['profit_before_zakat'], zakat_tax: ['net_income'], oci: ['total_comprehensive'] }));
+        } else {
+          const k = st.key_figures;
+          blocks.push({ type: 'kv', items: [{ label: 'إجمالي الأصول', value: fmtMoney(k.total_assets) }, { label: 'إجمالي الالتزامات', value: fmtMoney(k.total_liabilities) }, { label: 'حقوق الملكية', value: fmtMoney(k.total_equity) }, { label: 'الإيرادات', value: fmtMoney(k.revenue) }, { label: 'صافي الربح / (الخسارة)', value: fmtMoney(k.net_income) }] });
+        }
+        if (!st.sfp.balanced) blocks.push(note(`قائمة المركز المالي لـ${c.name} غير متوازنة؛ راجع تصنيف حساباتها.`, 'danger'));
+      }
+      // ملخص التقييم الدفتري: منفصل لكل شركة + موحد للمجموعة
+      const cons = snap.consolidation as Record<string, any> | null; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const rows = gc.map((c) => {
+        const eq = c.statements ? Number(c.statements.key_figures.total_equity ?? 0) : null; const own = c.role === 'parent' ? 100 : Number(c.ownership_pct ?? 100);
+        return { n: c.name, r: ROLE[c.role] ?? c.role, b: c.statements ? 'صافي الأصول الدفترية' : 'التكلفة لدى الأم', e: eq == null ? '—' : fmtMoney(eq), o: c.role === 'parent' ? '—' : pct(own), a: eq != null ? fmtMoney(c.role === 'parent' ? eq : eq * own / 100) : c.investment_cost != null ? fmtMoney(c.investment_cost) : '—' };
+      });
+      if (cons) {
+        rows.push({ n: 'المجموعة (موحدة)', r: '—', b: 'صافي الأصول الدفترية الموحدة بعد الاستبعادات', e: fmtMoney(cons.group_equity_worksheet), o: '—', a: fmtMoney(Number(cons.group_equity_worksheet ?? 0) - Number(cons.worksheet?.totals?.nci ?? 0)), _total: '1' } as never);
+      }
+      blocks.push({ type: 'table', caption: 'ملخص التقييم الدفتري: المنفصل لكل شركة والموحد للمجموعة', columns: [{ key: 'n', label: 'الشركة' }, { key: 'r', label: 'العلاقة' }, { key: 'b', label: 'الأساس' }, { key: 'e', label: 'حقوق الملكية الدفترية', numeric: true }, { key: 'o', label: 'نسبة الملكية' }, { key: 'a', label: 'المنسوب لمالكي الأم', numeric: true }], rows });
+      blocks.push(note('القيم المنفصلة لا تُجمع: استثمار الأم في شركاتها التابعة جزء من حقوق ملكيتها المنفصلة، فجمع حقوق الشركات يكرر احتساب رأس المال نفسه. القيمة الموحدة = حقوق ملكية الأم + حصتها في نتائج التابعات منذ السيطرة ± قيود الاستبعاد (IFRS 10)، والاستثمارات في الشركات بلا قوائم تبقى بالتكلفة (IAS 27) إلى حين توافر قوائمها.', 'info'));
+      if (!cons) blocks.push(note('لم يُشغَّل التوحيد لهذه الفترة بعد؛ شغّله من شاشة «التوحيد الدفتري» ثم أعد توليد القسم لإظهار القيمة الموحدة.', 'warning'));
+      else if (cons.status !== 'supported') blocks.push(note('القيمة الموحدة غير نهائية لوجود بنود غير محسومة؛ راجع قسم التوحيد الدفتري.', 'warning'));
+      const basis = ((snap.engagement_letter?.fields as Record<string, any> | undefined)?.valuation?.basis) as string | undefined; // eslint-disable-line @typescript-eslint/no-explicit-any
+      if (basis && basis !== 'book') blocks.push(note('أساس القيمة المتفق عليه في خطاب الارتباط ليس الأساس الدفتري؛ هذا الجدول يمثل نقطة البداية الدفترية ولا يمثل القيمة السوقية أو العادلة.', 'warning'));
+      break;
+    }
     case 'consolidation': {
       const c = snap.consolidation as Record<string, unknown> | null;
       if (!c) { blocks.push(note('لم يُشغَّل التوحيد الدفتري لهذه الفترة بعد. شغّله من صفحة "التوحيد" ثم أعد توليد هذا القسم.', 'warning')); break; }
@@ -355,6 +398,12 @@ export function buildReportContent(params: { title: string; referenceNo: string;
     currency: s.engagement.currency ?? 'SAR', is_demo: s.engagement.is_demo === 'true', preparer: params.preparer, reviewer: params.reviewer ?? null, approver: params.approver ?? null, status: params.status,
   };
   const sections = [...params.sections].sort((a, b) => a.order - b.order).map((sec) => buildSection(sec, s, meta));
+  // تنسيق المبالغ داخل النصوص (الفقرات والقوائم والتنبيهات وخلايا الجداول النصية) بفواصل الآلاف
+  for (const sec of sections) for (const b of sec.blocks as ReportBlock[]) {
+    if (b.type === 'paragraph' || b.type === 'note' || b.type === 'heading') b.text = fmtAmounts(b.text);
+    else if (b.type === 'list') b.items = b.items.map(fmtAmounts);
+    else if (b.type === 'table') for (const r of b.rows) for (const c of b.columns) if (!c.numeric && typeof r[c.key] === 'string') r[c.key] = fmtAmounts(r[c.key]);
+  }
   return { meta, sections };
 }
 export { SEVERITY_LABELS, CATEGORY_LABELS, REVIEW_STATUS_LABELS };

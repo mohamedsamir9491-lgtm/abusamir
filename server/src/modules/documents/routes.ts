@@ -71,6 +71,28 @@ documentsRouter.patch('/:id', requirePermission('documents.upload'), async (req,
   } catch (e) { next(e); }
 });
 
+/** نقل مستند إلى شركة أخرى في نفس المجموعة (مثلًا ميزان رُفع على الشركة الخطأ) - قبل اعتماد أي استيراد منه */
+documentsRouter.post('/:id/move', requirePermission('documents.upload'), async (req, res, next) => {
+  try {
+    const d = parse(z.object({ engagement_id: z.string().uuid() }), req.body);
+    const doc = await one<{ id: string; engagement_id: string; period_id: string | null; title: string }>('SELECT id, engagement_id, period_id, title FROM source_documents WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
+    if (!doc) throw notFound('المستند غير موجود');
+    if (doc.engagement_id === d.engagement_id) { res.json({ ok: true }); return; }
+    const rootOf = async (eid: string) => (await one<{ r: string }>('SELECT COALESCE(group_engagement_id, id) AS r FROM engagements WHERE id = $1', [eid]))?.r;
+    const [a, b] = [await rootOf(doc.engagement_id), await rootOf(d.engagement_id)];
+    if (!a || !b || a !== b) throw badRequest('النقل مسموح فقط بين شركات المجموعة نفسها (منعًا لخلط بيانات العملاء)');
+    const jobs = await one<{ c: string }>(`SELECT count(*) AS c FROM import_jobs WHERE document_id = $1 AND status = 'committed'`, [doc.id]);
+    if (Number(jobs?.c ?? 0) > 0) throw badRequest('اعتُمد استيراد من هذا المستند؛ احذف الاستيراد المعتمد أولًا (من شاشة الاستيراد) ثم انقل المستند');
+    const target = await one<{ client_id: string }>('SELECT client_id FROM engagements WHERE id = $1', [d.engagement_id]);
+    let periodId: string | null = null;
+    if (doc.period_id) { const pr = await one<{ start_date: string; end_date: string }>('SELECT start_date::text AS start_date, end_date::text AS end_date FROM financial_periods WHERE id = $1', [doc.period_id]); if (pr) periodId = (await one<{ id: string }>('SELECT id FROM financial_periods WHERE engagement_id = $1 AND start_date = $2 AND end_date = $3', [d.engagement_id, pr.start_date, pr.end_date]))?.id ?? null; }
+    await query(`DELETE FROM import_jobs WHERE document_id = $1 AND status <> 'committed'`, [doc.id]);
+    await query('UPDATE source_documents SET engagement_id = $2, client_id = $3, period_id = $4 WHERE id = $1', [doc.id, d.engagement_id, target!.client_id, periodId]);
+    await audit(req, { action: 'document.moved', entityType: 'source_document', entityId: doc.id, clientId: target!.client_id, details: { from: doc.engagement_id, to: d.engagement_id, title: doc.title } });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 documentsRouter.delete('/:id', requirePermission('documents.delete'), async (req, res, next) => {
   try {
     const doc = await one<{ id: string; file_id: string; client_id: string }>('SELECT id, file_id, client_id FROM source_documents WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
