@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { formatFeeAmount, currencyInfo } from '../../lib/amountWords.js';
 import { z } from 'zod';
 import { one, query } from '../../db/pool.js';
 import { parse } from '../../lib/validate.js';
@@ -35,7 +36,7 @@ async function defaults(engagementId: string, templateCode?: string | null, subj
   const endDate = periods?.e ?? null;
   return {
     template_code: tpl.code, template_name: tpl.name,
-    options: { ...DEFAULT_OPTIONS, include_valuation: tpl.code === 'VALUATION' || tpl.code === 'GROUP_VALUATION' },
+    options: { ...DEFAULT_OPTIONS, fee_currency: String(e.currency ?? 'SAR'), include_valuation: tpl.code === 'VALUATION' || tpl.code === 'GROUP_VALUATION' },
     valuation: { ...defaultValuation({ entity, period, valuation_date: endDate ?? '' }), ...(tpl.code === 'GROUP_VALUATION' ? { basis: 'book' as const, approaches: ['asset' as const], subject: `100% من حقوق ملكية ${entity} على أساس موحد` } : {}) },
     entity_name: entity, legal_form: ENTITY_LABELS[e.entity_type ?? ''] ?? '', client_attention: `السادة / ${entity}`, client_cr: e.cr_number ?? '', greeting: 'السلام عليكم ورحمة الله وبركاته،،',
     subject: t.subject, intro: t.intro,
@@ -47,7 +48,7 @@ async function defaults(engagementId: string, templateCode?: string | null, subj
   };
 }
 const sectionSchema = z.object({ title: z.string().max(200), paragraphs: z.array(z.string().max(3000)).max(20), items: z.array(z.string().max(1000)).max(40), items_style: z.enum(['numbered', 'bullets', 'none']), after: z.array(z.string().max(3000)).max(10).default([]) });
-const optionsSchema = z.object({ show_cover: z.boolean(), show_letter_no: z.boolean(), show_hijri: z.boolean(), show_summary: z.boolean(), show_contacts: z.boolean(), show_duration: z.boolean(), vat_mode: z.enum(['exclusive', 'inclusive', 'hidden']), vat_rate: z.string().max(10), show_fee_schedule: z.boolean(), show_client_signature: z.boolean(), show_office_signature: z.boolean(), show_stamp: z.boolean(), include_valuation: z.boolean() }).partial();
+const optionsSchema = z.object({ show_cover: z.boolean(), show_letter_no: z.boolean(), show_hijri: z.boolean(), show_summary: z.boolean(), show_contacts: z.boolean(), show_duration: z.boolean(), vat_mode: z.enum(['exclusive', 'inclusive', 'hidden']), vat_rate: z.string().max(10), show_fee_schedule: z.boolean(), fee_currency: z.string().max(3).default('SAR'), show_fee_words: z.boolean().default(true), show_client_signature: z.boolean(), show_office_signature: z.boolean(), show_stamp: z.boolean(), include_valuation: z.boolean() }).partial();
 const valuationSchema = z.object({ purpose: z.string().max(500), subject: z.string().max(300), basis: z.enum(['book', 'adjusted_nav', 'fair_value', 'market_value', 'investment_value']), valuation_date: z.string().max(20), premise: z.enum(['going_concern', 'orderly_liquidation', 'forced_liquidation']), approaches: z.array(z.enum(['asset', 'income', 'market'])).max(3), currency: z.string().max(40), shares_count: z.string().max(40), intended_users: z.string().max(300), standard: z.string().max(300), licensed_valuer: z.enum(['required', 'not_required', 'to_confirm']), discounts: z.string().max(1000), key_assumptions: z.array(z.string().max(500)).max(20), limitations: z.array(z.string().max(500)).max(20) }).partial();
 const fieldsSchema = z.object({
   template_code: z.string().max(40).default(''), template_name: z.string().max(200).default(''), options: optionsSchema.optional(), valuation: valuationSchema.optional(),
@@ -79,7 +80,8 @@ function letterHtml(l: { letter_no: string | null; letter_date: string; status: 
   const list = (s: LetterSection) => !s.items.length || s.items_style === 'none' ? '' : s.items_style === 'bullets' ? `<ul>${s.items.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : `<ol>${s.items.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>`;
   const paras = (ps: string[]) => ps.filter((x) => x.trim()).map((x) => `<p>${esc(x)}</p>`).join('');
   const feeTable = o.show_fee_schedule && f.fees_schedule?.length ? `<table class="ltab"><thead><tr><th>مرحلة السداد</th><th>النسبة</th><th>موعد الاستحقاق</th></tr></thead><tbody>${f.fees_schedule.map((r) => `<tr><td>${esc(r.stage)}</td><td>${esc(r.pct)}</td><td>${esc(r.due)}</td></tr>`).join('')}</tbody></table>` : '';
-  const amount = `<b>${esc(f.fees_amount || '______ ريال سعودي')}</b>${vat ? ` ${esc(vat)}` : ''}`;
+  const fee = formatFeeAmount(f.fees_amount, o.fee_currency, o.show_fee_words);
+  const amount = `<b>${esc(fee.text || `______ ${currencyInfo(o.fee_currency).name}`)}</b>${fee.words ? ` (${esc(fee.words)})` : ''}${vat ? ` ${esc(vat)}` : ''}`;
   const feeLine = `<p>مبلغ الأتعاب: ${amount}.</p>`;
   const v: ValuationTerms | null = o.include_valuation ? { ...defaultValuation({ entity: f.entity_name, period: f.summary_period }), ...(f.valuation ?? {}) } : null;
   const valTable = v ? `<table class="ltab lsum"><tbody>${valuationTermsRows(v).map(([k, val]) => `<tr><th>${esc(k)}</th><td>${esc(val)}</td></tr>`).join('')}</tbody></table>${v.key_assumptions?.length ? `<p><b>الافتراضات الرئيسية:</b></p><ul>${v.key_assumptions.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${v.limitations?.length ? `<p><b>قيود التقييم:</b></p><ul>${v.limitations.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}<p class="muted">يُعد تقرير التقييم على أساس هذه الشروط حصرًا، وأي تغيير في الغرض أو أساس القيمة أو تاريخ التقييم يتطلب تعديلًا كتابيًا لهذا الخطاب.</p>` : '';

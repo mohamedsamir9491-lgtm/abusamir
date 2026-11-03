@@ -9,7 +9,7 @@ export interface FeeRow { stage: string; pct: string; due: string }
 /** خيارات العرض التي يقررها المستخدم لكل خطاب */
 export interface LetterOptions {
   show_cover: boolean; show_letter_no: boolean; show_hijri: boolean; show_summary: boolean; show_contacts: boolean; show_duration: boolean;
-  vat_mode: 'exclusive' | 'inclusive' | 'hidden'; vat_rate: string; show_fee_schedule: boolean;
+  vat_mode: 'exclusive' | 'inclusive' | 'hidden'; vat_rate: string; show_fee_schedule: boolean; fee_currency: string; show_fee_words: boolean;
   show_client_signature: boolean; show_office_signature: boolean; show_stamp: boolean; include_valuation: boolean;
 }
 /** شروط التقييم المتفق عليها: تُطبع في الخطاب وتُبنى عليها أقسام التقييم في التقرير */
@@ -18,7 +18,7 @@ export interface ValuationTerms {
   approaches: ('asset' | 'income' | 'market')[]; currency: string; shares_count: string; intended_users: string; standard: string; licensed_valuer: 'required' | 'not_required' | 'to_confirm';
   discounts: string; key_assumptions: string[]; limitations: string[];
 }
-export const DEFAULT_OPTIONS: LetterOptions = { show_cover: true, show_letter_no: true, show_hijri: true, show_summary: true, show_contacts: true, show_duration: true, vat_mode: 'exclusive', vat_rate: '15', show_fee_schedule: true, show_client_signature: true, show_office_signature: true, show_stamp: true, include_valuation: false };
+export const DEFAULT_OPTIONS: LetterOptions = { show_cover: true, show_letter_no: true, show_hijri: true, show_summary: true, show_contacts: true, show_duration: true, vat_mode: 'exclusive', vat_rate: '15', show_fee_schedule: true, fee_currency: 'SAR', show_fee_words: true, show_client_signature: true, show_office_signature: true, show_stamp: true, include_valuation: false };
 export const BASIS_LABELS: Record<ValuationTerms['basis'], string> = { book: 'القيمة الدفترية', adjusted_nav: 'صافي الأصول المعدل', fair_value: 'القيمة العادلة (IFRS 13)', market_value: 'القيمة السوقية (IVS)', investment_value: 'القيمة الاستثمارية (لمستثمر محدد)' };
 export const PREMISE_LABELS: Record<ValuationTerms['premise'], string> = { going_concern: 'استمرارية النشاط', orderly_liquidation: 'تصفية منظمة', forced_liquidation: 'تصفية قسرية' };
 export const APPROACH_LABELS: Record<'asset' | 'income' | 'market', string> = { asset: 'أسلوب الأصول (صافي الأصول المعدل)', income: 'أسلوب الدخل (التدفقات النقدية المخصومة)', market: 'أسلوب السوق (المضاعفات والصفقات المقارنة)' };
