@@ -152,7 +152,7 @@ analysisRouter.get('/progress', async (req, res, next) => {
     const engagementId = String(req.query.engagement_id ?? '');
     if (!engagementId) throw badRequest('engagement_id مطلوب');
     const e = await loadEngagement(engagementId);
-    const periods = await many<{ id: string; label: string; role: string }>('SELECT id, label, role FROM financial_periods WHERE engagement_id = $1 ORDER BY start_date', [engagementId]);
+    const periods = await many<{ id: string; label: string; role: string; start_date: string; end_date: string }>('SELECT id, label, role, start_date::text AS start_date, end_date::text AS end_date FROM financial_periods WHERE engagement_id = $1 ORDER BY start_date', [engagementId]);
     const out = [] as unknown[];
     for (const p of periods) {
       const s = await one<Record<string, string>>(`SELECT
