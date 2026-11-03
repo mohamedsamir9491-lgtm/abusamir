@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { get, post } from '../api';
 import { Page, useLoad, Spinner, Empty, Field, useAction, Money } from '../components/ui';
 import { useScope } from '../components/Scope';
@@ -68,22 +68,96 @@ export function Consolidation() {
           <Field label="السيطرة"><select value={c.control} onChange={(e) => persist(subs, costs.map((x, k) => k === i ? { ...x, control: e.target.value as AtCost['control'] } : x))}><option value="unknown">غير محددة</option><option value="controlled">قائمة (تابعة)</option><option value="not_controlled">غير قائمة</option></select></Field><Field label="ملاحظة"><input value={c.note} onChange={(e) => persist(subs, costs.map((x, k) => k === i ? { ...x, note: e.target.value } : x))} /></Field><button className="btn sec sm" style={{ alignSelf: 'end' }} onClick={() => persist(subs, costs.filter((_, k) => k !== i))}>إزالة</button></div>)}
         <button className="btn sec sm" onClick={() => persist(subs, [...costs, blankCost()])}>+ إضافة شركة</button>
       </div>
-      {R && <>
-        <div className="card"><h2>النتيجة {last?.run && <span className="muted">(آخر تشغيل {fmtDate(last.run.started_at, { time: true })})</span>}</h2>
-          <p><span className={`badge ${R.status === 'supported' ? 'ok' : 'warn'}`}>{R.status === 'supported' ? 'مدعومة بالأدلة' : 'غير مكتملة - لا تُعتمد قائمة موحدة ولا قيمة نهائية'}</span></p>
-          {R.pending_reasons.length > 0 && <ul>{R.pending_reasons.map((x) => <li key={x}>{x}</li>)}</ul>}
-          <dl className="kv"><dt>حقوق ملكية الأم (منفصلة)</dt><dd><Money v={R.parent.book_equity} /></dd><dt>مجموع بنود حقوق الملكية الموحدة بعد القيود المؤيدة</dt><dd><Money v={R.group_equity_worksheet} /></dd><dt>فروق غير محسومة باقية في بنودها</dt><dd><Money v={R.worksheet.totals.unreconciled_total} /></dd><dt>فرضية حسابية فقط (لو ثبت أن الفروق ليست أصولًا)</dt><dd><Money v={R.hypothesis_unreconciled_not_assets} /></dd><dt>حقوق غير مسيطرة</dt><dd><Money v={R.worksheet.totals.nci} /></dd><dt>فحص المعادلة / توازن القيود</dt><dd><Money v={R.worksheet.totals.equation_difference} /> / <Money v={R.worksheet.totals.eliminations_debit} /> = <Money v={R.worksheet.totals.eliminations_credit} /></dd></dl>
-          <p className="muted">لإدراج هذه النتيجة في تقرير: افتح التقرير على ارتباط الأم → "إضافة قسم" → نوع "التوحيد الدفتري للمجموعة".</p></div>
-        <div className="card"><h2>ورقة العمل</h2><div style={{ overflowX: 'auto' }}><table className="t ruled"><thead><tr><th>البند</th>{['parent', ...R.subsidiaries.map((s) => s.key)].map((k) => <th key={k} className="num">{comp[k]}</th>)}<th className="num">المجمع</th><th className="num">استبعاد مدين</th><th className="num">استبعاد دائن</th><th className="num">الموحد</th><th className="num">غير محسوم</th></tr></thead><tbody>
-          {R.worksheet.rows.map((r) => <tr key={String(r.code)}><td>{String(r.label_ar)}</td>{['parent', ...R.subsidiaries.map((s) => s.key)].map((k) => <td key={k} className="num"><Money v={(r.per_company as unknown as Record<string, string>)[k] ?? '0'} /></td>)}<td className="num"><Money v={String(r.aggregate)} /></td><td className="num"><Money v={String(r.elimination_debit)} /></td><td className="num"><Money v={String(r.elimination_credit)} /></td><td className="num"><b><Money v={String(r.consolidated)} /></b></td><td className="num">{Number(r.unreconciled) ? <Money v={String(r.unreconciled)} /> : ''}</td></tr>)}</tbody></table></div></div>
-        <div className="card"><h2>قيود الاستبعاد</h2><table className="t ruled"><thead><tr><th>القيد</th><th>الدعم</th><th>الوصف</th><th>البند / الحساب / الدفاتر</th><th className="num">مدين</th><th className="num">دائن</th></tr></thead><tbody>
-          {R.worksheet.entries.flatMap((e) => (e.lines as unknown as Row[]).map((l, i) => <tr key={`${e.ref}-${i}`}><td className="mono">{String(e.ref)}</td><td><span className={`badge ${e.support === 'documented' ? 'ok' : 'warn'}`}>{e.support === 'documented' ? 'مؤيد' : 'مشروط'}</span></td><td>{i === 0 ? String(e.description) : ''}</td><td>{String(l.line_code)}{l.account ? ` (${l.account})` : ''} - {comp[String(l.company)] ?? String(l.company)}{l.note ? `: ${l.note}` : ''}</td><td className="num"><Money v={String(l.debit)} /></td><td className="num"><Money v={String(l.credit)} /></td></tr>))}</tbody></table>
-          <ul className="muted">{R.worksheet.entries.map((e) => <li key={String(e.ref)}><b>{String(e.ref)}</b> - {String(e.basis)}: {(e.evidence as unknown as string[]).join('؛ ')}</li>)}</ul></div>
-        {R.worksheet.register.length > 0 && <div className="card"><h2>سجل الفروق غير المحسومة</h2><table className="t ruled"><thead><tr><th>المرجع</th><th>الشركة</th><th>الوصف</th><th className="num">المبلغ</th><th>الأثر الأقصى</th><th>المسؤول</th><th>الدليل المطلوب</th></tr></thead><tbody>
-          {R.worksheet.register.map((x) => <tr key={String(x.ref)}><td className="mono">{String(x.ref)}</td><td>{String(x.company)}</td><td>{String(x.description)}<div className="muted">{(x.nature_hypotheses as unknown as string[]).join('؛ ')}</div></td><td className="num"><Money v={String(x.amount)} /></td><td>{x.equity_effect === 'none' ? 'لا أثر' : x.equity_effect === 'immaterial' ? 'غير جوهري' : <Money v={String(x.max_equity_effect)} />}</td><td>{String(x.responsible)}</td><td>{(x.required_evidence as unknown as string[]).join('؛ ')}</td></tr>)}</tbody></table></div>}
-        <div className="card"><h2>مطابقة الاستثمار برأس المال</h2><table className="t ruled"><thead><tr><th>التابعة</th><th className="num">استثمار الأم (افتتاحي / مدين / دائن / ختامي)</th><th className="num">مطالبة التابعة (افتتاحي / مدين / دائن / ختامي)</th><th className="num">رأس المال</th><th className="num">هوية الافتتاح</th><th className="num">هوية الحركة</th><th className="num">الفرق الختامي</th><th>التصنيف</th><th>السيطرة</th></tr></thead><tbody>
-          {R.worksheet.subsidiaries.map((s) => { const cm = s.capital_matching as unknown as Record<string, string>; const inv = s.investment as unknown as Record<string, string>; const cl = s.sub_claim_on_parent as unknown as Record<string, string>; return <tr key={String(s.key)}><td>{String(s.label)}</td><td className="num">{[inv.opening, inv.period_debit, inv.period_credit, inv.closing].map(Number).map((v) => v.toLocaleString('en', { minimumFractionDigits: 2 })).join(' / ')}</td><td className="num">{[cl.opening, cl.period_debit, cl.period_credit, cl.closing].map(Number).map((v) => v.toLocaleString('en', { minimumFractionDigits: 2 })).join(' / ')}</td><td className="num"><Money v={String(s.sub_capital)} /></td><td className="num"><Money v={cm.identity_opening} /></td><td className="num"><Money v={cm.identity_period} /></td><td className="num"><Money v={cm.investment_vs_implied_paid_capital} /> {cm.identity_reconciles ? '✓' : '✗'}</td><td>{cm.claim_classification}</td><td>{s.control_since ? String(s.control_since) : 'غير مُثبت'}</td></tr>; })}</tbody></table></div>
-      </>}
+      {R && <ConsolidationResult R={R} comp={comp} lastRunAt={last?.run?.started_at ?? null} />}
     </>}
   </Page>;
+}
+
+const nf = (v: unknown) => Number(v ?? 0);
+const money = (v: unknown) => nf(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/** تنسيق المبالغ داخل النصوص التوضيحية (مبالغ بكسور عشرية فقط؛ رموز الحسابات تبقى كما هي) */
+const fmtNums = (s: unknown) => String(s ?? '').replace(/-?\d{4,}\.\d{2}(?!\d)/g, (m) => money(m));
+const SECTION_LABEL: Record<string, string> = { current_assets: 'الأصول المتداولة', non_current_assets: 'الأصول غير المتداولة', unclassified: 'بنود غير مصنفة (ضمن الأصول)', current_liabilities: 'الالتزامات المتداولة', non_current_liabilities: 'الالتزامات غير المتداولة', equity: 'حقوق الملكية', nci: 'حقوق غير مسيطرة' };
+const ok = (v: unknown) => Math.abs(nf(v)) < 0.005;
+
+type WRow = { code: string; section: string; label_ar: string; per_company: Record<string, string>; aggregate: string; elimination_debit: string; elimination_credit: string; consolidated: string; unreconciled: string };
+/** نتيجة التوحيد: ملخص، ورقة عمل بأقسام وإجماليات، قيود الاستبعاد، سجل الفروق، ومطابقة الاستثمار برأس المال */
+function ConsolidationResult({ R, comp, lastRunAt }: { R: Record<string, any>; comp: Record<string, string>; lastRunAt: string | null }) { // eslint-disable-line @typescript-eslint/no-explicit-any
+  const W = R.worksheet; const rows = W.rows as WRow[]; const keys = ['parent', ...R.subsidiaries.map((s: { key: string }) => s.key)];
+  const lineLabel = Object.fromEntries(rows.map((r) => [r.code, r.label_ar])) as Record<string, string>;
+  const sumBy = (rs: WRow[], f: (r: WRow) => unknown) => rs.reduce((a, r) => a + nf(f(r)), 0);
+  const cols: { k: string; f: (r: WRow) => unknown }[] = [...keys.map((k) => ({ k, f: (r: WRow) => r.per_company[k] ?? 0 })), { k: 'agg', f: (r) => r.aggregate }, { k: 'dr', f: (r) => r.elimination_debit }, { k: 'cr', f: (r) => r.elimination_credit }, { k: 'cons', f: (r) => r.consolidated }, { k: 'unrec', f: (r) => r.unreconciled }];
+  const group = (secs: string[]) => rows.filter((r) => secs.includes(r.section));
+  const totalRow = (label: string, rs: WRow[], cls = 'total', skip: string[] = ['dr', 'cr']) => <tr className={cls}><td>{label}</td>{cols.map((c) => <td key={c.k} className="num">{skip.includes(c.k) ? '' : <Money v={String(sumBy(rs, c.f))} />}</td>)}</tr>;
+  const assets = group(['current_assets', 'non_current_assets', 'unclassified']); const liabs = group(['current_liabilities', 'non_current_liabilities']); const equity = group(['equity', 'nci']);
+  const check = cols.map((c) => sumBy(assets, c.f) - sumBy(liabs, c.f) - sumBy(equity, c.f));
+  const conditional = (W.entries as { ref: string; support: string }[]).filter((e) => e.support !== 'documented').map((e) => e.ref);
+  const netIncome = rows.find((r) => r.code === 'NET_INCOME');
+  const T = W.totals;
+  const section = (sec: string) => { const rs = group([sec]); if (!rs.length) return null; return <>
+    <tr className="group"><td colSpan={cols.length + 1}>{SECTION_LABEL[sec] ?? sec}</td></tr>
+    {rs.map((r) => <tr key={r.code}><td>{r.label_ar}</td>{cols.map((c) => <td key={c.k} className={`num${c.k === 'cons' ? ' strong' : ''}`}>{c.k === 'unrec' && ok(c.f(r)) ? '' : (c.k === 'dr' || c.k === 'cr') && ok(c.f(r)) ? '—' : <Money v={String(c.f(r))} />}</td>)}</tr>)}
+    {rs.length > 1 && sec !== 'equity' && sec !== 'nci' && totalRow(`إجمالي ${SECTION_LABEL[sec]}`, rs, 'subtotal')}</>; };
+  return <>
+    <div className="card"><h2>النتيجة {lastRunAt && <span className="muted">(آخر تشغيل {fmtDate(lastRunAt, { time: true })})</span>}</h2>
+      <p><span className={`badge ${R.status === 'supported' ? 'ok' : 'warn'}`}>{R.status === 'supported' ? 'مدعومة بالأدلة' : 'غير مكتملة - لا تُعتمد قائمة موحدة ولا قيمة نهائية'}</span></p>
+      {R.pending_reasons.length > 0 && <ul>{R.pending_reasons.map((x: string) => <li key={x}>{fmtNums(x)}</li>)}</ul>}
+      <div className="grid c2">
+        <dl className="kv">
+          <dt>حقوق ملكية الأم (القوائم المنفصلة)</dt><dd><Money v={R.parent.book_equity} /></dd>
+          <dt>حقوق الملكية الموحدة بعد قيود الاستبعاد</dt><dd><b><Money v={R.group_equity_worksheet} /></b>{conditional.length > 0 && <div className="muted">تشمل قيودًا مشروطة ({conditional.join('، ')}) تعتمد على إثبات تصنيف جاري الأم لدى التابعة</div>}</dd>
+          <dt>منها فروق بينية غير محسومة باقية ضمن الأصول</dt><dd><Money v={T.unreconciled_total} /></dd>
+          <dt>حقوق الملكية لو ثبت أن هذه الفروق ليست أصولًا (فرضية)</dt><dd><Money v={R.hypothesis_unreconciled_not_assets} /></dd>
+          <dt>حقوق غير مسيطرة</dt><dd><Money v={T.nci} /></dd>
+        </dl>
+        <dl className="kv">
+          <dt>إجمالي الأصول الموحدة</dt><dd><Money v={T.assets} /></dd>
+          <dt>إجمالي الالتزامات الموحدة</dt><dd><Money v={T.liabilities} /></dd>
+          <dt>نتيجة الفترة الموحدة</dt><dd><Money v={netIncome?.consolidated ?? '0'} /></dd>
+          <dt>فحص معادلة الميزانية الموحدة</dt><dd>{ok(T.equation_difference) ? <span className="badge ok">متوازنة (الفرق 0.00)</span> : <span className="badge danger">فرق <Money v={T.equation_difference} /></span>}</dd>
+          <dt>توازن قيود الاستبعاد</dt><dd>مدين <Money v={T.eliminations_debit} /> = دائن <Money v={T.eliminations_credit} /> {ok(nf(T.eliminations_debit) - nf(T.eliminations_credit)) ? '✓' : '✗'}</dd>
+          <dt>مطالبات التابعات على الأم بلا التزام مقابل في دفاتر الأم</dt><dd><Money v={R.checks?.unmatched_intercompany_total ?? 0} /></dd>
+        </dl></div>
+      {(W.scope ?? []).length > 0 && <><h3>شركات خارج ورقة العمل (بالقيمة الدفترية لدى الأم)</h3><table className="t ruled compact"><thead><tr><th>الشركة</th><th className="num">تكلفة الاستثمار</th><th className="num">ذمم مدينة لدى الأم</th><th className="num">ذمم دائنة لدى الأم</th><th>السيطرة</th><th>ملاحظة</th></tr></thead><tbody>
+        {W.scope.map((x: Record<string, string>) => <tr key={x.key}><td>{x.label}</td><td className="num"><Money v={x.investment_cost} /></td><td className="num"><Money v={x.receivable} /></td><td className="num"><Money v={x.payable} /></td><td>{x.control === 'controlled' ? 'خاضعة للسيطرة' : x.control === 'not_controlled' ? 'غير خاضعة' : 'غير محددة'}</td><td className="wrap">{x.note}</td></tr>)}</tbody></table></>}
+      <p className="muted">لإدراج هذه النتيجة في تقرير: افتح التقرير على ارتباط الأم ← «إضافة قسم» ← نوع «التوحيد الدفتري للمجموعة».</p></div>
+
+    <div className="card"><h2>ورقة العمل</h2><p className="muted">المبالغ بالعرض الطبيعي لكل بند (الأصول مدينة، الالتزامات وحقوق الملكية دائنة). الموحد = المجمع ± قيود الاستبعاد.</p>
+      <div className="tscroll" style={{ maxHeight: 'none' }}><table className="t ruled compact sticky1"><thead><tr><th>البند</th>{keys.map((k) => <th key={k} className="num">{comp[k]}</th>)}<th className="num">المجمع</th><th className="num">استبعاد مدين</th><th className="num">استبعاد دائن</th><th className="num">الموحد</th><th className="num">غير محسوم</th></tr></thead><tbody>
+        {section('current_assets')}{section('non_current_assets')}{section('unclassified')}
+        {totalRow('إجمالي الأصول', assets)}
+        {section('current_liabilities')}{section('non_current_liabilities')}
+        {totalRow('إجمالي الالتزامات', liabs)}
+        {section('equity')}{section('nci')}
+        {totalRow('إجمالي حقوق الملكية', equity)}
+        {totalRow('إجمالي الالتزامات وحقوق الملكية', [...liabs, ...equity])}
+        <tr className="check"><td>فحص: الأصول − (الالتزامات + حقوق الملكية)</td>{cols.map((c, i) => <td key={c.k} className="num">{c.k === 'dr' ? <Money v={T.eliminations_debit} /> : c.k === 'cr' ? <Money v={T.eliminations_credit} /> : c.k === 'unrec' ? '' : ok(check[i]) ? '✓ 0.00' : <span style={{ color: 'var(--danger)' }}>{money(check[i])}</span>}</td>)}</tr>
+      </tbody></table></div></div>
+
+    <div className="card"><h2>قيود الاستبعاد</h2>
+      <div className="tscroll" style={{ maxHeight: 'none' }}><table className="t ruled compact"><thead><tr><th>البند (الحساب)</th><th>الدفاتر</th><th>البيان</th><th className="num">مدين</th><th className="num">دائن</th></tr></thead><tbody>
+        {(W.entries as Record<string, any>[]).map((e) => <Fragment key={e.ref}>
+          <tr className="group"><td colSpan={3}><span className="mono">{e.ref}</span> <span className={`badge ${e.support === 'documented' ? 'ok' : 'warn'}`}>{e.support === 'documented' ? 'مؤيد بالمستندات' : 'مشروط (تصنيف مؤقت)'}</span> {e.description}</td><td className="num"><Money v={e.total_debit} /></td><td className="num"><Money v={e.total_credit} /></td></tr>
+          {(e.lines as Record<string, string>[]).map((l, i) => <tr key={i}><td>{lineLabel[l.line_code] ?? l.line_code}{l.account ? <span className="muted"> ({l.account})</span> : ''}</td><td>{comp[l.company] ?? l.company}</td><td className="wrap">{l.note}</td><td className="num">{ok(l.debit) ? '' : <Money v={l.debit} />}</td><td className="num">{ok(l.credit) ? '' : <Money v={l.credit} />}</td></tr>)}
+          <tr><td colSpan={5} className="wrap muted" style={{ fontSize: 12 }}><b>الأساس:</b> {fmtNums(e.basis)}<br /><b>الأدلة:</b> {(e.evidence as string[]).map(fmtNums).join('؛ ')}</td></tr>
+        </Fragment>)}</tbody></table></div></div>
+
+    {W.register.length > 0 && <div className="card"><h2>سجل الفروق غير المحسومة</h2>
+      <div className="tscroll" style={{ maxHeight: 'none' }}><table className="t ruled compact"><thead><tr><th>المرجع</th><th>الشركة</th><th>الوصف والاحتمالات</th><th className="num">المبلغ</th><th>الأثر الأقصى على حقوق الملكية</th><th>المسؤول</th><th>الدليل المطلوب</th></tr></thead><tbody>
+        {(W.register as Record<string, any>[]).map((x) => <tr key={x.ref}><td className="mono">{x.ref}</td><td>{x.company}</td><td className="wrap" style={{ minWidth: 260 }}>{fmtNums(x.description)}<div className="muted">{(x.nature_hypotheses as string[]).map(fmtNums).join('؛ ')}</div></td><td className="num"><Money v={x.amount} /></td><td>{x.equity_effect === 'none' ? 'لا أثر' : x.equity_effect === 'immaterial' ? 'غير جوهري' : <Money v={x.max_equity_effect} />}</td><td className="wrap">{x.responsible}</td><td className="wrap">{(x.required_evidence as string[]).join('؛ ')}</td></tr>)}</tbody></table></div></div>}
+
+    <div className="card"><h2>مطابقة الاستثمار برأس المال</h2>
+      <p className="muted">هوية الافتتاح = رأس مال التابعة − مطالبتها الافتتاحية على الأم − استثمار الأم الافتتاحي (المتوقع صفر). هوية الحركة = صافي حركة الاستثمار لدى الأم − النقص في مطالبة التابعة خلال الفترة. الفرق الختامي = استثمار الأم الختامي − (رأس المال − مطالبة التابعة الختامية) = هوية الحركة − هوية الافتتاح.</p>
+      <div className="tscroll" style={{ maxHeight: 'none' }}><table className="t ruled compact"><thead><tr><th>البند</th>{W.subsidiaries.map((s: Record<string, string>) => <th key={s.key} className="num">{s.label}</th>)}</tr></thead><tbody>
+        {([
+          ['group', 'استثمار الأم في التابعة'], ['افتتاحي', (s: any) => s.investment.opening], ['مدين خلال الفترة', (s: any) => s.investment.period_debit], ['دائن خلال الفترة', (s: any) => s.investment.period_credit], ['ختامي', (s: any) => s.investment.closing, 'subtotal'],
+          ['group', 'مطالبة التابعة على الأم (جاري الأم لدى التابعة)'], ['افتتاحي', (s: any) => s.sub_claim_on_parent.opening], ['مدين خلال الفترة', (s: any) => s.sub_claim_on_parent.period_debit], ['دائن خلال الفترة', (s: any) => s.sub_claim_on_parent.period_credit], ['ختامي', (s: any) => s.sub_claim_on_parent.closing, 'subtotal'],
+          ['group', 'المطابقة'], ['رأس مال التابعة', (s: any) => s.sub_capital], ['رأس المال المدفوع ضمنًا (رأس المال − المطالبة)', (s: any) => s.capital_matching.implied_paid_capital], ['هوية الافتتاح', (s: any) => s.capital_matching.identity_opening], ['هوية الحركة', (s: any) => s.capital_matching.identity_period], ['الفرق الختامي', (s: any) => s.capital_matching.investment_vs_implied_paid_capital, 'total'],
+        ] as [string, any, string?][]).map(([a, b, cls], i) => a === 'group' ? <tr key={i} className="group"><td colSpan={W.subsidiaries.length + 1}>{b}</td></tr> : <tr key={i} className={cls ?? ''}><td>{a}</td>{W.subsidiaries.map((s: any) => <td key={s.key} className="num"><Money v={String(b(s) ?? 0)} /></td>)}</tr>)}
+        <tr><td>تتطابق الهويتان مع الفرق؟</td>{W.subsidiaries.map((s: any) => <td key={s.key} className="num">{s.capital_matching.identity_reconciles ? '✓ نعم' : '✗ لا'}</td>)}</tr>
+        <tr><td>تصنيف رصيد جاري الأم</td>{W.subsidiaries.map((s: any) => <td key={s.key} className="wrap">{s.capital_matching.claim_classification}</td>)}</tr>
+        <tr><td>تاريخ اكتساب السيطرة</td>{W.subsidiaries.map((s: any) => <td key={s.key}>{s.control_since ? fmtDate(String(s.control_since)) : 'غير مُثبت'}</td>)}</tr>
+        <tr><td>أثر التابعة على حقوق المجموعة</td>{W.subsidiaries.map((s: any) => <td key={s.key} className="wrap" style={{ fontSize: 12 }}>{fmtNums(s.bridge?.explanation)}</td>)}</tr>
+      </tbody></table></div></div>
+  </>;
 }

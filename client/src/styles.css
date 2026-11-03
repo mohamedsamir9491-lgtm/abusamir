@@ -121,5 +121,9 @@ table.t td.row{display:table-cell;white-space:nowrap}table.t td.row > * + *{marg
 .fy-chip{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 14px 10px;padding:8px 12px;border-radius:10px;background:var(--primary-050);border:1px solid var(--border);color:var(--text-2);font-size:12.5px;text-decoration:none}.fy-chip b{color:var(--primary);font-size:15px}@media (max-width:860px){.fy-chip span{display:none}.fy-chip{justify-content:center;margin:0 8px 10px;padding:6px}}
 
 /* جداول مخططة بالكامل (خطوط أفقية وعمودية) لجداول البيانات والأرقام */
-table.t.ruled th,table.t.ruled td{border-inline-start:1px solid var(--border)}table.t.ruled th:first-child,table.t.ruled td:first-child{border-inline-start:0}table.t.ruled tbody tr:last-child td{border-bottom:1px solid var(--border)}table.t.ruled td.num,table.t.ruled th.num{text-align:left}
+table.t.ruled th,table.t.ruled td{border-right:1px solid var(--border)}table.t.ruled th:first-child,table.t.ruled td:first-child{border-right:0}table.t.ruled tbody tr:last-child td{border-bottom:1px solid var(--border)}table.t.ruled td.num,table.t.ruled th.num{text-align:left}
 table.t td.mono,table.t th.mono{display:table-cell;text-align:right}
+
+/* جداول كثيفة الأعمدة (ورقة التوحيد): خط أصغر وحشوة أقل وعمود البند ثابت عند التمرير الأفقي */
+table.t.compact th,table.t.compact td{padding:6px 8px;font-size:12px}table.t.sticky1 th:first-child,table.t.sticky1 td:first-child{position:sticky;right:0;background:var(--surface);z-index:2;min-width:170px;white-space:normal}table.t.sticky1 thead th:first-child{z-index:3;background:var(--surface-2)}table.t.sticky1 tr.group td:first-child{background:var(--surface-2)}table.t.sticky1 tr.total td:first-child{background:var(--primary-050)}
+table.t tr.subtotal td{font-weight:700;border-top:1px solid var(--text-3,#94a3b8)}table.t tr.check td{font-weight:700;color:var(--ok);background:var(--surface-2)}table.t td.strong{font-weight:700}

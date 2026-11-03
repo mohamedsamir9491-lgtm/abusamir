@@ -118,9 +118,35 @@ analysisRouter.post('/group/consolidate', requirePermission('analysis.run'), asy
       return { e, p, entries, accounts: await loadAccountMap(e.client_id), label: client?.legal_name_ar ?? e.title, sources: sources.map((x) => ({ ...x, company: client?.legal_name_ar ?? e.title, period: p.label, used_in: 'القوائم المنفصلة وورقة عمل التوحيد' })) };
     };
     const parent = await load(d.parent);
-    const subs = await Promise.all(d.subsidiaries.map(async (s) => { const x = await load(s); return { ...s, label: x.label, entries: x.entries, accounts: x.accounts, periodLabel: x.p.label, client_id: x.e.client_id, sources: x.sources }; }));
+    const subs = await Promise.all(d.subsidiaries.map(async (s) => { const x = await load(s); return { ...s, label: x.label, entries: x.entries, accounts: x.accounts, periodLabel: x.p.label, client_id: x.e.client_id, sources: x.sources, period_end: String(x.p.end_date).slice(0, 10) }; }));
+    // تحقق من مدخلات التوحيد قبل الحساب: أخطاء الإدخال هنا تُنتج أرقامًا خاطئة بصمت (ازدواج، حسابات غير موجودة، تواريخ مختلفة)
+    const errs: string[] = []; const extraReasons: string[] = [];
+    const codesOf = (entries: { account_code: string }[]) => new Set(entries.map((x) => String(x.account_code)));
+    const pCodes = codesOf(parent.entries); const parentEnd = String(parent.p.end_date).slice(0, 10);
+    const seenEng = new Set<string>(), seenClient = new Set<string>([String(parent.e.client_id)]), usedParentCodes = new Map<string, string>();
+    const useParentCode = (code: string, owner: string) => { const prev = usedParentCodes.get(code); if (prev && prev !== owner) errs.push(`الحساب ${code} لدى الأم مُستخدم لـ«${prev}» و«${owner}» معًا (ازدواج في الاستبعاد)`); usedParentCodes.set(code, owner); };
+    for (const s of subs) {
+      if (s.engagement_id === d.parent.engagement_id) errs.push(`«${s.label}»: لا يجوز اختيار ارتباط الأم نفسه كتابعة`);
+      if (seenEng.has(s.engagement_id)) errs.push(`«${s.label}» مضافة أكثر من مرة`); seenEng.add(s.engagement_id);
+      if (seenClient.has(String(s.client_id))) errs.push(`«${s.label}»: نفس العميل مكرر (أو هو الشركة الأم) - يؤدي إلى ازدواج الأرصدة`); seenClient.add(String(s.client_id));
+      const own = Number(s.ownership_pct); if (!(own > 0 && own <= 100)) errs.push(`«${s.label}»: نسبة الملكية يجب أن تكون أكبر من 0 وحتى 100`);
+      if (s.profit_share_pct != null && s.profit_share_pct !== '' && !(Number(s.profit_share_pct) >= 0 && Number(s.profit_share_pct) <= 100)) errs.push(`«${s.label}»: حصة الأرباح يجب أن تكون بين 0 و100`);
+      const sCodes = codesOf(s.entries);
+      if (!s.investment_codes_in_parent.length) errs.push(`«${s.label}»: لم يُحدد حساب الاستثمار لدى الأم`);
+      for (const c of s.investment_codes_in_parent) { if (!pCodes.has(c)) errs.push(`«${s.label}»: حساب الاستثمار ${c} غير موجود في ميزان الأم`); useParentCode(c, s.label); }
+      for (const c of s.sub_account_codes_in_parent) { if (!pCodes.has(c)) errs.push(`«${s.label}»: حساب جاري التابعة ${c} غير موجود في ميزان الأم`); useParentCode(c, s.label); }
+      for (const c of s.parent_account_codes_in_sub) if (!sCodes.has(c)) errs.push(`«${s.label}»: حساب جاري الأم ${c} غير موجود في ميزان التابعة`);
+      if (s.period_end !== parentEnd) {
+        const days = Math.abs((Date.parse(s.period_end) - Date.parse(parentEnd)) / 86400000);
+        if (days > 92) errs.push(`«${s.label}»: نهاية فترتها (${s.period_end}) تختلف عن الأم (${parentEnd}) بأكثر من 3 أشهر؛ لا يجوز التوحيد دون قوائم بتاريخ الأم`);
+        else extraReasons.push(`«${s.label}»: نهاية فترتها (${s.period_end}) تختلف عن الأم (${parentEnd})؛ يلزم تعديل المعاملات الجوهرية بين التاريخين`);
+      }
+    }
+    for (const c of d.at_cost) for (const code of [...c.investment_codes_in_parent, ...c.receivable_codes_in_parent, ...(c.payable_codes_in_parent ?? [])]) { if (!pCodes.has(code)) errs.push(`«${c.label}»: الحساب ${code} غير موجود في ميزان الأم`); useParentCode(code, c.label); }
+    if (errs.length) throw badRequest(`لا يمكن تشغيل التوحيد قبل تصحيح المدخلات: ${[...new Set(errs)].join('؛ ')}`);
     const core = consolidate({ parent: { key: 'parent', label: parent.label, entries: parent.entries, accounts: parent.accounts, periodLabel: parent.p.label }, subsidiaries: subs, at_cost: d.at_cost, adjustments: d.adjustments, currency: parent.e.currency });
     // يُحفظ إعداد التوحيد مع التشغيل ليُستعاد من أي جهاز/مستخدم (لا يعتمد على ذاكرة المتصفح)
+    if (extraReasons.length) { core.pending_reasons = [...core.pending_reasons, ...extraReasons]; core.status = 'incomplete'; }
     const result = { ...core, sources: [...parent.sources, ...subs.flatMap((s) => s.sources)], input: { subsidiaries: d.subsidiaries, at_cost: d.at_cost, adjustments: d.adjustments } };
     const run = await one<{ id: string }>(`INSERT INTO analysis_runs (client_id, engagement_id, period_id, run_type, status, summary, result, started_by, finished_at) VALUES ($1,$2,$3,'consolidation','completed',$4,$5,$6,now()) RETURNING id`,
       [parent.e.client_id, parent.e.id, parent.p.id, JSON.stringify({ parent_book_equity: result.parent.book_equity, status: result.status, group_equity_worksheet: result.group_equity_worksheet, group_equity: result.group_equity_before_adjustments, adjusted_net_assets: result.adjusted_net_assets, checks: result.checks, companies: subs.map((s) => s.client_id) }), JSON.stringify({ ...result, parent: { ...result.parent, statements: undefined }, subsidiaries: result.subsidiaries.map((x) => ({ ...x, statements: undefined })) }), req.user!.id]);
