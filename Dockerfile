@@ -1,6 +1,6 @@
 FROM mcr.microsoft.com/playwright:v1.63.0-noble
 ENV NODE_ENV=production PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip postgresql-client fontconfig poppler-utils && rm -rf /var/lib/apt/lists/* \
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip postgresql-client fontconfig poppler-utils tesseract-ocr tesseract-ocr-ara && rm -rf /var/lib/apt/lists/* \
  && pip3 install --break-system-packages --no-cache-dir pdfplumber openpyxl xlrd pillow pypdfium2
 WORKDIR /app
 COPY package.json package-lock.json* ./

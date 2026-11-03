@@ -27,5 +27,5 @@ export function UploadPage() {
   return <Page title="رفع المستندات" sub="تُحفظ الملفات الأصلية بلا تعديل مع بصمة SHA-256 للتتبع. الحد الأقصى للحجم محدد في إعدادات الخادم.">
     <div className="card"><Field label="الارتباط"><select value={eng} onChange={(e) => setEng(e.target.value)}><option value="">— اختر الارتباط —</option>{engs?.engagements.map((e) => <option key={String(e.id)} value={String(e.id)}>{e.client_name} — {e.title}</option>)}</select></Field>
       {eng && det && <DocumentUpload engagementId={eng} periods={det.periods} onDone={(docs) => nav(docs.length === 1 ? `/imports?engagement_id=${eng}&document_id=${docs[0].id}` : `/engagements/${eng}`)} />}
-      <div className="alert info">الأنواع المدعومة: Excel (xlsx/xls)، CSV، PDF نصي (استخراج جداول)، صور وPDF ممسوح (يتطلب OCR غير متاح حاليًا؛ تُعرض رسالة لإدخال البيانات يدويًا أو رفع نسخة Excel).</div></div></Page>;
+      <div className="alert info">الأنواع المدعومة: Excel (xlsx/xls)، CSV، PDF نصي (استخراج جداول)، صور وPDF ممسوح ضوئيًا (يُقرأ بالتعرف الضوئي OCR بالعربية والإنجليزية؛ راجع الأرقام قبل الاعتماد، وفحص التوازن يكشف أي خطأ قراءة).</div></div></Page>;
 }

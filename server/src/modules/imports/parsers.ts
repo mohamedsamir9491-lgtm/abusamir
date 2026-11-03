@@ -14,7 +14,7 @@ const PY_DIR = path.resolve(here, '../../../../python');
 
 export interface ExtractedSheet { name: string; rows: string[][]; row_count: number }
 export interface ExtractionResult {
-  method: 'xlsx' | 'xls' | 'csv' | 'json' | 'pdf-text' | 'pdf-tables' | 'needs_ocr' | 'text';
+  method: 'xlsx' | 'xls' | 'csv' | 'json' | 'pdf-text' | 'pdf-tables' | 'ocr' | 'needs_ocr' | 'text';
   sheets: ExtractedSheet[];
   confidence: number; // 0..1 ثقة الاستخراج
   warnings: string[];
@@ -103,28 +103,30 @@ export function parseJson(buffer: Buffer): ExtractionResult {
   return { method: 'json', sheets: [{ name: 'JSON', rows, row_count: rows.length }], confidence: 1, warnings: [], needs_human_verification: false };
 }
 
-export async function parsePdf(buffer: Buffer): Promise<ExtractionResult> {
-  const tmp = path.join(os.tmpdir(), `abusamir-${crypto.randomUUID()}.pdf`);
+/** PDF (نصي أو ممسوح) والصور: python/extract_pdf.py يعيد بناء الأعمدة من مواضع الكلمات، ويستخدم OCR (tesseract) للممسوح */
+export async function parsePdf(buffer: Buffer, ext = '.pdf'): Promise<ExtractionResult> {
+  const tmp = path.join(os.tmpdir(), `abusamir-${crypto.randomUUID()}${ext}`);
   fs.writeFileSync(tmp, buffer);
   try {
-    const { stdout } = await execFileP('python3', ['-I', path.join(PY_DIR, 'extract_pdf.py'), tmp], { maxBuffer: 64 * 1024 * 1024, timeout: 180000 });
-    const out = JSON.parse(stdout) as { method: string; error?: string; pages?: { page: number; text: string }[]; tables?: { page: number; rows: string[][] }[]; warnings?: string[] };
-    if (out.method === 'error') throw badRequest(`تعذر قراءة PDF: ${out.error}`);
+    const { stdout } = await execFileP('python3', ['-I', path.join(PY_DIR, 'extract_pdf.py'), tmp], { maxBuffer: 128 * 1024 * 1024, timeout: 900000 });
+    const out = JSON.parse(stdout) as { method: string; error?: string; confidence?: number; pages?: { page: number; text: string }[]; tables?: { name?: string; page: number; rows: string[][] }[]; warnings?: string[] };
+    if (out.method === 'error') throw badRequest(`تعذر قراءة الملف: ${out.error}`);
     const text = (out.pages ?? []).map((p) => p.text).join('\n');
     if (out.method === 'needs_ocr') {
-      return { method: 'needs_ocr', sheets: [], confidence: 0, warnings: [...(out.warnings ?? []), 'OCR غير متاح على هذا الخادم (يتطلب tesseract مع اللغة العربية). أدخل البيانات يدويًا أو ارفع نسخة Excel.'], needs_human_verification: true, text_preview: '' };
+      return { method: 'needs_ocr', sheets: [], confidence: 0, warnings: [...(out.warnings ?? []), 'تعذر التعرف الضوئي على النص. ارفع نسخة أوضح (300 نقطة/بوصة) أو ملف Excel/CSV.'], needs_human_verification: true, text_preview: text.slice(0, 2000) };
     }
-    const sheets: ExtractedSheet[] = (out.tables ?? []).map((t, i) => ({ name: `جدول ${i + 1} (ص${t.page})`, rows: t.rows, row_count: t.rows.length }));
+    const sheets: ExtractedSheet[] = (out.tables ?? []).map((t, i) => ({ name: t.name ? `${t.name}${(out.tables ?? []).length > 1 ? ` ${i + 1}` : ''}` : `جدول ${i + 1} (ص${t.page})`, rows: t.rows, row_count: t.rows.length }));
+    const ocr = out.method === 'ocr';
     if (!sheets.length) {
-      // محاولة تحويل الأسطر النصية إلى صفوف بفصل الفراغات المتعددة
       const rows = text.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => l.split(/\s{2,}|\t/).map((c) => c.trim()));
-      sheets.push({ name: 'نص PDF', rows, row_count: rows.length });
-      return { method: 'pdf-text', sheets, confidence: 0.5, warnings: [...(out.warnings ?? []), 'لم تُكتشف جداول منظمة في PDF؛ تم تقسيم النص تقريبيًا ويلزم التحقق البشري.'], needs_human_verification: true, text_preview: text.slice(0, 4000) };
+      sheets.push({ name: 'نص الملف', rows, row_count: rows.length });
+      return { method: ocr ? 'ocr' : 'pdf-text', sheets, confidence: 0.4, warnings: [...(out.warnings ?? []), 'لم يُعَد بناء جدول من الملف؛ تم تقسيم النص تقريبيًا ويلزم التحقق البشري.'], needs_human_verification: true, text_preview: text.slice(0, 2000) };
     }
-    return { method: 'pdf-tables', sheets, confidence: 0.75, warnings: [...(out.warnings ?? []), 'الجداول مستخرجة من PDF؛ يلزم مراجعة الأعمدة والأرقام قبل الاعتماد.'], needs_human_verification: true, text_preview: text.slice(0, 4000) };
+    const confidence = ocr ? Math.min(0.85, out.confidence ?? 0.7) : 0.95;
+    return { method: ocr ? 'ocr' : 'pdf-tables', sheets, confidence, warnings: [...(out.warnings ?? []), ocr ? 'قُرئ الملف بالتعرف الضوئي (OCR): راجع الرموز والأرقام مقابل الأصل قبل الاعتماد؛ فحص التوازن في خطوة التحقق يكشف أي خطأ قراءة.' : 'الجدول مُعاد بناؤه من مواضع الكلمات في PDF؛ راجع ربط الأعمدة قبل الاعتماد.'], needs_human_verification: ocr, text_preview: text.slice(0, 2000) };
   } catch (e) {
     if ((e as { status?: number }).status === 400) throw e;
-    throw badRequest('تعذر معالجة PDF (يتطلب Python مع pdfplumber).');
+    throw badRequest('تعذر معالجة الملف (يتطلب Python مع pdfplumber، وtesseract للملفات الممسوحة).');
   } finally { try { fs.unlinkSync(tmp); } catch { /* ignore */ } }
 }
 
@@ -135,8 +137,6 @@ export async function extractDocument(buffer: Buffer, originalName: string, mime
   if (ext === '.csv' || ext === '.txt' || mime === 'text/csv') return parseCsv(buffer);
   if (ext === '.json' || mime === 'application/json') return parseJson(buffer);
   if (ext === '.pdf' || mime === 'application/pdf') return parsePdf(buffer);
-  if (['.png', '.jpg', '.jpeg', '.tif', '.tiff'].includes(ext)) {
-    return { method: 'needs_ocr', sheets: [], confidence: 0, warnings: ['الصور تتطلب OCR غير متاح على هذا الخادم. أدخل البيانات يدويًا أو ارفع ملف Excel/CSV.'], needs_human_verification: true };
-  }
+  if (['.png', '.jpg', '.jpeg', '.tif', '.tiff'].includes(ext)) return parsePdf(buffer, ext);
   throw badRequest(`نوع الملف غير مدعوم للاستخراج (${ext})`);
 }
