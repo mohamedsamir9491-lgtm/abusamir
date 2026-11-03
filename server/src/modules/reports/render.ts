@@ -60,7 +60,7 @@ async function letterheadDataUrl(fileId: string | null): Promise<string | null> 
   bgCache.set(fileId, out); return out;
 }
 /** شرائط التصميم المرفوع: حدوده (مم) وصور الرأس/التذييل/الوسط عبر python/letterhead_bounds.py؛ تُحسب مرة واحدة لكل ملف وتُحفظ في الذاكرة */
-export interface LetterheadDesign { top_mm: number; bottom_mm: number; top_png: string; bottom_png: string; middle_png: string }
+export interface LetterheadDesign { top_mm: number; bottom_mm: number; top_png: string; bottom_png: string; middle_png: string; footer_light?: boolean; has_footer?: boolean }
 const designCache = new Map<string, LetterheadDesign | null>();
 export const designErrors = new Map<string, string>();
 export async function letterheadDesign(fileId: string): Promise<LetterheadDesign | null> {
@@ -87,7 +87,7 @@ export async function loadLetterhead(office: Record<string, unknown>): Promise<O
   let design: LetterheadDesign | null = null;
   if (office.letterhead_mode === 'design' && office.letterhead_file_id) {
     design = await letterheadDesign(String(office.letterhead_file_id));
-    if (design) { mTop = design.top_mm + 1.5; mBottom = 297 - design.bottom_mm + 1.5; headerH = 0; footerH = 6; if (office.letterhead_top_mm == null) await query('UPDATE office_settings SET letterhead_top_mm = $1, letterhead_bottom_mm = $2 WHERE id = 1', [design.top_mm, design.bottom_mm]); }
+    if (design) { mTop = design.top_mm + 2.5; mBottom = Math.max(297 - design.bottom_mm + 1.5, design.has_footer === false ? 14 : 8); headerH = 0; footerH = 6; if (office.letterhead_top_mm == null) await query('UPDATE office_settings SET letterhead_top_mm = $1, letterhead_bottom_mm = $2 WHERE id = 1', [design.top_mm, design.bottom_mm]); }
   }
   return {
     name_ar: String(office.name_ar ?? ''), name_en: String(office.name_en ?? ''), logo_data_url: await dataUrl(office.logo_file_id as string | null), cr_number: office.cr_number as string | null, license_number: office.license_number as string | null, license_authority: office.license_authority as string | null,
@@ -250,9 +250,9 @@ export function wrapWithLetterhead(bodyHtml: string, lh: OfficeLetterhead, meta:
   const watermark = opts.watermark ? `<div style="position:fixed;top:40%;left:0;right:0;text-align:center;font-size:60pt;color:rgba(192,57,43,0.12);transform:rotate(-20deg);z-index:0;pointer-events:none">${esc(opts.watermark)}</div>` : '';
   const design = lh.letterhead_mode === 'design' && !!lh.design;
   // وضع التصميم: شريطا الرأس والتذييل في هوامش الصفحة (pdf.ts)، والوسط (العلامة المائية) صورة ثابتة داخل منطقة المحتوى
-  const bg = design && lh.design ? `<img src="data:image/jpeg;base64,${lh.design.middle_png}" style="position:fixed;top:0;left:-${lh.page_margin_left_mm}mm;width:210mm;height:${lh.design.bottom_mm - lh.design.top_mm}mm;z-index:-1">`
+  const bg = design && lh.design ? `<img src="data:image/png;base64,${lh.design.middle_png}" style="position:fixed;top:0;left:-${lh.page_margin_left_mm}mm;width:210mm;height:${lh.design.bottom_mm - lh.design.top_mm}mm;z-index:-1">`
     : lh.letterhead_bg_data_url ? `<img src="${lh.letterhead_bg_data_url}" style="position:fixed;top:-${lh.page_margin_top_mm}mm;left:-${lh.page_margin_left_mm}mm;width:210mm;height:297mm;z-index:-1">` : '';
-  const header = (design && lh.design && !opts.forPdf ? `<img src="data:image/jpeg;base64,${lh.design.top_png}" style="display:block;width:100%;margin:-12mm -12mm 4mm;width:calc(100% + 24mm)">` : '') + letterheadHtml(lh, meta); const footer = footerHtml(lh, meta);
+  const header = (design && lh.design && !opts.forPdf ? `<img src="data:image/png;base64,${lh.design.top_png}" style="display:block;width:100%;margin:-12mm -12mm 4mm;width:calc(100% + 24mm)">` : '') + letterheadHtml(lh, meta); const footer = footerHtml(lh, meta);
   const pageCss = opts.forPdf ? `@page{size:A4;margin:${lh.page_margin_top_mm}mm ${lh.page_margin_right_mm}mm ${lh.page_margin_bottom_mm + (design ? 0 : 7)}mm ${lh.page_margin_left_mm}mm}` : `body{padding:12mm;max-width:210mm;margin:0 auto;background:#fff}`;
   const fixedCss = `.fixed-header{position:fixed;top:0;left:0;right:0;height:${lh.header_height_mm}mm}.fixed-footer{position:fixed;bottom:0;left:0;right:0;height:${lh.footer_height_mm}mm}`;
   // أسلوب الجدول الغلافي: thead/tfoot يتكرران على كل صفحة لحجز مساحة الترويسة والتذييل الثابتين

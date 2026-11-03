@@ -25,7 +25,10 @@ for y in range(h - 1, int(h * 0.55), -1):
     if rows[y] > thr: bottom = y
 pad = int(h * 0.006)
 top_px = min(h, top + pad); bottom_px = max(0, bottom - pad)
-def b64(im):  # JPEG لتصغير حجم الصفحات (الشريطان يُضمَّنان في كل صفحة)
-    buf = io.BytesIO(); im.convert('RGB').save(buf, 'JPEG', quality=82, optimize=True); return base64.b64encode(buf.getvalue()).decode()
-print(json.dumps({'top_mm': round(top_px / h * 297, 1), 'bottom_mm': round(bottom_px / h * 297, 1), 'width': w, 'height': h,
+def b64(im):  # PNG بلا فقد للحفاظ على حدة الألوان عند الحواف
+    buf = io.BytesIO(); im.convert('RGB').save(buf, 'PNG', optimize=True); return base64.b64encode(buf.getvalue()).decode()
+foot = g.crop((0, max(0, h - int(h * 0.027)), w, h)); fl = foot.load(); vals = [fl[x, y] for y in range(foot.height) for x in range(0, w, 4)]
+footer_light = (sum(vals) / max(1, len(vals))) > 170
+has_footer = bottom_px < h * 0.975
+print(json.dumps({'top_mm': round(top_px / h * 297, 1), 'bottom_mm': round(bottom_px / h * 297, 1), 'width': w, 'height': h, 'footer_light': footer_light, 'has_footer': has_footer,
                   'top_png': b64(img.crop((0, 0, w, top_px))), 'bottom_png': b64(img.crop((0, bottom_px, w, h))), 'middle_png': b64(img.crop((0, top_px, w, bottom_px)))}))
