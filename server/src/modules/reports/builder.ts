@@ -7,6 +7,8 @@ import { D } from '../../engine/money.js';
 /** أسماء أنواع المستندات بالعربية (أنواع البيانات القابلة للاستيراد + المستندات الداعمة) */
 const DOC_TYPE_LABELS: Record<string, string> = { ...(DATA_TYPE_LABELS as Record<string, string>), invoice: 'فاتورة', contract: 'عقد', articles_of_association: 'عقد التأسيس / النظام الأساس', commercial_registration: 'السجل التجاري', other: 'أخرى', unknown: 'غير محدد' };
 import { periodPhrase } from '../../lib/periods.js';
+import { FS_LINE_MAP } from '../../engine/fsLines.js';
+import { fmtAmounts } from '../../lib/textfmt.js';
 import { DATA_TYPE_LABELS } from '../imports/fields.js';
 
 export type ReportBlock =
@@ -35,9 +37,9 @@ function findingsToItems(snap: Snapshot, opts: Record<string, unknown> | undefin
     if (prefixes && !prefixes.some((px) => String(f.rule_code ?? '').startsWith(px))) return false;
     if (cats && !cats.includes(String(f.category))) return false;
     return true;
-  }).map((f) => ({ ref: String(f.finding_ref), title: String(f.title), category: String(f.category), severity: String(f.severity), account: f.account_code ? `${f.account_code}${f.account_name ? ' - ' + f.account_name : ''}` : (f.fs_line_code as string | null),
+  }).map((f) => ({ ref: String(f.finding_ref), title: fmtAmounts(String(f.title)), category: String(f.category), severity: String(f.severity), account: f.account_code ? `${f.account_code}${f.account_name ? ' - ' + f.account_name : ''}` : (FS_LINE_MAP[String(f.fs_line_code)]?.label_ar ?? (f.fs_line_code as string | null)),
     amount: f.amount == null ? null : fmtMoney(f.amount as string), source: [f.source_document_title, f.source_row_ref].filter(Boolean).join(' / ') || null, calculation: (f.calculation as string | null) ?? null,
-    description: String(f.description), impact: (f.impact as string | null) ?? null, recommendation: (f.recommendation as string | null) ?? null, status: String(f.review_status), origin: String(f.origin) }));
+    description: fmtAmounts(String(f.description)), impact: (f.impact as string | null) ?? null, recommendation: (f.recommendation as string | null) ?? null, status: String(f.review_status), origin: String(f.origin) }));
 }
 
 function statementTable(lines: { code: string; label_ar: string; section: string; value: string; prior_value?: string | null }[], totals: { key: string; label_ar: string; value: string; prior_value?: string | null }[], hasPrior: boolean, sectionLabels: Record<string, string>, groupOrder: string[], totalAfter: Record<string, string[]>): ReportBlock {
@@ -318,7 +320,7 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
         rows: ws.rows.map((r) => ({ l: `${String(r.label_ar)} (${secLabel[String(r.section)] ?? ''})${Number(r.unreconciled) ? ` - غير محسوم ${money(r.unreconciled)}` : ''}`, ...Object.fromEntries(keys.map((k) => [`c_${k}`, money((r.per_company as Record<string, string>)[k] ?? '0')])), agg: money(r.aggregate), dr: money(r.elimination_debit), cr: money(r.elimination_credit), con: money(r.consolidated) })),
         total_rows: [{ l: 'إجمالي الأصول', con: money(T.assets) }, { l: 'إجمالي الالتزامات', con: money(T.liabilities) }, { l: 'حقوق الملكية (مجموع البنود)', con: money(T.equity) }, { l: 'حقوق غير مسيطرة', con: money(T.nci) }, { l: 'فحص المعادلة', con: money(T.equation_difference) }] });
       blocks.push({ type: 'table', caption: 'قيود الاستبعاد (كل قيد متوازن؛ للمراجعة ولا تُرحَّل في الدفاتر المنفصلة)', columns: [{ key: 'q', label: 'القيد', width: '7%' }, { key: 's', label: 'الدعم', width: '10%' }, { key: 'd', label: 'الوصف', width: '28%' }, { key: 'a', label: 'البند / الحساب / الدفاتر', width: '31%' }, { key: 'dr', label: 'مدين', numeric: true, width: '12%' }, { key: 'cr', label: 'دائن', numeric: true, width: '12%' }], repeat_header: true,
-        rows: ws.entries.flatMap((e) => (e.lines as Record<string, string>[]).map((l) => ({ q: String(e.ref), s: e.support === 'documented' ? 'مؤيد' : 'مشروط', d: String(e.description), a: `${l.line_code}${l.account ? ` (${l.account})` : ''} - ${companies[l.company] ?? l.company}${l.note ? `: ${l.note}` : ''}`, dr: money(l.debit), cr: money(l.credit) }))), total_rows: [{ q: '', d: 'الإجمالي', dr: money(T.eliminations_debit), cr: money(T.eliminations_credit) }] });
+        rows: ws.entries.flatMap((e) => (e.lines as Record<string, string>[]).map((l) => ({ q: String(e.ref), s: e.support === 'documented' ? 'مؤيد' : 'مشروط', d: String(e.description), a: `${FS_LINE_MAP[l.line_code]?.label_ar ?? l.line_code}${l.account ? ` (${l.account})` : ''} - ${companies[l.company] ?? l.company}${l.note ? `: ${l.note}` : ''}`, dr: money(l.debit), cr: money(l.credit) }))), total_rows: [{ q: '', d: 'الإجمالي', dr: money(T.eliminations_debit), cr: money(T.eliminations_credit) }] });
       blocks.push({ type: 'list', items: ws.entries.map((e) => `${String(e.ref)} - ${String(e.basis)}: ${(e.evidence as string[]).join('؛ ')}`) });
       blocks.push({ type: 'table', caption: 'مطابقة الاستثمار برأس المال من الرصيد الافتتاحي والحركة والرصيد الختامي', columns: [{ key: 'c', label: 'التابعة', width: '16%' }, { key: 'i', label: 'البند', width: '52%' }, { key: 'v', label: 'القيمة', numeric: true, width: '32%' }], repeat_header: true,
         rows: ws.subsidiaries.flatMap((sd) => { const cm = sd.capital_matching as Record<string, string>; const inv = sd.investment as Record<string, string>; const cl = sd.sub_claim_on_parent as Record<string, string>; const L = String(sd.label); return [

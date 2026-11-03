@@ -2,6 +2,7 @@ import { D, Decimal, ZERO, sum, net, toStr } from './money.js';
 import { FS_LINES, FS_LINE_MAP } from './fsLines.js';
 import { resolveMeta, prefixMapFor } from './trialBalance.js';
 import type { TbEntry, AccountMeta } from './types.js';
+import { fmtAmounts } from '../lib/textfmt.js';
 
 export interface LineValue {
   code: string; label_ar: string; label_en: string; section: string;
@@ -176,16 +177,24 @@ export function buildStatements(params: {
     for (const c of wcLiabs) { const d = delta(c).neg(); if (!d.isZero()) { cfRows.push({ section: 'operating', label_ar: `التغير في ${FS_LINE_MAP[c].label_ar}`, label_en: `Change in ${FS_LINE_MAP[c].label_en}`, value: toStr(d) }); op = op.plus(d); } }
     cfTotals.push({ key: 'operating', label_ar: 'صافي النقد من الأنشطة التشغيلية', label_en: 'Net cash from operating activities', value: toStr(op) });
     let inv = ZERO;
+    // IFRS 16 / IAS 7.43: إثبات أصل حق الاستخدام مقابل التزام الإيجار معاملة غير نقدية؛ يُستبعد الجزء المتقابل من الاستثمار والتمويل
+    const rouAdd = Decimal.max(delta('ROU_ASSETS'), ZERO);
+    const leaseInc = Decimal.max(delta('LEASE_LIAB_CURRENT').plus(delta('LEASE_LIAB_NON_CURRENT')).neg(), ZERO);
+    const leaseNonCash = Decimal.min(rouAdd, leaseInc);
+    if (!leaseNonCash.isZero()) notes.push(`استُبعد ${toStr(leaseNonCash)} من الأنشطة الاستثمارية والتمويلية: إثبات أصل حق الاستخدام مقابل التزام الإيجار معاملة غير نقدية (IAS 7.43)؛ يُفصح عنها في الإيضاحات.`);
     for (const c of ['PPE', 'INTANGIBLES', 'ROU_ASSETS', 'INVESTMENTS', 'OTHER_NON_CURRENT_ASSETS']) {
-      const d = delta(c); if (!d.isZero()) { cfRows.push({ section: 'investing', label_ar: `إضافات / (استبعادات) ${FS_LINE_MAP[c].label_ar}`, label_en: `Additions / (disposals) ${FS_LINE_MAP[c].label_en}`, value: toStr(d.neg()) }); inv = inv.minus(d); }
+      const d = c === 'ROU_ASSETS' ? delta(c).minus(leaseNonCash) : delta(c); if (!d.isZero()) { cfRows.push({ section: 'investing', label_ar: `إضافات / (استبعادات) ${FS_LINE_MAP[c].label_ar}`, label_en: `Additions / (disposals) ${FS_LINE_MAP[c].label_en}`, value: toStr(d.neg()) }); inv = inv.minus(d); }
     }
     const accDepDelta = delta('ACC_DEP').neg(); // زيادة المجمع (دائن)
     const depDiff = accDepDelta.minus(plC.depreciation);
     if (!depDiff.isZero()) { cfRows.push({ section: 'investing', label_ar: 'تعديل: فرق حركة مجمع الاستهلاك عن مصروف الاستهلاك (استبعادات/تصحيحات)', label_en: 'Adjustment: accumulated depreciation movement vs expense', value: toStr(depDiff) }); inv = inv.plus(depDiff); notes.push(`حركة مجمع الاستهلاك (${toStr(accDepDelta)}) تختلف عن مصروف الاستهلاك (${toStr(plC.depreciation)})؛ يلزم التحقق من الاستبعادات.`); }
     cfTotals.push({ key: 'investing', label_ar: 'صافي النقد من الأنشطة الاستثمارية', label_en: 'Net cash from investing activities', value: toStr(inv) });
     let fin = ZERO;
+    let leaseLeft = leaseNonCash; // يُخصم الجزء غير النقدي من زيادة التزامات الإيجار (المتداولة ثم غير المتداولة)
     for (const c of ['SHORT_TERM_LOANS', 'LONG_TERM_LOANS', 'LEASE_LIAB_CURRENT', 'LEASE_LIAB_NON_CURRENT', 'OTHER_NON_CURRENT_LIABILITIES', 'SHARE_CAPITAL', 'ADDITIONAL_CAPITAL', 'STATUTORY_RESERVE', 'OTHER_RESERVES', 'OWNER_CURRENT', 'DUE_FROM_SHAREHOLDERS', 'DUE_TO_SHAREHOLDERS', 'RETAINED_EARNINGS']) {
-      const d = delta(c).neg(); if (!d.isZero()) { cfRows.push({ section: 'financing', label_ar: `التغير في ${FS_LINE_MAP[c].label_ar}`, label_en: `Change in ${FS_LINE_MAP[c].label_en}`, value: toStr(d) }); fin = fin.plus(d); }
+      let d = delta(c).neg();
+      if ((c === 'LEASE_LIAB_CURRENT' || c === 'LEASE_LIAB_NON_CURRENT') && leaseLeft.gt(0) && d.gt(0)) { const take = Decimal.min(d, leaseLeft); d = d.minus(take); leaseLeft = leaseLeft.minus(take); }
+      if (!d.isZero()) { cfRows.push({ section: 'financing', label_ar: `التغير في ${FS_LINE_MAP[c].label_ar}`, label_en: `Change in ${FS_LINE_MAP[c].label_en}`, value: toStr(d) }); fin = fin.plus(d); }
     }
     const divDelta = delta('DIVIDENDS');
     if (!divDelta.isZero()) { cfRows.push({ section: 'financing', label_ar: 'توزيعات أرباح / مسحوبات مدفوعة', label_en: 'Dividends / drawings paid', value: toStr(divDelta.neg()) }); fin = fin.minus(divDelta); }
@@ -232,6 +241,6 @@ export function buildStatements(params: {
     basis: 'trial_balance', period_label: params.periodLabel, prior_label: params.priorLabel ?? null, currency: params.currency ?? 'SAR',
     sfp: { lines: sfpLines, totals: sfpTotals, balanced: diff.abs().lte('0.05'), difference: toStr(diff) },
     pl: { lines: plLines, totals: plTotals }, ce, cf: { rows: cfRows, totals: cfTotals, status: cfStatus, note: cfNote },
-    key_figures: kf, notes,
+    key_figures: kf, notes: notes.map(fmtAmounts),
   };
 }

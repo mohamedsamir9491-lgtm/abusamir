@@ -166,3 +166,16 @@ describe('cash flow reconciliation with shareholder current accounts', () => {
     expect(t.cash_closing_computed).toBe(t.cash_closing_tb);
   });
 });
+
+describe('cash flow: IFRS 16 lease recognition is non-cash', () => {
+  it('excludes the right-of-use asset matched by the lease liability from investing and financing', () => {
+    const O = (code: string, name: string, od: string, oc: string, pd: string, pc: string, cd: string, cc: string): TbEntry => ({ account_code: code, account_name: name, opening_debit: od, opening_credit: oc, period_debit: pd, period_credit: pc, closing_debit: cd, closing_credit: cc });
+    const tb = [O('1101', 'البنك', '500', '0', '0', '150', '350', '0'), O('1001', 'حق استخدام الأصول (IFRS 16)', '0', '0', '1000', '0', '1000', '0'),
+      O('2036', 'التزام عقد الايجار الحالي', '0', '0', '0', '150', '0', '150'), O('2026', 'التزام عقد الايجار', '0', '0', '0', '700', '0', '700'), O('3100', 'رأس المال', '0', '500', '0', '0', '0', '500')];
+    const s = buildStatements({ current: tb, periodLabel: 't' });
+    const t = Object.fromEntries(s.cf.totals.map((x) => [x.key, x.value]));
+    expect(t.investing).toBe('-150.00');
+    expect(t.financing).toBe('0.00');
+    expect(t.cash_closing_computed).toBe(t.cash_closing_tb);
+  });
+});

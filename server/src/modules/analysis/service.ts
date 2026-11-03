@@ -10,6 +10,7 @@ import type { TbEntry, AccountMeta, EngineFinding } from '../../engine/types.js'
 import { loadEngagement, loadPeriod } from '../../middleware/scope.js';
 import { daysBetween } from '../../lib/dates.js';
 import { sha256 } from '../../lib/crypto.js';
+import { fmtAmounts } from '../../lib/textfmt.js';
 import { D, toStr } from '../../engine/money.js';
 
 export async function loadTbEntries(periodId: string, db?: Queryable): Promise<TbEntry[]> {
@@ -53,6 +54,7 @@ export async function upsertFindings(params: { clientId: string; engagementId: s
   let created = 0, updated = 0, resolved = 0;
   for (const f of params.findings) {
     const key = params.periodId ? `${params.periodId}:${f.dedupe_key}` : f.dedupe_key;
+    f.title = fmtAmounts(f.title); f.description = fmtAmounts(f.description); if (f.calculation) f.calculation = fmtAmounts(f.calculation); if (f.impact) f.impact = fmtAmounts(f.impact); if (f.recommendation) f.recommendation = fmtAmounts(f.recommendation);
     seen.add(key);
     const ex = existingMap.get(key);
     if (ex) {
@@ -143,7 +145,7 @@ export async function runStatements(engagementId: string, periodId: string, user
       const by = Object.fromEntries(ratios.map((r) => [r.code, r]));
       if (by.current_ratio.status === 'ok' && D(by.current_ratio.value!).lt(1)) fs.push({ rule_code: 'FS-010', category: 'judgment', severity: 'high', title: `نسبة التداول أقل من 1 (${by.current_ratio.value})`, description: `الأصول المتداولة ${by.current_ratio.inputs.current_assets} أقل من الالتزامات المتداولة ${by.current_ratio.inputs.current_liabilities}؛ مؤشر على ضغط سيولة قد يؤثر على قدرة المنشأة على الوفاء بالتزاماتها قصيرة الأجل.`, evidence: { ratio: by.current_ratio }, calculation: `${by.current_ratio.inputs.current_assets} ÷ ${by.current_ratio.inputs.current_liabilities} = ${by.current_ratio.value}`, recommendation: 'تقييم خطة السيولة والتمويل والاستمرارية.', dedupe_key: 'FS-010' });
       if (D(statements.key_figures.total_equity ?? 0).lt(0)) fs.push({ rule_code: 'FS-011', category: 'judgment', severity: 'critical', title: 'حقوق الملكية سالبة', description: `إجمالي حقوق الملكية ${statements.key_figures.total_equity}؛ الخسائر المتراكمة تجاوزت رأس المال والاحتياطيات، ما يستدعي تقييم الاستمرارية والمتطلبات النظامية.`, amount: toStr(D(statements.key_figures.total_equity ?? 0).abs()), evidence: { total_equity: statements.key_figures.total_equity }, recommendation: 'مناقشة الإدارة حول خطط معالجة الخسائر والالتزامات النظامية (نظام الشركات بشأن الخسائر المتراكمة - يلزم التحقق من النص النافذ).', dedupe_key: 'FS-011' });
-      if (D(statements.key_figures.net_income ?? 0).lt(0)) fs.push({ rule_code: 'FS-012', category: 'judgment', severity: 'medium', title: `صافي خسارة للفترة ${statements.key_figures.net_income}`, description: 'الفترة أسفرت عن صافي خسارة؛ يلزم تحليل أسبابها وأثرها على الاستمرارية.', amount: toStr(D(statements.key_figures.net_income ?? 0).abs()), evidence: { pl_totals: statements.pl.totals }, dedupe_key: 'FS-012' });
+      if (D(statements.key_figures.net_income ?? 0).lt(0)) fs.push({ rule_code: 'FS-012', category: 'judgment', severity: 'medium', title: `صافي خسارة للفترة ${toStr(D(statements.key_figures.net_income ?? 0).abs())}`, description: 'الفترة أسفرت عن صافي خسارة؛ يلزم تحليل أسبابها وأثرها على الاستمرارية.', amount: toStr(D(statements.key_figures.net_income ?? 0).abs()), evidence: { pl_totals: statements.pl.totals }, dedupe_key: 'FS-012' });
       if (by.ocf_to_net_income.status === 'ok' && D(statements.key_figures.net_income ?? 0).gt(0) && D(by.ocf_to_net_income.value!).lt('0.5')) fs.push({ rule_code: 'FS-013', category: 'judgment', severity: 'medium', title: 'التدفق النقدي التشغيلي أقل بكثير من الربح المحاسبي', description: `نسبة التدفق النقدي التشغيلي إلى صافي الربح ${by.ocf_to_net_income.value}؛ الربح المحاسبي لا يترجم إلى نقد بنفس القدر، غالبًا بسبب نمو الذمم أو المخزون.`, evidence: { ratio: by.ocf_to_net_income }, recommendation: 'تحليل جودة الأرباح وتحصيل الذمم.', dedupe_key: 'FS-013' });
       if (by.dso.status === 'ok' && Number(by.dso.value) > 120) fs.push({ rule_code: 'FS-014', category: 'judgment', severity: 'medium', title: `فترة تحصيل الذمم مرتفعة (${by.dso.value} يومًا)`, description: 'متوسط فترة التحصيل يتجاوز 120 يومًا؛ يستدعي مراجعة سياسة الائتمان وكفاية المخصص.', evidence: { ratio: by.dso }, dedupe_key: 'FS-014' });
       if (variance) for (const v of variance.rows.filter((r) => r.material && r.key.startsWith('total:'))) fs.push({ rule_code: 'VAR-001', category: 'judgment', severity: 'medium', title: `تغير جوهري في ${v.label_ar}: ${v.change}${v.change_pct ? ` (${v.change_pct}%)` : ''}`, description: `${v.label_ar} تغير من ${v.comparative} (${prior!.label}) إلى ${v.current} (${p.label}).`, amount: toStr(D(v.change).abs()), evidence: { variance: v }, calculation: `${v.current} - ${v.comparative} = ${v.change}`, recommendation: 'الحصول على تفسير الإدارة والمستندات المؤيدة.', dedupe_key: `VAR-001:${v.key}` });
