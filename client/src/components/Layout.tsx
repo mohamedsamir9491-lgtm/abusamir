@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, Navigate } from 'react-router-dom';
+import { get } from '../api';
 import { useAuth } from '../auth';
 
 /** أيقونات خطية بسيطة (SVG) بلا مكتبات خارجية */
@@ -38,6 +39,7 @@ export function Layout() {
   return <div className="app">
     <aside className="sidebar">
       <div className="brand"><div className="mark">أس</div><div><b>منصة التحليل المالي</b><span>التقارير المحاسبية والتوحيد</span></div></div>
+      <FiscalYearChip />
       <nav>{GROUPS.map((g) => { const items = g.items.filter(([, , perm]) => can(perm)); if (!items.length) return null; return <div key={g.title}><div className="group">{g.title}</div>{items.map(([to, label, , ic]) => <NavLink key={to} to={to} end={to === '/'} title={label}><Icon n={ic} /><span>{label}</span></NavLink>)}</div>; })}</nav>
       <div className="user"><div className="avatar">{initials(user.full_name)}</div><div className="meta"><b>{user.full_name}</b><span>{user.email}</span></div>
         <button className="iconbtn" title={theme === 'dark' ? 'الوضع الفاتح' : 'الوضع الداكن'} onClick={toggle}><Icon n={theme === 'dark' ? 'sun' : 'moon'} /></button>
@@ -45,4 +47,12 @@ export function Layout() {
     </aside>
     <main className="main"><Outlet /></main>
   </div>;
+}
+
+/** شارة السنة المالية الحالية أعلى القائمة الجانبية */
+function FiscalYearChip() {
+  const [fy, setFy] = useState<{ year: number; auto: boolean } | null>(null);
+  useEffect(() => { const load = () => get<{ year: number; auto: boolean }>('/office/fiscal-year').then(setFy).catch(() => setFy(null)); load(); window.addEventListener('fiscal-year-changed', load); return () => window.removeEventListener('fiscal-year-changed', load); }, []);
+  if (!fy) return null;
+  return <NavLink to="/system" className="fy-chip" title={fy.auto ? 'تلقائية من تاريخ اليوم - تُغيَّر من إعدادات النظام' : 'مضبوطة يدويًا من إعدادات النظام'}><span>السنة المالية</span><b>{fy.year}</b></NavLink>;
 }

@@ -9,6 +9,7 @@ import { audit } from '../../middleware/audit.js';
 import { upload } from '../../middleware/upload.js';
 import { badRequest } from '../../lib/errors.js';
 import { checkUpload, saveFile, getFile, readFileData } from '../files/storage.js';
+import { effectiveFiscalYear, today } from '../../lib/periods.js';
 
 export const officeRouter = Router();
 officeRouter.use(authenticate);
@@ -19,6 +20,11 @@ export async function getOfficeSettings() {
 
 officeRouter.get('/', async (_req, res, next) => {
   try { res.json({ settings: await getOfficeSettings() }); } catch (e) { next(e); }
+});
+
+/** السنة المالية الحالية للمكتب (تلقائية من تاريخ اليوم ما لم تُضبط يدويًا) */
+officeRouter.get('/fiscal-year', async (_req, res, next) => {
+  try { const st = await getOfficeSettings() as { current_fiscal_year: number | null }; res.json({ year: effectiveFiscalYear(st.current_fiscal_year), auto: !st.current_fiscal_year, setting: st.current_fiscal_year ?? null, today: today() }); } catch (e) { next(e); }
 });
 
 const settingsSchema = z.object({
@@ -55,6 +61,7 @@ const settingsSchema = z.object({
   page_numbering: z.enum(['page_of_total', 'page_only', 'none']).optional(),
   default_font: z.enum(['Noto Naskh Arabic', 'Cairo']).optional(),
   primary_color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  current_fiscal_year: z.number().int().min(2000).max(2100).nullable().optional(),
 });
 
 officeRouter.put('/', requirePermission('office.manage'), async (req, res, next) => {

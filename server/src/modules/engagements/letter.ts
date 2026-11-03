@@ -26,7 +26,8 @@ const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '
 async function defaults(engagementId: string, templateCode?: string | null, subjectDetail?: string | null): Promise<LetterFields> {
   const e = await one<Record<string, string | null>>(`SELECT e.*, c.legal_name_ar AS client_name, c.cr_number, c.contact_name, c.contact_phone, c.contact_email, c.entity_type FROM engagements e JOIN clients c ON c.id = e.client_id WHERE e.id = $1`, [engagementId]);
   if (!e) throw notFound('الارتباط غير موجود');
-  const periods = await one<{ s: string | null; e: string | null }>('SELECT min(start_date)::text AS s, max(end_date)::text AS e FROM financial_periods WHERE engagement_id = $1', [engagementId]);
+  // فترة الخطاب = الفترة الحالية للارتباط (لا تُدمج معها الفترة السابقة المخصصة للمقارنة)
+  const periods = await one<{ s: string | null; e: string | null }>(`SELECT start_date::text AS s, end_date::text AS e FROM financial_periods WHERE engagement_id = $1 ORDER BY (role = 'current') DESC, end_date DESC LIMIT 1`, [engagementId]);
   const office = await getOfficeSettings();
   const typeLabel = ENGAGEMENT_TYPE_LABELS[e.engagement_type ?? ''] ?? e.engagement_type ?? '';
   const period = periods?.s ? `${fmtDate(periods.s, false)} إلى ${fmtDate(periods.e ?? periods.s, false)}` : '    /    /        م إلى    /    /        م';

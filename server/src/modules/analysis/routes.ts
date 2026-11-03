@@ -5,9 +5,10 @@ import { parse } from '../../lib/validate.js';
 import { badRequest } from '../../lib/errors.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
 import { audit } from '../../middleware/audit.js';
-import { runTbValidation, runStatements, getStatementsPackage, runJournalChecks, runSubledgerAnalysis, latestRun, loadTbEntries, loadAccountMap } from './service.js';
+import { runTbValidation, runStatements, getStatementsPackage, runJournalChecks, runSubledgerAnalysis, latestRun, loadTbEntries, loadAccountMap, findPriorPeriod } from './service.js';
 import { consolidate } from '../../engine/consolidation.js';
 import { query } from '../../db/pool.js';
+import { isFullYear } from '../../lib/periods.js';
 import { loadEngagement, loadPeriod } from '../../middleware/scope.js';
 
 export const analysisRouter = Router();
@@ -167,7 +168,10 @@ analysisRouter.get('/progress', async (req, res, next) => {
         (SELECT count(*) FROM findings WHERE period_id = $1) AS total_findings,
         (SELECT count(*) FROM generated_reports WHERE period_id = $1) AS reports,
         (SELECT count(*) FROM generated_reports WHERE period_id = $1 AND status IN ('approved','issued')) AS approved_reports`, [p.id]);
-      out.push({ period: p, ...s });
+      // الفترة المقارنة الفعلية (من هذا الارتباط أو من ارتباط سابق لنفس العميل ذي ميزان معتمد)
+      const prior = await findPriorPeriod(engagementId, e.client_id, p.id);
+      const priorEng = prior ? await one<{ title: string; engagement_id: string }>('SELECT e.title, e.id AS engagement_id FROM financial_periods fp JOIN engagements e ON e.id = fp.engagement_id WHERE fp.id = $1', [prior.id]) : null;
+      out.push({ period: p, ...s, comparison: prior ? { label: prior.label, start_date: prior.start_date, end_date: prior.end_date, engagement_id: priorEng?.engagement_id, engagement_title: priorEng?.title, same_engagement: priorEng?.engagement_id === engagementId, length_mismatch: isFullYear(String(prior.start_date), String(prior.end_date)) !== isFullYear(String(p.start_date), String(p.end_date)) } : null });
     }
     const docs = await one<{ c: string }>('SELECT count(*) AS c FROM source_documents WHERE engagement_id = $1 AND deleted_at IS NULL', [engagementId]);
     res.json({ engagement: e, documents: Number(docs?.c ?? 0), periods: out });

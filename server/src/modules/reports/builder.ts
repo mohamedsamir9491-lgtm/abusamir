@@ -6,6 +6,7 @@ import { SEVERITY_LABELS, CATEGORY_LABELS, type Severity, type FindingCategory }
 import { D } from '../../engine/money.js';
 /** أسماء أنواع المستندات بالعربية (أنواع البيانات القابلة للاستيراد + المستندات الداعمة) */
 const DOC_TYPE_LABELS: Record<string, string> = { ...(DATA_TYPE_LABELS as Record<string, string>), invoice: 'فاتورة', contract: 'عقد', articles_of_association: 'عقد التأسيس / النظام الأساس', commercial_registration: 'السجل التجاري', other: 'أخرى', unknown: 'غير محدد' };
+import { periodPhrase } from '../../lib/periods.js';
 import { DATA_TYPE_LABELS } from '../imports/fields.js';
 
 export type ReportBlock =
@@ -21,7 +22,7 @@ export type ReportBlock =
 export interface FindingBlockItem { ref: string; title: string; category: string; severity: string; account: string | null; amount: string | null; source: string | null; calculation: string | null; description: string; impact: string | null; recommendation: string | null; status: string; origin: string }
 export interface ReportSectionContent { key: string; type: string; title: string; enabled: boolean; order: number; blocks: ReportBlock[]; options?: Record<string, unknown> }
 export interface ReportContent {
-  meta: { title: string; reference_no: string; language: string; client_name: string; client_name_en: string | null; period_label: string; period_range: string; prepared_date: string; confidentiality: string; engagement_type: string; framework: string; currency: string; is_demo: boolean; preparer: string | null; reviewer: string | null; approver: string | null; status: string };
+  meta: { title: string; reference_no: string; language: string; client_name: string; client_name_en: string | null; period_label: string; period_range: string; period_phrase: string; period_end: string; prepared_date: string; confidentiality: string; engagement_type: string; framework: string; currency: string; is_demo: boolean; preparer: string | null; reviewer: string | null; approver: string | null; status: string };
   sections: ReportSectionContent[];
 }
 
@@ -66,7 +67,7 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       if (meta.is_demo) blocks.push(note('هذا التقرير مبني على بيانات تجريبية مُعلَّمة كبيانات اختبار وليست سجلات عميل فعلي.', 'warning'));
       break;
     case 'intro':
-      blocks.push(p(`يتناول هذا التقرير نتائج الفحص والتحليل المالي لـ${meta.client_name} عن الفترة المالية ${cur} (${meta.period_range})، بناءً على البيانات المحاسبية التي زوّدنا بها العميل والمدرجة في قسم مصادر البيانات. أُجريت الحسابات والمطابقات بواسطة محرك حسابي حتمي، وجرت مراجعتها من قبل المحاسب المسؤول.`));
+      blocks.push(p(`يتناول هذا التقرير نتائج الفحص والتحليل المالي لـ${meta.client_name} ${meta.period_phrase ?? `عن الفترة المالية ${cur} (${meta.period_range})`}، بناءً على البيانات المحاسبية التي زوّدنا بها العميل والمدرجة في قسم مصادر البيانات. أُجريت الحسابات والمطابقات بواسطة محرك حسابي حتمي، وجرت مراجعتها من قبل المحاسب المسؤول.`));
       blocks.push(p(`يُعد هذا التقرير ${meta.engagement_type}، ولا يمثل رأي مراجع حسابات مستقل أو تأكيدًا مهنيًا على القوائم المالية ما لم يُنص على ذلك صراحة في خطاب الارتباط.`));
       break;
     case 'scope':
@@ -133,6 +134,7 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
     }
     case 'statements_sfp':
       if (!st) { blocks.push(note('لم تُولَّد القوائم المالية بعد.', 'warning')); break; }
+      blocks.push(p(`كما في ${meta.period_end ?? ''}`));
       blocks.push(statementTable(st.sfp.lines, st.sfp.totals, hasPrior, { current_assets: 'الأصول المتداولة', non_current_assets: 'الأصول غير المتداولة', current_liabilities: 'الالتزامات المتداولة', non_current_liabilities: 'الالتزامات غير المتداولة', equity: 'حقوق الملكية', unclassified: 'حسابات غير مصنفة / معلقة' },
         ['non_current_assets', 'current_assets', 'unclassified', 'equity', 'non_current_liabilities', 'current_liabilities'], { non_current_assets: ['non_current_assets'], current_assets: ['current_assets'], unclassified: ['total_assets'], equity: ['net_income_in_equity', 'total_equity'], non_current_liabilities: ['non_current_liabilities'], current_liabilities: ['current_liabilities', 'total_liabilities', 'total_liabilities_equity'] }));
       if (!st.sfp.balanced) blocks.push(note(`القائمة غير متوازنة بفرق ${fmtMoney(st.sfp.difference)}؛ راجع الملاحظات.`, 'danger'));
@@ -140,15 +142,18 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       break;
     case 'statements_pl':
       if (!st) { blocks.push(note('لم تُولَّد القوائم المالية بعد.', 'warning')); break; }
+      if (meta.period_phrase) blocks.push(p(meta.period_phrase));
       blocks.push(statementTable(st.pl.lines, st.pl.totals, hasPrior, { revenue: 'الإيرادات', cost_of_sales: 'تكلفة الإيرادات', operating_expenses: 'المصاريف التشغيلية', non_operating: 'بنود غير تشغيلية', zakat_tax: 'الزكاة والضريبة', oci: 'الدخل الشامل الآخر' },
         ['revenue', 'cost_of_sales', 'operating_expenses', 'non_operating', 'zakat_tax', 'oci'], { revenue: ['net_revenue'], cost_of_sales: ['gross_profit'], operating_expenses: ['operating_profit'], non_operating: ['profit_before_zakat'], zakat_tax: ['net_income'], oci: ['total_comprehensive'] }));
       break;
     case 'statements_ce':
       if (!st || st.ce.status !== 'ok') { blocks.push(note(st?.ce.note ?? 'بيانات غير كافية لقائمة التغيرات في حقوق الملكية.', 'warning')); break; }
+      if (meta.period_phrase) blocks.push(p(meta.period_phrase));
       blocks.push({ type: 'table', columns: [{ key: 'label', label: 'البند' }, { key: 'value', label: 'المبلغ', numeric: true }], rows: st.ce.rows.map((r) => ({ label: r.label_ar, value: fmtMoney(r.value) })) });
       break;
     case 'statements_cf':
       if (!st || st.cf.status !== 'ok') { blocks.push(note(st?.cf.note ?? 'بيانات غير كافية لقائمة التدفقات النقدية.', 'warning')); break; }
+      if (meta.period_phrase) blocks.push(p(meta.period_phrase));
       { const secs: Record<string, string> = { operating: 'الأنشطة التشغيلية', investing: 'الأنشطة الاستثمارية', financing: 'الأنشطة التمويلية' };
         const rows: Record<string, string | null>[] = [];
         for (const k of ['operating', 'investing', 'financing']) { rows.push({ label: secs[k], value: '', _group: '1' }); for (const r of st.cf.rows.filter((x) => x.section === k)) rows.push({ label: r.label_ar, value: fmtMoney(r.value) }); const t = st.cf.totals.find((x) => x.key === k); if (t) rows.push({ label: t.label_ar, value: fmtMoney(t.value), _total: '1' }); }
@@ -343,7 +348,7 @@ export function buildReportContent(params: { title: string; referenceNo: string;
   const s = params.snapshot;
   const meta: ReportContent['meta'] = {
     title: params.title, reference_no: params.referenceNo, language: 'ar', client_name: s.engagement.client_name ?? '', client_name_en: s.engagement.client_name_en ?? null, period_label: s.period.label,
-    period_range: `${fmtDate(s.period.start_date, false)} - ${fmtDate(s.period.end_date, false)}`, prepared_date: todayIso(), confidentiality: s.office.confidentiality_ar as string,
+    period_range: `${fmtDate(s.period.start_date, false)} - ${fmtDate(s.period.end_date, false)}`, period_phrase: periodPhrase(String(s.period.start_date).slice(0, 10), String(s.period.end_date).slice(0, 10)), period_end: fmtDate(s.period.end_date, false), prepared_date: todayIso(), confidentiality: s.office.confidentiality_ar as string,
     engagement_type: ENGAGEMENT_TYPE_LABELS[s.engagement.engagement_type ?? ''] ?? String(s.engagement.engagement_type), framework: FRAMEWORK_LABELS[s.engagement.framework ?? ''] ?? String(s.engagement.framework),
     currency: s.engagement.currency ?? 'SAR', is_demo: s.engagement.is_demo === 'true', preparer: params.preparer, reviewer: params.reviewer ?? null, approver: params.approver ?? null, status: params.status,
   };

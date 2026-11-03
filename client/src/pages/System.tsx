@@ -15,6 +15,7 @@ export function System() {
   if (loading || !data) return <Spinner />;
   const manage = can('system.manage');
   return <Page title="إعدادات النظام" sub="سياسات الذكاء الاصطناعي والاحتفاظ بالبيانات، النسخ الاحتياطي، وطلبات الحذف">
+    <FiscalYearCard />
     <div className="grid c2">
       <div className="card"><h2>بيئة الخادم</h2><dl className="kv"><dt>مزوّد الذكاء الاصطناعي</dt><dd className="mono">{String(data.env.ai_provider)}</dd><dt>السماح بالإرسال الخارجي (خادم)</dt><dd>{data.env.ai_allow_external ? 'نعم' : 'لا'}</dd><dt>تشفير الملفات المخزنة</dt><dd>{data.env.file_encryption ? 'مفعّل (AES-256-GCM)' : 'غير مفعّل — اضبط FILE_ENCRYPTION_KEY'}</dd><dt>الحد الأقصى للرفع</dt><dd>{String(data.env.max_upload_mb)} MB</dd><dt>البيئة</dt><dd className="mono">{String(data.env.node_env)}</dd></dl></div>
       <div className="card"><h2>سياسة الذكاء الاصطناعي</h2><fieldset disabled={!manage} style={{ border: 0, padding: 0 }}><label className="row"><input type="checkbox" checked={ai.allow_external} onChange={(e) => setAi({ ...ai, allow_external: e.target.checked })} /> السماح بإرسال بيانات العملاء المهيكلة لمزوّد خارجي (يتطلب تفويضًا تعاقديًا)</label><label className="row"><input type="checkbox" checked={ai.share_client_names} onChange={(e) => setAi({ ...ai, share_client_names: e.target.checked })} /> إرسال أسماء العملاء (الافتراضي: إخفاؤها)</label><label className="row"><input type="checkbox" checked disabled /> عدم استخدام البيانات للتدريب (ثابت)</label>{manage && <button className="btn sm" style={{ marginTop: 8 }} disabled={busy} onClick={() => run(() => put('/system/settings/ai_policy', ai), 'تم الحفظ').then(reload)}>حفظ</button>}</fieldset>
@@ -26,4 +27,22 @@ export function System() {
       <table className="t"><thead><tr><th>العميل</th><th>النطاق</th><th>السبب</th><th>الحالة</th><th>مقدم الطلب</th><th>التاريخ</th><th></th></tr></thead><tbody>{dels?.requests.map((d) => <tr key={String(d.id)}><td>{d.client_name}</td><td>{d.scope}</td><td>{d.reason}</td><td><span className="badge neutral">{d.status}</span></td><td>{d.requested_by_name}</td><td>{fmtDate(String(d.created_at))}</td><td className="row">{manage && d.status === 'requested' && <><button className="btn sm" onClick={() => run(() => post(`/system/deletion-requests/${d.id}/approve`), 'اعتُمد').then(reloadD)}>اعتماد</button><button className="btn sec sm" onClick={() => run(() => post(`/system/deletion-requests/${d.id}/reject`), 'رُفض').then(reloadD)}>رفض</button></>}{manage && d.status === 'approved' && <button className="btn danger sm" onClick={() => confirm('تنفيذ الحذف نهائي للبيانات المالية والمستندات. متابعة؟') && run(() => post(`/system/deletion-requests/${d.id}/execute`), 'نُفذ الحذف').then(reloadD)}>تنفيذ الحذف</button>}</td></tr>)}</tbody></table></div>}
     {delReq && <Modal title="طلب حذف بيانات" onClose={() => setDelReq(false)}><Field label="العميل"><select value={dr.client_id} onChange={(e) => setDr({ ...dr, client_id: e.target.value })}><option value="">—</option>{clients?.clients.map((c) => <option key={String(c.id)} value={String(c.id)}>{c.legal_name_ar}</option>)}</select></Field><Field label="النطاق"><select value={dr.scope} onChange={(e) => setDr({ ...dr, scope: e.target.value })}><option value="client">كل بيانات العميل</option><option value="documents">المستندات فقط</option></select></Field><Field label="السبب (التزام تعاقدي/نظامي)"><textarea value={dr.reason} onChange={(e) => setDr({ ...dr, reason: e.target.value })} /></Field><div className="row end"><button className="btn danger" disabled={!dr.client_id || dr.reason.length < 5} onClick={async () => { await run(() => post('/system/deletion-requests', dr), 'سُجل الطلب'); setDelReq(false); reloadD(); }}>تقديم الطلب</button></div></Modal>}
   </Page>;
+}
+
+/** السنة المالية الحالية للمكتب: تلقائية من تاريخ اليوم، أو مضبوطة يدويًا (مثلًا أثناء إقفال السنة السابقة) */
+function FiscalYearCard() {
+  const { can } = useAuth(); const { run, busy } = useAction();
+  const { data, reload } = useLoad(() => get<{ year: number; auto: boolean; setting: number | null; today: string }>('/office/fiscal-year'), []);
+  const [auto, setAuto] = useState(true); const [year, setYear] = useState(0);
+  useEffect(() => { if (data) { setAuto(data.auto); setYear(data.setting ?? data.year); } }, [data]);
+  if (!data) return null;
+  const save = async () => { await run(() => put('/office', { current_fiscal_year: auto ? null : year }), 'حُفظت السنة المالية'); reload(); window.dispatchEvent(new Event('fiscal-year-changed')); };
+  return <div className="card"><h2>السنة المالية الحالية</h2>
+    <p>السنة المعتمدة الآن: <b>{data.year}</b> {data.auto ? <span className="badge ok">تلقائية من تاريخ اليوم ({fmtDate(data.today)})</span> : <span className="badge warn">مضبوطة يدويًا</span>}</p>
+    <p className="muted">تُستخدم افتراضيًا لكل ارتباط جديد (الفترة الحالية = هذه السنة، والسابقة = التي قبلها)، مع مراعاة نهاية السنة المالية لكل عميل. تنتقل تلقائيًا إلى السنة الجديدة مع بداية كل سنة ما لم تُضبط يدويًا.</p>
+    <fieldset disabled={!can('office.manage')} style={{ border: 0, padding: 0 }}><div className="row">
+      <label className="row"><input type="radio" checked={auto} onChange={() => setAuto(true)} style={{ width: 'auto' }} /> تلقائية</label>
+      <label className="row"><input type="radio" checked={!auto} onChange={() => setAuto(false)} style={{ width: 'auto' }} /> يدوية:</label>
+      <input type="number" min={2000} max={2100} value={year || ''} onChange={(e) => setYear(Number(e.target.value))} disabled={auto} style={{ width: 110 }} dir="ltr" />
+      <button className="btn" onClick={save} disabled={busy || (!auto && (year < 2000 || year > 2100))}>حفظ</button></div></fieldset></div>;
 }
