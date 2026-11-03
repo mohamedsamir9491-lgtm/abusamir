@@ -66,10 +66,11 @@ function letterHtml(l: { letter_no: string | null; letter_date: string; status: 
   const list = (s: LetterSection) => !s.items.length || s.items_style === 'none' ? '' : s.items_style === 'bullets' ? `<ul>${s.items.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : `<ol>${s.items.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>`;
   const paras = (ps: string[]) => ps.filter((x) => x.trim()).map((x) => `<p>${esc(x)}</p>`).join('');
   const feeTable = f.fees_schedule?.length ? `<table class="ltab"><thead><tr><th>مرحلة السداد</th><th>النسبة</th><th>موعد الاستحقاق</th></tr></thead><tbody>${f.fees_schedule.map((r) => `<tr><td>${esc(r.stage)}</td><td>${esc(r.pct)}</td><td>${esc(r.due)}</td></tr>`).join('')}</tbody></table>` : '';
-  const sections = f.sections.map((s, i) => `<div class="sec"><h3>${esc(ORDINALS[i] ?? String(i + 1))}: ${esc(s.title)}</h3>${paras(s.paragraphs)}${list(s)}${/الأتعاب/.test(s.title) ? feeTable : ''}${paras(s.after ?? [])}</div>`).join('');
+  const feeLine = `<p><b>مبلغ الأتعاب: ${esc(f.fees_amount || '______ ريال سعودي')}</b> ${esc(f.vat_note)}.</p>`;
+  const sections = f.sections.map((s, i) => `<div class="sec"><h3>${esc(ORDINALS[i] ?? String(i + 1))}: ${esc(s.title)}</h3>${/الأتعاب/.test(s.title) ? feeLine : ''}${paras(s.paragraphs)}${list(s)}${/الأتعاب/.test(s.title) ? feeTable : ''}${paras(s.after ?? [])}</div>`).join('');
   const summary = `<table class="ltab lsum"><tbody>
     <tr><th>الخدمة</th><td>${esc(f.summary_service)}</td></tr><tr><th>الفترة / تاريخ العمل</th><td>${esc(f.summary_period)}</td></tr><tr><th>المخرجات</th><td>${esc(f.summary_deliverables)}</td></tr>
-    <tr><th>الأتعاب</th><td>${esc(f.fees_amount || '______ ريال سعودي')} ${esc(f.vat_note)}</td></tr><tr><th>المدة المتوقعة</th><td>${esc(f.duration)}</td></tr>
+    <tr><th>مبلغ الأتعاب</th><td><b>${esc(f.fees_amount || '______ ريال سعودي')}</b> ${esc(f.vat_note)}</td></tr><tr><th>المدة المتوقعة</th><td>${esc(f.duration)}</td></tr>
     <tr><th>جهة الاتصال - المكتب</th><td>${esc(f.office_contact)}</td></tr><tr><th>جهة الاتصال - العميل</th><td>${esc(f.client_contact || '______')}</td></tr></tbody></table>`;
   const cover = `<div class="lcover"><div class="lt">خطاب ارتباط</div><div class="ls">${esc(f.template_name)}</div><div class="ln">اسم المنشأة: ${esc(f.entity_name)}</div><div class="ln">الكيان القانوني: ${esc(f.legal_form)}</div><div class="ln">الفترة: ${esc(f.summary_period)}</div><div class="lr">${esc(l.letter_no ?? '')} | ${esc(fmtDate(l.letter_date, false))}</div></div>`;
   const head = `<div class="ldate">التاريخ: ${esc(fmtDate(l.letter_date, true))}</div>
