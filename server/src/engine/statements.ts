@@ -184,7 +184,7 @@ export function buildStatements(params: {
     if (!depDiff.isZero()) { cfRows.push({ section: 'investing', label_ar: 'تعديل: فرق حركة مجمع الاستهلاك عن مصروف الاستهلاك (استبعادات/تصحيحات)', label_en: 'Adjustment: accumulated depreciation movement vs expense', value: toStr(depDiff) }); inv = inv.plus(depDiff); notes.push(`حركة مجمع الاستهلاك (${toStr(accDepDelta)}) تختلف عن مصروف الاستهلاك (${toStr(plC.depreciation)})؛ يلزم التحقق من الاستبعادات.`); }
     cfTotals.push({ key: 'investing', label_ar: 'صافي النقد من الأنشطة الاستثمارية', label_en: 'Net cash from investing activities', value: toStr(inv) });
     let fin = ZERO;
-    for (const c of ['SHORT_TERM_LOANS', 'LONG_TERM_LOANS', 'LEASE_LIAB_CURRENT', 'LEASE_LIAB_NON_CURRENT', 'OTHER_NON_CURRENT_LIABILITIES', 'SHARE_CAPITAL', 'STATUTORY_RESERVE', 'OTHER_RESERVES', 'OWNER_CURRENT', 'RETAINED_EARNINGS']) {
+    for (const c of ['SHORT_TERM_LOANS', 'LONG_TERM_LOANS', 'LEASE_LIAB_CURRENT', 'LEASE_LIAB_NON_CURRENT', 'OTHER_NON_CURRENT_LIABILITIES', 'SHARE_CAPITAL', 'ADDITIONAL_CAPITAL', 'STATUTORY_RESERVE', 'OTHER_RESERVES', 'OWNER_CURRENT', 'DUE_FROM_SHAREHOLDERS', 'DUE_TO_SHAREHOLDERS', 'RETAINED_EARNINGS']) {
       const d = delta(c).neg(); if (!d.isZero()) { cfRows.push({ section: 'financing', label_ar: `التغير في ${FS_LINE_MAP[c].label_ar}`, label_en: `Change in ${FS_LINE_MAP[c].label_en}`, value: toStr(d) }); fin = fin.plus(d); }
     }
     const divDelta = delta('DIVIDENDS');

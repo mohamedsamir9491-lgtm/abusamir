@@ -4,6 +4,8 @@ import { defaultValuation, valuationTermsRows, BASIS_LABELS, type ValuationTerms
 import { fmtMoney, fmtRatio, fmtDate, ENGAGEMENT_TYPE_LABELS, FRAMEWORK_LABELS, ENTITY_LABELS, REVIEW_STATUS_LABELS, ADJ_STATUS_LABELS, todayIso } from './format.js';
 import { SEVERITY_LABELS, CATEGORY_LABELS, type Severity, type FindingCategory } from '../../engine/types.js';
 import { D } from '../../engine/money.js';
+/** أسماء أنواع المستندات بالعربية (أنواع البيانات القابلة للاستيراد + المستندات الداعمة) */
+const DOC_TYPE_LABELS: Record<string, string> = { ...(DATA_TYPE_LABELS as Record<string, string>), invoice: 'فاتورة', contract: 'عقد', articles_of_association: 'عقد التأسيس / النظام الأساس', commercial_registration: 'السجل التجاري', other: 'أخرى', unknown: 'غير محدد' };
 import { DATA_TYPE_LABELS } from '../imports/fields.js';
 
 export type ReportBlock =
@@ -81,12 +83,12 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       break;
     case 'sources':
       blocks.push({ type: 'table', columns: [{ key: 'name', label: 'المستند' }, { key: 'type', label: 'النوع' }, { key: 'uploaded', label: 'تاريخ الرفع' }, { key: 'status', label: 'الحالة' }, { key: 'rows', label: 'سطور البيانات', numeric: true }],
-        rows: (snap.documents as Record<string, unknown>[]).map((d) => ({ name: String(d.title ?? d.original_name), type: (DATA_TYPE_LABELS as Record<string, string>)[String(d.data_type ?? d.document_type)] ?? String(d.data_type ?? d.document_type), uploaded: fmtDate(String(d.uploaded_at ?? '').slice(0, 10), false), status: d.committed_at ? `معتمد ${fmtDate(String(d.committed_at).slice(0, 10), false)}` : 'مرفوع', rows: d.data_rows == null ? '—' : String(d.data_rows) })) });
+        rows: (snap.documents as Record<string, unknown>[]).map((d) => ({ name: String(d.title ?? d.original_name), type: DOC_TYPE_LABELS[String(d.data_type ?? d.document_type)] ?? String(d.data_type ?? d.document_type), uploaded: fmtDate(String(d.uploaded_at ?? '').slice(0, 10), false), status: d.committed_at ? `معتمد ${fmtDate(String(d.committed_at).slice(0, 10), false)}` : 'مرفوع', rows: d.data_rows == null ? '—' : String(d.data_rows) })) });
       blocks.push({ type: 'table', caption: 'البصمة الرقمية الكاملة للمستندات (SHA-256)', columns: [{ key: 'name', label: 'المستند' }, { key: 'hash', label: 'SHA-256' }], rows: (snap.documents as Record<string, unknown>[]).map((d) => ({ name: String(d.original_name), hash: String(d.sha256) })) });
       {
         const gd = (snap.group_documents ?? []) as Record<string, unknown>[];
         if (gd.length) blocks.push({ type: 'table', caption: 'سجل مصادر المجموعة (كل شركة داخلة في التوحيد): المستند، الشركة، الفترة، الاستلام، النسخة، الاعتماد، البصمة، الاستخدام', columns: [{ key: 'company', label: 'الشركة', width: '14%' }, { key: 'name', label: 'المستند', width: '18%' }, { key: 'type', label: 'النوع', width: '9%' }, { key: 'period', label: 'الفترة', width: '11%' }, { key: 'uploaded', label: 'الاستلام', width: '8%' }, { key: 'ver', label: 'النسخة', width: '6%', numeric: true }, { key: 'status', label: 'الاعتماد', width: '9%' }, { key: 'hash', label: 'SHA-256', width: '15%' }, { key: 'used', label: 'استُخدم في', width: '10%' }],
-          rows: gd.map((d) => ({ company: String(d.company ?? ''), name: String(d.title ?? d.original_name), type: (DATA_TYPE_LABELS as Record<string, string>)[String(d.data_type ?? d.document_type)] ?? String(d.data_type ?? d.document_type), period: String(d.period ?? ''), uploaded: fmtDate(String(d.uploaded_at ?? '').slice(0, 10), false), ver: String(d.version_no ?? ''), status: d.committed_at ? `معتمد ${fmtDate(String(d.committed_at).slice(0, 10), false)}` : 'مرفوع', hash: String(d.sha256 ?? ''), used: String(d.used_in ?? '') })) });
+          rows: gd.map((d) => ({ company: String(d.company ?? ''), name: String(d.title ?? d.original_name), type: DOC_TYPE_LABELS[String(d.data_type ?? d.document_type)] ?? String(d.data_type ?? d.document_type), period: String(d.period ?? ''), uploaded: fmtDate(String(d.uploaded_at ?? '').slice(0, 10), false), ver: String(d.version_no ?? ''), status: d.committed_at ? `معتمد ${fmtDate(String(d.committed_at).slice(0, 10), false)}` : 'مرفوع', hash: String(d.sha256 ?? ''), used: String(d.used_in ?? '') })) });
       }
       break;
     case 'summary': {

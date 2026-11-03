@@ -15,6 +15,14 @@ export function Reports() {
   const { eng, period, Selector } = useScope(); const nav = useNavigate(); const { can } = useAuth(); const { run, busy } = useAction(); const [open, setOpen] = useState(false); const [tpl, setTpl] = useState(''); const [title, setTitle] = useState('');
   const { data, loading, reload } = useLoad(() => get<{ reports: Row[] }>(`/reports${eng ? `?engagement_id=${eng}` : ''}`), [eng]);
   const { data: tpls } = useLoad(() => get<{ templates: Row[] }>('/report-templates'), []);
+  // اقتراح القالب المناسب لنوع الارتباط عند فتح «تقرير جديد» (يبقى قابلًا للتغيير)
+  const { data: engList } = useLoad(() => get<{ engagements: Row[] }>('/engagements'), []);
+  useEffect(() => {
+    if (!open || tpl || !tpls) return;
+    const type = String(engList?.engagements.find((e) => e.id === eng)?.engagement_type ?? '');
+    const code = ({ group_valuation: 'GROUP_VALUATION', valuation: 'VALUATION', management_analysis: 'MGMT_ANALYSIS', agreed_upon_review: 'TB_REVIEW', bookkeeping: 'TB_REVIEW', compilation: 'FS_ANALYSIS', tax_analysis: 'FS_ANALYSIS', assurance_audit: 'FS_ANALYSIS' } as Record<string, string>)[type];
+    const t = tpls.templates.find((x) => x.code === code); if (t) setTpl(String(t.id));
+  }, [open, tpls, engList]); // eslint-disable-line
   const create = async () => { const r = await run(() => post<{ id: string }>('/reports', { engagement_id: eng, period_id: period, template_id: tpl, title: title || undefined }), 'تم توليد التقرير كمسودة'); if (r) nav(`/reports/${r.id}`); };
   return <Page title="مركز التقارير" sub="توليد من قالب → تحرير الأقسام → مراجعة → اعتماد → تصدير PDF/Excel على ترويسة المكتب" actions={eng && period && can('reports.create') && <button className="btn" onClick={() => setOpen(true)}>+ تقرير جديد</button>}>
     <Selector />

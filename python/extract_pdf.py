@@ -267,6 +267,37 @@ def band_of(cell, bands, prefer_right=True):
     return best
 
 
+DATE_RX = re.compile(r"\d{1,2}/\d{1,2}/\d{2,4}")
+
+
+def combine_headers(header_rows):
+    """يدمج العناوين متعددة الأسطر في سطر واحد واضح:
+    «الرصيد» تحت «الرصيد الافتتاحي» ← «الرصيد الافتتاحي»؛ «المدين/الدائن» تحت نطاق تاريخ ← «مدين/دائن الفترة»."""
+    if len(header_rows) < 2:
+        return header_rows
+    lower, uppers = header_rows[-1], header_rows[:-1]
+    has_range = any(DATE_RX.search(c or "") for r in uppers for c in r)
+    out = []
+    for bi, low in enumerate(lower):
+        label = low
+        for r in uppers:
+            u = (r[bi] or "").strip()
+            if not u or DATE_RX.search(u):
+                continue
+            if not label:
+                label = u
+            elif u.startswith(label) or label in u:
+                label = u
+            else:
+                label = f"{label} {u}"
+        if has_range and re.fullmatch(r"(ال)?مدين", label or ""):
+            label = "مدين الفترة"
+        elif has_range and re.fullmatch(r"(ال)?دائن", label or ""):
+            label = "دائن الفترة"
+        out.append(label)
+    return [out]
+
+
 def reconstruct(pages):
     all_lines = []
     for p in pages:
@@ -329,6 +360,7 @@ def reconstruct(pages):
             last[bi] = "اسم الحساب"; inferred.append("اسم الحساب")
     if inferred:
         warnings.append("أعمدة بلا عنوان في الملف، استُنتجت من محتواها: " + "، ".join(inferred) + ". تحقق من الربط.")
+    header_rows = combine_headers(header_rows)
 
     # --- البيانات: أسطر البيانات مع دمج أسطر الاسم المكسورة القريبة
     data_set = set(id(ln) for ln in data)

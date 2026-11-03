@@ -4,7 +4,7 @@ import { badRequest, notFound, unprocessable } from '../../lib/errors.js';
 import { parseNumber, toDb, D, toStr, splitNet, sum } from '../../engine/money.js';
 import { parseDate } from '../../lib/dates.js';
 import { classifyAccount, learnPrefixMap, type PrefixMap } from '../../engine/classification.js';
-import { FIELDS, suggestMapping, detectHeaderRow, compositeHeaders, type DataType, DATA_TYPES } from './fields.js';
+import { FIELDS, suggestMapping, detectHeaderRow, compositeHeaders, headerConflictsWithField, OPENING_RX, type DataType, DATA_TYPES } from './fields.js';
 import { extractDocument, type ExtractionResult } from './parsers.js';
 import { getFile, readFileData } from '../files/storage.js';
 
@@ -145,6 +145,20 @@ export async function validateJob(jobId: string): Promise<{ job: ImportJobRow; r
   if (job.data_type === 'bank_statement' && job.column_mapping.debit === undefined && job.column_mapping.credit === undefined && job.column_mapping.amount === undefined) blocking.push('يجب ربط أعمدة المبلغ أو المدين/الدائن');
 
   const rows = await getSheetRows(jobId, job.sheet_name);
+  // تطابق عناوين الأعمدة مع الحقول المربوطة: يمنع مثلًا ربط «الرصيد الافتتاحي» بحقل الرصيد الختامي (التوازن وحده لا يكشف ذلك)
+  const grid: string[][] = []; for (const r of rows) grid[r.row_number - 1] = r.cells;
+  for (let i = 0; i < grid.length; i++) if (!grid[i]) grid[i] = [];
+  const heads = compositeHeaders(grid, job.header_row);
+  const headerWarnings: string[] = [];
+  for (const [key, col] of Object.entries(job.column_mapping)) {
+    const f = defs.find((x) => x.key === key); const h = (heads[col] ?? '').trim();
+    if (f && h && headerConflictsWithField(h, f.group)) blocking.push(`العمود «${h}» مربوط بالحقل «${f.label_ar}» وعنوانه يدل على غير ذلك. صحّح الربط قبل الاعتماد.`);
+  }
+  if (job.data_type === 'trial_balance') {
+    const m = job.column_mapping; const mappedCols = new Set(Object.values(m));
+    const openingMapped = m.opening_balance !== undefined || m.opening_debit !== undefined || m.opening_credit !== undefined;
+    if (!openingMapped) heads.forEach((h, i) => { if (!mappedCols.has(i) && h && OPENING_RX.test(h)) headerWarnings.push(`العمود «${h}» يبدو رصيدًا افتتاحيًا لكنه غير مربوط؛ اربطه ليُفحص اتساق (الافتتاحي + الحركة = الختامي).`); });
+  }
   const issues = new Map<string, ValidationReport['issues'][number]>();
   const addIssue = (code: string, level: 'error' | 'warning' | 'info', message: string, row: number) => {
     const cur = issues.get(code) ?? { code, level, message, count: 0, rows: [] };
@@ -178,6 +192,13 @@ export async function validateJob(jobId: string): Promise<{ job: ImportJobRow; r
       for (const k of ['opening_debit', 'opening_credit', 'period_debit', 'period_credit', 'closing_debit', 'closing_credit']) {
         if (mapped[k] && D(mapped[k]).lt(0)) { messages.push({ level: 'warning', field: k, message: `قيمة سالبة في ${k}` }); addIssue('negative_value', 'warning', 'قيم سالبة في أعمدة المدين/الدائن', r.row_number); }
       }
+      // اتساق السطر: الافتتاحي + مدين الحركة − دائن الحركة = الختامي (عند ربط الثلاثة)
+      const net = (bal: string, dr: string, cr: string) => mapped[bal] != null ? D(mapped[bal]!) : (mapped[dr] != null || mapped[cr] != null) ? D(mapped[dr] ?? 0).minus(mapped[cr] ?? 0) : null;
+      const op = net('opening_balance', 'opening_debit', 'opening_credit'), cl = net('closing_balance', 'closing_debit', 'closing_credit');
+      if (op && cl && (mapped.period_debit != null || mapped.period_credit != null)) {
+        const diff = op.plus(mapped.period_debit ?? 0).minus(mapped.period_credit ?? 0).minus(cl);
+        if (diff.abs().gt('0.01')) { messages.push({ level: 'warning', field: '_rf', message: `الافتتاحي + الحركة لا يساوي الختامي (الفرق ${toStr(diff)})` }); addIssue('rollforward', 'warning', 'أسطر لا يتسق فيها الافتتاحي + الحركة مع الختامي (راجع ربط الأعمدة)', r.row_number); }
+      }
       for (const k of Object.keys(mapped)) if (mapped[k] && defs.find((f) => f.key === k)?.type === 'number') totals[k] = (totals[k] ?? D(0)).plus(mapped[k]!);
     } else if (job.data_type === 'journal_entries' || job.data_type === 'general_ledger') {
       if (!mapped.debit && !mapped.credit) { messages.push({ level: 'warning', message: 'سطر بدون مدين أو دائن' }); addIssue('no_amount', 'warning', 'أسطر بدون مبالغ', r.row_number); }
@@ -186,12 +207,13 @@ export async function validateJob(jobId: string): Promise<{ job: ImportJobRow; r
     } else {
       for (const k of Object.keys(mapped)) if (mapped[k] && defs.find((f) => f.key === k)?.type === 'number') totals[k] = (totals[k] ?? D(0)).plus(mapped[k]!);
     }
-    for (const m of messages) addIssue(`${m.level}:${m.field ?? 'row'}`, m.level, m.message.replace(/"[^"]*"/g, '…'), r.row_number);
+    for (const m of messages) if (m.field !== '_rf') addIssue(`${m.level}:${m.field ?? 'row'}`, m.level, m.message.replace(/"[^"]*"/g, '…'), r.row_number);
     const status = messages.some((m) => m.level === 'error') ? 'error' : messages.some((m) => m.level === 'warning') ? 'warning' : 'ok';
     if (status === 'error') { errors++; for (const k of Object.keys(mapped)) if (mapped[k] && defs.find((f) => f.key === k)?.type === 'number') totals[k] = (totals[k] ?? D(0)).minus(mapped[k]!); }
     else if (status === 'warning') warnings++; else ok++;
     updates.push({ row: r.row_number, mapped, status, messages });
   }
+  headerWarnings.forEach((w, i) => addIssue(`unmapped_opening_${i}`, 'warning', w, job.header_row));
   if (dataRows === 0) blocking.push('لا توجد صفوف بيانات بعد صف العناوين');
   if (errors > 0 && !job.options.allow_error_rows) blocking.push(`${errors} صفًا يحتوي أخطاء. صحّح الربط أو فعّل خيار "تجاهل الصفوف الخاطئة" (مع تسجيل ذلك).`);
   if (job.period_id === null && job.data_type !== 'chart_of_accounts') blocking.push('يجب تحديد الفترة المالية قبل الاعتماد');

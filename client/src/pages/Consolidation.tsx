@@ -24,7 +24,16 @@ export function Consolidation() {
   const { data: last, reload } = useLoad(() => period ? get<{ run: { id: string; started_at: string; result: Record<string, unknown> } | null }>(`/analysis/group/latest?period_id=${period}`) : Promise.resolve(null), [period]);
   const [subs, setSubs] = useState<Sub[]>([]); const [costs, setCosts] = useState<AtCost[]>([]); const [result, setResult] = useState<Record<string, unknown> | null>(null);
   useEffect(() => { try { const saved = localStorage.getItem(`consol:${eng}`); if (saved) { const j = JSON.parse(saved); setSubs(j.subs ?? []); setCosts(j.costs ?? []); } else { setSubs([]); setCosts([]); } } catch { /* ignore */ } setResult(null); }, [eng]);
-  useEffect(() => { if (last?.run) setResult(last.run.result); }, [last]);
+  useEffect(() => {
+    if (!last?.run) return; setResult(last.run.result);
+    // استعادة إعداد التوحيد المحفوظ مع آخر تشغيل عند غيابه من هذا المتصفح (جهاز آخر أو مستخدم آخر)
+    const inp = (last.run.result as { input?: { subsidiaries?: Record<string, unknown>[]; at_cost?: Record<string, unknown>[] } }).input;
+    const j = (v: unknown) => Array.isArray(v) ? v.join(', ') : String(v ?? '');
+    if (inp && !subs.length && !costs.length) {
+      persist((inp.subsidiaries ?? []).map((x) => ({ ...blankSub(), ...x, investment_codes_in_parent: j(x.investment_codes_in_parent), parent_account_codes_in_sub: j(x.parent_account_codes_in_sub), sub_account_codes_in_parent: j(x.sub_account_codes_in_parent), profit_share_pct: String(x.profit_share_pct ?? ''), control_since: String(x.control_since ?? ''), other_equity_rights: String(x.other_equity_rights ?? ''), control_basis: (x.control_basis ?? '') as Sub['control_basis'], claim_nature: (x.claim_nature ?? 'provisional') as Sub['claim_nature'] }) as Sub),
+        (inp.at_cost ?? []).map((x) => ({ ...blankCost(), ...x, investment_codes_in_parent: j(x.investment_codes_in_parent), receivable_codes_in_parent: j(x.receivable_codes_in_parent), payable_codes_in_parent: j(x.payable_codes_in_parent), note: String(x.note ?? ''), control: (x.control ?? 'unknown') as AtCost['control'] }) as AtCost));
+    }
+  }, [last]); // eslint-disable-line
   const persist = (s: Sub[], c: AtCost[]) => { setSubs(s); setCosts(c); try { localStorage.setItem(`consol:${eng}`, JSON.stringify({ subs: s, costs: c })); } catch { /* ignore */ } };
   const execute = async () => {
     const body = { parent: { engagement_id: eng, period_id: period },

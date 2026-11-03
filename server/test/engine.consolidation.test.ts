@@ -155,3 +155,14 @@ describe('companies kept at cost (no statements)', () => {
     expect(r.worksheet.scope[0].receivable).toBe('100.00'); expect(r.worksheet.scope[0].payable).toBe('7.00');
   });
 });
+
+describe('cash flow reconciliation with shareholder current accounts', () => {
+  it('reports the collection of a partner receivable in financing so cash reconciles', () => {
+    const O = (code: string, name: string, od: string, oc: string, pd: string, pc: string, cd: string, cc: string): TbEntry => ({ account_code: code, account_name: name, opening_debit: od, opening_credit: oc, period_debit: pd, period_credit: pc, closing_debit: cd, closing_credit: cc });
+    const tb = [O('1101', 'البنك', '100', '0', '185', '0', '285', '0'), O('2020', 'جاري الشريك أحمد', '200', '0', '0', '185', '15', '0'), O('3100', 'رأس المال', '0', '200', '0', '0', '0', '200'), O('3102', 'رأس المال الإضافي المدفوع', '0', '100', '0', '0', '0', '100')];
+    const s = buildStatements({ current: tb, periodLabel: 't' });
+    const t = Object.fromEntries(s.cf.totals.map((x) => [x.key, x.value]));
+    expect(t.financing).toBe('185.00');
+    expect(t.cash_closing_computed).toBe(t.cash_closing_tb);
+  });
+});

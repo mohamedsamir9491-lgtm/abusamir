@@ -4,7 +4,7 @@ import { get, upload } from '../api';
 import { Page, useLoad, Field, useAction } from '../components/ui';
 
 type Row = Record<string, string | number | null>;
-const DOC_TYPES: Record<string, string> = { trial_balance: 'ميزان المراجعة', general_ledger: 'دفتر الأستاذ العام', journal_entries: 'قيود اليومية', chart_of_accounts: 'دليل الحسابات', receivables: 'الذمم المدينة', payables: 'الذمم الدائنة', inventory: 'المخزون', fixed_assets: 'الأصول الثابتة', bank_statement: 'كشف حساب بنكي', financial_statements: 'قوائم مالية', invoice: 'فاتورة', contract: 'عقد', other: 'أخرى', unknown: 'غير محدد' };
+const DOC_TYPES: Record<string, string> = { trial_balance: 'ميزان المراجعة', general_ledger: 'دفتر الأستاذ العام', journal_entries: 'قيود اليومية', chart_of_accounts: 'دليل الحسابات', receivables: 'الذمم المدينة', payables: 'الذمم الدائنة', inventory: 'المخزون', fixed_assets: 'الأصول الثابتة', bank_statement: 'كشف حساب بنكي', financial_statements: 'قوائم مالية', invoice: 'فاتورة', contract: 'عقد', articles_of_association: 'عقد التأسيس / النظام الأساس', commercial_registration: 'السجل التجاري', other: 'أخرى', unknown: 'غير محدد' };
 
 export function DocumentUpload({ engagementId, periods, onDone, compact }: { engagementId: string; periods: Row[]; onDone: (docs: { id: string }[]) => void; compact?: boolean }) {
   const [files, setFiles] = useState<FileList | null>(null); const [type, setType] = useState('trial_balance'); const [period, setPeriod] = useState(String(periods.find((p) => p.role === 'current')?.id ?? periods[0]?.id ?? ''));

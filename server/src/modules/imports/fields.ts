@@ -20,9 +20,9 @@ export const FIELDS: Record<DataType, FieldDef[]> = {
     { key: 'opening_balance', label_ar: 'رصيد افتتاحي (موقّع)', type: 'number', keywords: /^(?!.*(مدين|دائن|debit|credit)).*(افتتاح|أول المدة|بداية|opening|beginning)/i, group: 'opening' },
     { key: 'period_debit', label_ar: 'حركة مدين', type: 'number', keywords: /((حرك|الفترة|خلال|movement|period|activity|transaction|turnover|\d{1,2}\/\d{1,2}\/\d{4}).*(مدين|debit|dr))|((مدين|debit|dr).*(حرك|الفترة|خلال|movement|period|activity|turnover))/i, group: 'movements' },
     { key: 'period_credit', label_ar: 'حركة دائن', type: 'number', keywords: /((حرك|الفترة|خلال|movement|period|activity|transaction|turnover|\d{1,2}\/\d{1,2}\/\d{4}).*(دائن|credit|cr))|((دائن|credit|cr).*(حرك|الفترة|خلال|movement|period|activity|turnover))/i, group: 'movements' },
-    { key: 'closing_debit', label_ar: 'ختامي مدين', type: 'number', keywords: /((ختام|نهاي|آخر|closing|ending|end).*(مدين|debit|dr))|((مدين|debit|dr).*(ختام|نهاي|آخر|closing|ending|end))|^(ال)?(مدين|debit|dr)$/i, group: 'closing' },
-    { key: 'closing_credit', label_ar: 'ختامي دائن', type: 'number', keywords: /((ختام|نهاي|آخر|closing|ending|end).*(دائن|credit|cr))|((دائن|credit|cr).*(ختام|نهاي|آخر|closing|ending|end))|^(ال)?(دائن|credit|cr)$/i, group: 'closing' },
-    { key: 'closing_balance', label_ar: 'رصيد ختامي (موقّع)', type: 'number', keywords: /^(?!.*(مدين|دائن|debit|credit)).*(ختام|نهاي|آخر|الرصيد|closing|ending|^balance$|net)/i, group: 'closing' },
+    { key: 'closing_debit', label_ar: 'ختامي مدين', type: 'number', keywords: /((ختام|نهائ|نهاي|آخر|closing|ending|end).*(مدين|debit|dr))|((مدين|debit|dr).*(ختام|نهائ|نهاي|آخر|closing|ending|end))|^(ال)?(مدين|debit|dr)$/i, group: 'closing' },
+    { key: 'closing_credit', label_ar: 'ختامي دائن', type: 'number', keywords: /((ختام|نهائ|نهاي|آخر|closing|ending|end).*(دائن|credit|cr))|((دائن|credit|cr).*(ختام|نهائ|نهاي|آخر|closing|ending|end))|^(ال)?(دائن|credit|cr)$/i, group: 'closing' },
+    { key: 'closing_balance', label_ar: 'رصيد ختامي (موقّع)', type: 'number', keywords: /^(?!.*(مدين|دائن|debit|credit)).*(ختام|نهائ|نهاي|آخر|الرصيد|closing|ending|^balance$|net)/i, group: 'closing' },
   ],
   journal_entries: [
     { key: 'entry_no', label_ar: 'رقم القيد', type: 'text', keywords: /(رقم القيد|رقم المستند|قيد|entry|voucher|jv|journal\s*(no|id|#)|doc(ument)?\s*(no|#))/i },
@@ -116,6 +116,20 @@ export function compositeHeaders(rows: string[][], headerRow: number): string[] 
   });
 }
 
+export const OPENING_RX = /(افتتاح|أول المدة|أول الفترة|بداية|opening|beginning)/i;
+export const CLOSING_RX = /(ختام|نهائ|نهاي|آخر المدة|آخر الفترة|closing|ending)/i;
+export const MOVEMENT_RX = /(حرك|الفترة|خلال|movement|period|activity|turnover)/i;
+/** هل يدل عنوان العمود على مجموعة مختلفة عن مجموعة الحقل (افتتاحي/حركة/ختامي)؟ */
+export function headerConflictsWithField(header: string, group: string | undefined): boolean {
+  const h = header.trim(); if (!h || !group) return false;
+  const op = OPENING_RX.test(h), cl = CLOSING_RX.test(h);
+  const mv = MOVEMENT_RX.test(h.replace(/(أول|آخر) (المدة|الفترة)/g, ''));
+  if (group === 'closing') return (op && !cl) || (mv && !cl && !op);
+  if (group === 'opening') return (cl && !op) || (mv && !op && !cl);
+  if (group === 'movements') return (op || cl) && !mv;
+  return false;
+}
+
 /** اقتراح ربط تلقائي للأعمدة بناءً على عناوينها (يمكن تمرير عناوين مركّبة) */
 export function suggestMapping(dataType: DataType, headers: string[]): Record<string, number> {
   const mapping: Record<string, number> = {};
@@ -128,6 +142,7 @@ export function suggestMapping(dataType: DataType, headers: string[]): Record<st
       if (used.has(i)) continue;
       const h = (headers[i] ?? '').trim();
       if (!h) continue;
+      if (headerConflictsWithField(h, f.group)) continue; // «الرصيد الافتتاحي» لا يُربط أبدًا بحقل ختامي والعكس
       if (f.keywords.test(h)) { mapping[f.key] = i; used.add(i); break; }
     }
   }
