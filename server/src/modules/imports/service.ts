@@ -87,7 +87,8 @@ export async function getSheetRows(jobId: string, sheetName: string | null, limi
 export async function previewJob(jobId: string, limit = 50) {
   const job = await getJob(jobId);
   const rows = await getSheetRows(jobId, job.sheet_name, limit + job.header_row);
-  return { job, fields: FIELDS[job.data_type], rows };
+  const total = await one<{ c: string }>(`SELECT count(*) AS c FROM imported_records WHERE import_job_id = $1 AND ($2::text IS NULL OR raw->>'sheet' = $2)`, [jobId, job.sheet_name]);
+  return { job, fields: FIELDS[job.data_type], rows, total_rows: Number(total?.c ?? rows.length) };
 }
 
 export async function updateMapping(jobId: string, input: { sheet_name?: string; header_row?: number; column_mapping?: Record<string, number>; options?: Record<string, unknown> }) {
