@@ -224,6 +224,14 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       break;
     }
     case 'documents_needed': {
+      const reqs = (snap as { client_requests?: { ref: string; company: string; title: string; reason: string | null; priority: string; status: string; amount: string | null }[] }).client_requests ?? [];
+      if (reqs.length) {
+        const cos = [...new Set(reqs.map((r) => r.company))];
+        blocks.push(p('البنود التالية مطلوبة من العميل لاستكمال التحليل والتقييم؛ البنود «الأساسية» يتوقف عليها احتساب أرقام في هذا التقرير، و«الداعمة» ترفع دقته.'));
+        for (const co of cos) { const rs = reqs.filter((r) => r.company === co);
+          blocks.push({ type: 'table', caption: co, columns: [{ key: 'r', label: 'المرجع', width: '8%' }, { key: 'p', label: 'الأولوية', width: '9%' }, { key: 't', label: 'المطلوب', width: '43%' }, { key: 'w', label: 'السبب', width: '40%' }], rows: rs.map((r) => ({ r: r.ref, p: r.priority === 'essential' ? 'أساسي' : 'داعم', t: r.title + (r.status === 'sent' ? ' (أُرسل للعميل)' : r.status === 'not_available' ? ' (غير متوفر لدى العميل)' : ''), w: fmtAmounts(r.reason ?? '') })), repeat_header: true }); }
+        break;
+      }
       const items = (snap.findings as Record<string, unknown>[]).filter((f) => f.category === 'documents_required').map((f) => `${f.finding_ref}: ${f.title}`);
       if (snap.ai?.documents_needed) items.push(...(snap.ai.documents_needed as string[]).map((d) => `(مقترح من المساعد) ${d}`));
       const generic = ['كشوف الحسابات البنكية لكامل الفترة ومطابقاتها.', 'تحليل أعمار الذمم المدينة والدائنة المعتمد من الإدارة.', 'سجل الأصول الثابتة وجدول الاستهلاك.', 'مصادقات الأرصدة مع الأطراف ذات العلاقة والبنوك حيثما ينطبق.', 'الإقرارات الزكوية والضريبية للفترة وما يؤيد الالتزامات المتعلقة بها.'];
@@ -410,6 +418,62 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       if (ws.scope.length) blocks.push({ type: 'table', caption: 'شركات بلا قوائم (خارج ورقة العمل مؤقتًا)', columns: [{ key: 'l', label: 'الشركة', width: '20%' }, { key: 'c', label: 'السيطرة', width: '14%' }, { key: 'i', label: 'استثمار الأم', numeric: true, width: '14%' }, { key: 'r', label: 'مستحق للأم', numeric: true, width: '14%' }, { key: 'p', label: 'مستحق على الأم', numeric: true, width: '14%' }, { key: 'n', label: 'ملاحظة', width: '24%' }],
         rows: ws.scope.map((x) => ({ l: String(x.label), c: ({ controlled: 'قائمة', not_controlled: 'غير قائمة', unknown: 'غير محددة' } as Record<string, string>)[String(x.control)] ?? String(x.control), i: money(x.investment_cost), r: money(x.receivable), p: money(x.payable), n: String(x.note ?? '') })) });
       blocks.push(note('هذه ورقة عمل دفترية لأغراض التحليل الداخلي؛ لا تمثل قوائم مالية موحدة معتمدة ولا قيمة عادلة ولا رأي مراجع مستقل.', 'warning'));
+      break;
+    }
+    case 'nav_summary': case 'nav_companies': case 'nav_group': case 'nav_shareholders': case 'nav_assumptions': {
+      const N = (snap as { nav?: any }).nav; // eslint-disable-line @typescript-eslint/no-explicit-any
+      if (!N) { blocks.push(note('لا يمكن احتساب صافي الأصول المعدّل: لا يوجد ميزان معتمد للشركة الأم لهذه الفترة.', 'warning')); break; }
+      const m = (v: unknown) => fmtMoney(v as number); const pc = (v: unknown) => `${Number(v ?? 0).toLocaleString('en-US', { maximumFractionDigits: 4 })}%`;
+      const ROLE: Record<string, string> = { parent: 'الشركة الأم', subsidiary: 'شركة تابعة', at_cost: 'استثمار بالتكلفة' };
+      const curW = ({ SAR: 'ريال سعودي', USD: 'دولار أمريكي', AED: 'درهم إماراتي', EGP: 'جنيه مصري', KWD: 'دينار كويتي' } as Record<string, string>)[curr] ?? curr;
+      const C = N.contributions; const lossWord = N.gain < 0 ? 'خسارة' : 'ربح';
+      if (sec.type === 'nav_summary') {
+        blocks.push(p(`يعرض هذا التقرير بلغة مبسطة قيمة حقوق المساهمين في ${N.parent_name}${N.companies.length > 1 ? ' وشركاتها' : ''} ${meta.period_phrase ?? ''} بطريقة «صافي الأصول المعدّل»: نبدأ بحقوق الملكية كما في الدفاتر، ونعدّلها بما يلزم (استهلاك لم يُسجَّل، عقود، تقييمات)، ثم نستبعد ما يتكرر بين شركات المجموعة.`));
+        blocks.push({ type: 'kv', items: [{ label: 'صافي الأصول المعدّل المنسوب للمساهمين', value: `${m(N.nav)} ${curW}` }, { label: `ما دخل به المساهمون (${C.used === 'official' ? 'حسب المستندات النظامية' : 'حسب الدفاتر'})`, value: `${m(C.amount)} ${curW}` }, { label: `${lossWord} المساهمين حتى تاريخه`, value: `${m(N.gain)} ${curW}${N.gain_pct != null ? ` (${N.gain_pct < 0 ? 'سالب ' : ''}${fmtMoney(Math.abs(N.gain_pct))}% مما دخلوا به)` : ''}` }] });
+        blocks.push(p(`أي أن قيمة حقوقكم في نهاية الفترة ${m(N.nav)} ${curW} مقابل ${m(C.amount)} ${curW} دخلتم بها، ${N.gain < 0 ? `بخسارة ${m(Math.abs(N.gain))}` : `بربح ${m(N.gain)}`} ${curW}.`));
+        if (C.official != null && Math.abs(C.official - C.books) >= 0.01) { const alt = C.used === 'official' ? C.books : C.official; const g2 = N.nav - alt;
+          blocks.push(note(`ما دخل به المساهمون غير مؤكد بعد: الدفاتر تُظهر ${m(C.books)} (رأس مال ${m(C.capital)} + رأس مال إضافي ${m(C.apic)}) بينما النظام الأساس يذكر أن المدفوع من رأس المال ${m(C.official_paid)}. لو اعتُمد ${m(alt)} تكون النتيجة ${g2 < 0 ? `خسارة ${m(Math.abs(g2))}` : `ربحًا ${m(g2)}`}.`, 'warning')); }
+        if (N.nav_low != null) blocks.push(note(`إذا ثبت أن الفروق البينية غير المحسومة بين شركات المجموعة ليست أصولًا حقيقية تنخفض القيمة إلى ${m(N.nav_low)} ${curW}.`, 'info'));
+        if (N.register.basis === 'assumed_equal') blocks.push(note(`نسب المساهمين المستخدمة افتراضية (بالتساوي) إلى حين ورود سجل المساهمين؛ تتغير أنصبة المساهمين عند تحديثها دون أن تتغير القيمة الإجمالية.`, 'warning'));
+        blocks.push(note('هذا تحليل محاسبي لصافي الأصول المعدّل لأغراض الإدارة والمساهمين، وليس تقييمًا معتمدًا صادرًا عن مقيّم مرخص من الهيئة السعودية للمقيمين المعتمدين (تقييم)، ولا يمثل القيمة السوقية أو سعرًا للبيع.', 'info'));
+      } else if (sec.type === 'nav_companies') {
+        blocks.push({ type: 'table', caption: 'صافي الأصول المعدّل لكل شركة (منفصلة)', columns: [{ key: 'n', label: 'الشركة' }, { key: 'r', label: 'العلاقة' }, { key: 'e', label: 'حقوق الملكية الدفترية', numeric: true }, { key: 'a', label: 'تعديلات التقييم', numeric: true }, { key: 'v', label: 'صافي الأصول المعدّل', numeric: true }, { key: 'o', label: 'نسبة الملكية' }], repeat_header: true,
+          rows: N.companies.map((c: any) => c.nav ? { n: c.name, r: ROLE[c.role] ?? c.role, e: m(c.nav.book_equity), a: m(c.nav.adjustments.total), v: m(c.nav.adjusted_nav), o: c.role === 'parent' ? '—' : pc(c.ownership) } : { n: c.name, r: ROLE[c.role] ?? c.role, e: '—', a: '—', v: c.investment_cost != null ? `${m(c.investment_cost)} (بالتكلفة)` : '—', o: pc(c.ownership) }) }); // eslint-disable-line @typescript-eslint/no-explicit-any
+        for (const c of N.companies.filter((x: any) => x.nav)) { // eslint-disable-line @typescript-eslint/no-explicit-any
+          const n = c.nav; const rows: Record<string, string | null>[] = [];
+          for (const a of n.assets) if (a.adjustment !== 0) rows.push({ i: `${a.name} (${a.code})`, b: a.method === 'owner' ? `تقييم المالك ${m(a.owner_value)} مقابل صافي دفتري ${m(a.nbv)}` : `${a.category_label}: ${a.basis} (التكلفة ${m(a.cost_close)})`, v: m(a.adjustment) });
+          if (n.lease && n.lease.adjustment) rows.push({ i: 'عقد الإيجار (IFRS 16)', b: `استهلاك حق الاستخدام ${m(n.lease.dep_additional)}${n.lease.interest_additional ? ` + فائدة الالتزام ${m(n.lease.interest_additional)}` : ''} (مدة ${n.lease.term_months} شهرًا من ${n.lease.start_date})`, v: m(n.lease.adjustment) });
+          for (const o of n.others) rows.push({ i: o.title, b: o.note ?? 'تعديل يقدّره المحاسب', v: m(o.amount) });
+          blocks.push({ type: 'heading', text: `${c.name}` } as ReportBlock);
+          if (!rows.length) blocks.push(p('لا توجد تعديلات تقييم على هذه الشركة؛ صافي الأصول المعدّل = حقوق الملكية الدفترية.'));
+          else blocks.push({ type: 'table', columns: [{ key: 'i', label: 'البند', width: '30%' }, { key: 'b', label: 'أساس التعديل', width: '50%' }, { key: 'v', label: 'الأثر على صافي الأصول', numeric: true, width: '20%' }], rows, total_rows: [{ i: 'إجمالي التعديلات', b: '', v: m(n.adjustments.total) }, { i: 'صافي الأصول المعدّل', b: `حقوق الملكية الدفترية ${m(n.book_equity)} + التعديلات`, v: m(n.adjusted_nav) }] });
+          if (n.lease && n.lease.status === 'needs_input') blocks.push(note(`لدى ${c.name} أصل حق استخدام ${m(n.lease.rou_cost)} والتزام إيجار ${m(n.lease.liability)} دون استهلاك أو فائدة؛ لم يُعدَّل لعدم توافر مدة العقد وتاريخ بدايته (مطلوب من العميل).`, 'warning'));
+        }
+        if (N.companies.length > 1) blocks.push(note('لا تُجمع قيم الشركات المنفصلة: استثمار الأم في تابعاتها جزء من حقوق ملكيتها، فجمعها يكرر احتساب رأس المال نفسه. القيمة الموحدة في القسم التالي.', 'info'));
+      } else if (sec.type === 'nav_group') {
+        const rows: Record<string, string | null>[] = [];
+        if (N.basis === 'consolidation') { rows.push({ i: 'حقوق الملكية الموحدة الدفترية (بعد استبعاد الاستثمارات والأرصدة بين الشركات)', v: m(N.consolidation.equity) }); if (N.consolidation.nci) rows.push({ i: '(−) حقوق غير المسيطرين', v: m(-N.consolidation.nci) }); rows.push({ i: 'المنسوب لمساهمي الأم (دفتري)', v: m(N.base), _total: '1' }); }
+        else rows.push({ i: N.companies.length > 1 ? 'حقوق الأم الدفترية − تكلفة الاستثمار في التابعات + حصتها في حقوقها (تقريبي)' : 'حقوق الملكية الدفترية', v: m(N.base), _total: '1' });
+        for (const a of N.adjustments) if (a.total) rows.push({ i: `تعديلات تقييم ${a.name}${a.role === 'parent' ? '' : ` × ${pc(a.ownership)}`}`, v: m(a.attributable) });
+        blocks.push({ type: 'table', caption: 'من الدفاتر إلى صافي الأصول المعدّل الموحد', columns: [{ key: 'i', label: 'البند', width: '75%' }, { key: 'v', label: curW, numeric: true, width: '25%' }], rows, total_rows: [{ i: 'صافي الأصول المعدّل المنسوب للمساهمين', v: m(N.nav) }] });
+        if (N.nav_low != null) blocks.push(p(`حساسية: إذا ثبت أن الفروق البينية غير المحسومة (${m(N.consolidation.unreconciled)}) ليست أصولًا تصبح القيمة ${m(N.nav_low)}.`));
+        if (N.at_cost.length) blocks.push(note(`شركات لم تُقدَّم قوائمها وتبقى بتكلفة الاستثمار ضمن القيمة: ${N.at_cost.map((x: any) => `${x.name} (${m(x.investment_cost)}${x.receivable_from ? `، ومستحق للأم عليها ${m(x.receivable_from)}` : ''})`).join('؛ ')}. قد تختلف قيمتها الفعلية عند ورود قوائمها.`, 'warning')); // eslint-disable-line @typescript-eslint/no-explicit-any
+      } else if (sec.type === 'nav_shareholders') {
+        blocks.push({ type: 'table', caption: 'ما دخل به المساهمون', columns: [{ key: 'i', label: 'البند', width: '70%' }, { key: 'v', label: curW, numeric: true, width: '30%' }], rows: [{ i: 'رأس المال حسب الدفاتر', v: m(C.capital) }, { i: 'رأس المال الإضافي المدفوع حسب الدفاتر', v: m(C.apic) }, { i: 'الإجمالي حسب الدفاتر', v: m(C.books), _total: '1' }, ...(C.official_paid != null ? [{ i: `المدفوع من رأس المال حسب النظام الأساس (من ${m(C.official_capital)})`, v: m(C.official_paid) }, { i: 'الإجمالي حسب المستندات النظامية + رأس المال الإضافي', v: m(C.official), _total: '1' }] : [])], total_rows: [{ i: `المعتمد في هذا التقرير (${C.used === 'official' ? 'المستندات النظامية' : 'الدفاتر'})`, v: m(C.amount) }] });
+        if (N.holders.length) {
+          const T = (k: string) => m(N.holders.reduce((t: number, h: any) => t + Number(h[k] ?? 0), 0)); // eslint-disable-line @typescript-eslint/no-explicit-any
+          blocks.push({ type: 'table', caption: `نصيب كل مساهم${N.register.basis === 'assumed_equal' ? ' (نسب افتراضية بالتساوي)' : ''}`, columns: [{ key: 'n', label: 'المساهم', width: '24%' }, { key: 'p', label: 'النسبة', width: '8%' }, { key: 's', label: 'نصيبه من القيمة', numeric: true, width: '14%' }, { key: 'c', label: 'ما دخل به', numeric: true, width: '13%' }, { key: 'g', label: 'ربحه/(خسارته)', numeric: true, width: '13%' }, { key: 'a', label: 'رصيده الجاري لدى الشركة (مدين = عليه)', numeric: true, width: '14%' }, { key: 'x', label: 'صافي ما يخصه', numeric: true, width: '14%' }], repeat_header: true,
+            rows: N.holders.map((h: any) => ({ n: h.name, p: pc(h.pct), s: m(h.share), c: m(h.contributed), g: m(h.gain), a: h.account ? m(h.current) : '—', x: m(h.net) })), total_rows: [{ n: 'الإجمالي', p: pc(N.holders.reduce((t: number, h: any) => t + h.pct, 0)), s: T('share'), c: T('contributed'), g: T('gain'), a: T('current'), x: T('net') }] }); // eslint-disable-line @typescript-eslint/no-explicit-any
+          blocks.push(p('صافي ما يخص المساهم = نصيبه من القيمة − ما عليه للشركة في حسابه الجاري (أو + ما للشركة عليه من مستحقات له). الرصيد المدين على شريك جزء من أصول الشركة يملكه كل المساهمين، ويُخصم من نصيب صاحبه وحده.'));
+        } else blocks.push(note('لا توجد بيانات مساهمين؛ أدخلها من شاشة «تعديلات التقييم» ← سجل المساهمين.', 'warning'));
+        if (N.unmatched_accounts.length) blocks.push(note(`حسابات جارية لشركاء لم تُربط بأي مساهم مسجل: ${N.unmatched_accounts.map((u: any) => `${u.name} (${m(u.closing)})`).join('، ')}؛ يلزم تأكيد صفة أصحابها.`, 'warning')); // eslint-disable-line @typescript-eslint/no-explicit-any
+      } else {
+        blocks.push({ type: 'list', items: ['الطريقة: صافي الأصول المعدّل = حقوق الملكية الدفترية ± تعديلات التقييم، وعلى مستوى المجموعة يُبدأ من حقوق الملكية الموحدة (بعد استبعاد الاستثمارات والأرصدة بين الشركات).', `الاستهلاك غير المسجل: قسط ثابت بنسب سنوية شائعة يعتمدها المحاسب، على التكلفة، عن مدة الفترة (${snap.period.label})؛ والإضافات خلال الفترة بنصف المدة؛ ولا يتجاوز الاستهلاك صافي القيمة الدفترية.`, 'تقييم المالك: إن قُدّم تقرير تقييم لأصل يحل محل صافي قيمته الدفترية.', 'عقود الإيجار: يُستهلك أصل حق الاستخدام على مدة العقد من تاريخ بدايته، وتُقدَّر فائدة الالتزام بمعدل الخصم إن أُدخل.', 'الشركات بلا قوائم: تبقى بتكلفة الاستثمار إلى حين توافر قوائمها.'] });
+        const used = new Map<string, { label: string; rate: number; accs: string[] }>(); // فئات النسب المستخدمة
+        for (const c of N.companies) for (const a of c.nav?.assets ?? []) if (a.method === 'rate') { const k = `${a.category}|${a.rate}`; const u = used.get(k) ?? { label: a.category_label, rate: a.rate, accs: [] as string[] }; u.accs.push(`${a.name} - ${c.name}`); used.set(k, u); }
+        if (used.size) blocks.push({ type: 'table', caption: 'نسب الاستهلاك السنوية المستخدمة', columns: [{ key: 'c', label: 'فئة الأصل', width: '30%' }, { key: 'r', label: 'النسبة السنوية', width: '15%' }, { key: 'a', label: 'الحسابات', width: '55%' }], rows: [...used.values()].map((u) => ({ c: u.label, r: `${u.rate}%`, a: u.accs.join('؛ ') })) });
+        if (N.warnings.length) { blocks.push({ type: 'heading', text: 'تنبيهات وافتراضات قائمة' } as ReportBlock); blocks.push({ type: 'list', items: N.warnings.map((w: string) => fmtAmounts(w)) }); }
+      }
       break;
     }
     case 'appendix_accounts': case 'custom_text':

@@ -130,3 +130,4 @@ table.t tr.subtotal td{font-weight:700;border-top:1px solid var(--text-3,#94a3b8
 table.t tr.strong-row td{font-weight:700}
 
 .chat .chat-log{max-height:62vh;overflow:auto;padding:4px}.msg{padding:10px 12px;border-radius:12px;margin:8px 0;max-width:92%}.msg.user{background:var(--primary-050);margin-inline-start:auto;border:1px solid var(--border)}.msg.assistant{background:var(--surface-2);border:1px solid var(--border)}.chip-btn{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:4px 10px;font-size:12.5px;cursor:pointer;color:var(--text-2)}.chip-btn:hover{border-color:var(--primary);color:var(--primary)}
+.card.kpi{padding:14px 16px}.card.kpi .muted{font-size:12.5px;margin-bottom:4px}.card.kpi .big{font-size:21px;font-weight:700;font-variant-numeric:tabular-nums}

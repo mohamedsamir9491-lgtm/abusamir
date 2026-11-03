@@ -22,9 +22,9 @@ export interface LocalContext {
   period: { label: string; start: string; end: string; phrase: string; full: boolean; days: number };
   accounts: Acc[]; kf: Record<string, number>; st: ReturnType<typeof buildStatements>; ratios: ReturnType<typeof computeRatios>;
   prior: { label: string } | null; variance: { key: string; label_ar: string; current: string; comparative: string; change: string; change_pct: string | null; material: boolean }[];
-  findings: { ref: string; rule: string | null; severity: string; title: string; description: string; amount: string | null; category: string }[];
+  findings: { ref: string; rule: string | null; severity: string; title: string; description: string; amount: string | null; category: string; account?: string | null }[];
   group: null | { companies: { name: string; role: string; ownership: string | null; engagementId: string; periodId: string | null }[]; consolidation: Record<string, any> | null }; // eslint-disable-line @typescript-eslint/no-explicit-any
-  official: { title: string; fields: Record<string, { value: any }> }[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  official: { title: string; type?: string; fields: Record<string, { value: any }> }[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   statementsGeneratedAt: string | null;
 }
 const n = (v: unknown) => Number(v ?? 0) || 0;
@@ -55,7 +55,7 @@ export async function buildLocalContext(engagementId: string, periodId: string):
   const { accounts, st, ratios, kf } = core;
   const prior = (pkg?.data.prior as { label: string } | null | undefined) ?? (await findPriorPeriod(engagementId, e.client_id, periodId)) ?? null;
   const variance = ((pkg?.data.variance as { rows?: LocalContext['variance'] } | null)?.rows ?? []);
-  const findings = await many<{ ref: string; rule: string | null; severity: string; title: string; description: string; amount: string | null; category: string }>(`SELECT finding_ref AS ref, rule_code AS rule, severity, title, description, amount, category FROM findings WHERE period_id = $1 AND review_status IN ('open','under_review') ORDER BY CASE severity WHEN 'critical' THEN 5 WHEN 'high' THEN 4 WHEN 'medium' THEN 3 WHEN 'low' THEN 2 ELSE 1 END DESC, COALESCE(amount,0) DESC`, [periodId]);
+  const findings = await many<{ ref: string; rule: string | null; severity: string; title: string; description: string; amount: string | null; category: string; account: string | null }>(`SELECT finding_ref AS ref, rule_code AS rule, severity, title, description, amount, category, account_code AS account FROM findings WHERE period_id = $1 AND review_status IN ('open','under_review') ORDER BY CASE severity WHEN 'critical' THEN 5 WHEN 'high' THEN 4 WHEN 'medium' THEN 3 WHEN 'low' THEN 2 ELSE 1 END DESC, COALESCE(amount,0) DESC`, [periodId]);
   let group: LocalContext['group'] = null;
   const rootId = e.group_engagement_id ?? e.id; const comps = await listComponents(rootId);
   if (comps.length) {
@@ -64,7 +64,7 @@ export async function buildLocalContext(engagementId: string, periodId: string):
     const rootName = (await one<{ n: string }>('SELECT c.legal_name_ar AS n FROM engagements x JOIN clients c ON c.id = x.client_id WHERE x.id = $1', [rootId]))?.n ?? '';
     group = { companies: [{ name: rootName, role: 'parent', ownership: null, engagementId: rootId, periodId: rp?.id ?? null }, ...await Promise.all(comps.map(async (c) => ({ name: c.client_name, role: c.entity_role, ownership: c.ownership_pct, engagementId: c.id, periodId: (await matchingPeriod(c.id, p.start_date, p.end_date))?.id ?? null })))], consolidation: (cons?.result as Record<string, unknown> | null) ?? null };
   }
-  const official = await many<{ title: string; fields: Record<string, { value: unknown }> }>(`SELECT d.title, r.fields FROM official_records r JOIN source_documents d ON d.id = r.document_id WHERE r.engagement_id = $1 AND r.status = 'confirmed'`, [engagementId]);
+  const official = await many<{ title: string; type: string; fields: Record<string, { value: unknown }> }>(`SELECT d.title, d.document_type AS type, r.fields FROM official_records r JOIN source_documents d ON d.id = r.document_id WHERE r.engagement_id = $1 AND r.status = 'confirmed'`, [engagementId]);
   return { engagementId, periodId, clientId: e.client_id, company: e.client_name, currency: e.currency, entityType: e.entity_type,
     period: { label: p.label, start: p.start_date, end: p.end_date, phrase: periodPhrase(p.start_date, p.end_date), full: isFullYear(p.start_date, p.end_date), days },
     accounts, kf, st, ratios, prior: prior ? { label: (prior as { label: string }).label } : null, variance, findings, group, official, statementsGeneratedAt: pkg?.generated_at ?? null };

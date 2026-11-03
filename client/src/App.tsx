@@ -21,6 +21,8 @@ import { Users } from './pages/Users';
 import { Audit } from './pages/Audit';
 import { System } from './pages/System';
 import { Official } from './pages/Official';
+import { Requests } from './pages/Requests';
+import { Valuation } from './pages/Valuation';
 import { Cleanup } from './pages/Cleanup';
 
 export default function App() {
@@ -33,6 +35,8 @@ export default function App() {
       <Route path="/engagements" element={<Engagements />} /><Route path="/engagements/:id" element={<EngagementDetail />} /><Route path="/engagements/:id/letter" element={<EngagementLetter />} />
       <Route path="/upload" element={<UploadPage />} />
       <Route path="/official" element={<Official />} />
+      <Route path="/requests" element={<Requests />} />
+      <Route path="/valuation" element={<Valuation />} />
       <Route path="/imports" element={<ImportsList />} /><Route path="/imports/:id" element={<ImportJob />} />
       <Route path="/trial-balance" element={<TrialBalance />} />
       <Route path="/analysis" element={<Analysis />} />
