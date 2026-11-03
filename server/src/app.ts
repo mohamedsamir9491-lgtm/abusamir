@@ -37,7 +37,10 @@ export function createApp() {
   app.use(express.json({ limit: '5mb' }));
   if (!config.isTest) app.use(pinoHttp({ logger, autoLogging: { ignore: (req: { url?: string }) => req.url?.startsWith('/api/health') ?? false } }));
 
-  app.get('/api/health', (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+  app.get('/api/health', async (_req, res) => {
+    let build = 'dev'; try { const fs = await import('node:fs'); if (fs.existsSync('/app/BUILD_TIME')) build = fs.readFileSync('/app/BUILD_TIME', 'utf8').trim().replace(/\n/g, ' '); } catch { /* ignore */ }
+    res.json({ ok: true, time: new Date().toISOString(), build, features: ['letterhead-design-mode', 'cleanup', 'consolidation-ui', 'engagement-letters'] });
+  });
   app.use('/api/auth', authRouter);
   app.use('/api/users', usersRouter);
   app.use('/api/office', officeRouter);

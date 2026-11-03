@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import { invalidateLetterheadCache, detectLetterheadBounds } from '../reports/render.js';
+import { invalidateLetterheadCache, detectLetterheadBounds, letterheadDesign, designErrors, loadLetterhead, wrapWithLetterhead } from '../reports/render.js';
+import { htmlToPdf } from '../reports/pdf.js';
 import { z } from 'zod';
-import { one, query } from '../../db/pool.js';
+import { one, many, query } from '../../db/pool.js';
 import { parse } from '../../lib/validate.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
 import { audit } from '../../middleware/audit.js';
@@ -98,6 +99,31 @@ officeRouter.delete('/branding/:kind', requirePermission('office.manage'), async
     if (req.params.kind === 'letterhead') { await query(`UPDATE office_settings SET letterhead_mode = 'generated', letterhead_top_mm = NULL, letterhead_bottom_mm = NULL WHERE id = 1`); invalidateLetterheadCache(); }
     await audit(req, { action: `office.${req.params.kind}_removed` });
     res.json({ settings: await getOfficeSettings() });
+  } catch (e) { next(e); }
+});
+
+/** تشخيص الترويسة من داخل البرنامج: الإصدار، الترحيلات، وضع الترويسة، الملف، بايثون، نتيجة استخراج التصميم */
+officeRouter.get('/letterhead-diagnostics', requirePermission('office.manage'), async (_req, res, next) => {
+  try {
+    const fs = await import('node:fs'); const { execFileSync } = await import('node:child_process');
+    const s = await getOfficeSettings();
+    const migrations = (await many<{ name: string }>('SELECT name FROM schema_migrations ORDER BY name')).map((m) => m.name);
+    const file = s.letterhead_file_id ? await one<{ mime_type: string; size_bytes: string; original_name: string }>('SELECT mime_type, size_bytes, original_name FROM stored_files WHERE id = $1', [s.letterhead_file_id]) : null;
+    let python = 'غير متاح'; try { python = execFileSync('python3', ['-c', 'import PIL, pypdfium2, sys; print("ok", sys.version.split()[0])'], { timeout: 20000 }).toString().trim(); } catch (e) { python = 'فشل: ' + String((e as Error).message).slice(0, 200); }
+    let build = 'dev'; try { if (fs.existsSync('/app/BUILD_TIME')) build = fs.readFileSync('/app/BUILD_TIME', 'utf8').trim(); } catch { /* ignore */ }
+    invalidateLetterheadCache();
+    const design = s.letterhead_file_id ? await letterheadDesign(String(s.letterhead_file_id)) : null;
+    res.json({ build, migrations, letterhead_mode: s.letterhead_mode, file, python, design: design ? { ok: true, top_mm: design.top_mm, bottom_mm: design.bottom_mm, top_kb: Math.round(design.top_png.length * 0.75 / 1024), bottom_kb: Math.round(design.bottom_png.length * 0.75 / 1024) } : { ok: false, error: s.letterhead_file_id ? (designErrors.get(String(s.letterhead_file_id)) ?? 'لم يُستخرج التصميم (راجع سجل الحاوية)') : 'لا توجد ترويسة مرفوعة' } });
+  } catch (e) { next(e); }
+});
+/** صفحة اختبار PDF على الترويسة الحالية (للتحقق البصري من داخل البرنامج) */
+officeRouter.get('/letterhead-test.pdf', requirePermission('office.manage'), async (_req, res, next) => {
+  try {
+    const lh = await loadLetterhead(await getOfficeSettings());
+    const body = `<h2>صفحة اختبار الترويسة</h2><p>الوضع: ${lh.letterhead_mode === 'design' ? 'التصميم المرفوع' : 'ترويسة مولّدة'} | استُخرج التصميم: ${lh.design ? 'نعم' : 'لا'} | الهوامش: أعلى ${lh.page_margin_top_mm} مم، أسفل ${lh.page_margin_bottom_mm} مم</p>${Array.from({ length: 60 }, (_, i) => `<p>سطر اختبار رقم ${i + 1}: يجب أن يبقى هذا النص داخل المساحة البيضاء وألا يغطي شريطي الرأس والتذييل على أي صفحة.</p>`).join('')}`;
+    const html = wrapWithLetterhead(body, lh, { title: 'اختبار الترويسة', reference_no: 'TEST', client_name: lh.name_ar, confidentiality: lh.confidentiality_ar }, { forPdf: true, watermark: 'اختبار' });
+    const pdf = await htmlToPdf(html, lh);
+    res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', 'inline; filename="letterhead-test.pdf"'); res.send(pdf);
   } catch (e) { next(e); }
 });
 

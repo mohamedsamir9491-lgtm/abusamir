@@ -62,6 +62,7 @@ async function letterheadDataUrl(fileId: string | null): Promise<string | null> 
 /** شرائط التصميم المرفوع: حدوده (مم) وصور الرأس/التذييل/الوسط عبر python/letterhead_bounds.py؛ تُحسب مرة واحدة لكل ملف وتُحفظ في الذاكرة */
 export interface LetterheadDesign { top_mm: number; bottom_mm: number; top_png: string; bottom_png: string; middle_png: string }
 const designCache = new Map<string, LetterheadDesign | null>();
+export const designErrors = new Map<string, string>();
 export async function letterheadDesign(fileId: string): Promise<LetterheadDesign | null> {
   if (designCache.has(fileId)) return designCache.get(fileId)!;
   let out: LetterheadDesign | null = null;
@@ -72,7 +73,8 @@ export async function letterheadDesign(fileId: string): Promise<LetterheadDesign
     const py = [path.resolve(here, '../../../../python/letterhead_bounds.py'), path.resolve(process.cwd(), '../python/letterhead_bounds.py'), path.resolve(process.cwd(), 'python/letterhead_bounds.py')].find((p) => fs.existsSync(p));
     if (py) out = JSON.parse(execFileSync('python3', ['-I', py, src], { timeout: 90000, maxBuffer: 64 * 1024 * 1024 }).toString()) as LetterheadDesign;
     fs.rmSync(dir, { recursive: true, force: true });
-  } catch (e) { logger.warn({ err: e }, 'letterhead design extraction failed'); out = null; }
+  } catch (e) { logger.warn({ err: e }, 'letterhead design extraction failed'); designErrors.set(fileId, String((e as Error).message ?? e)); out = null; }
+  if (out) designErrors.delete(fileId);
   designCache.set(fileId, out); return out;
 }
 export const invalidateLetterheadCache = () => { bgCache.clear(); designCache.clear(); };

@@ -8,6 +8,6 @@ COPY server/package.json server/
 COPY client/package.json client/
 RUN npm ci --include=dev
 COPY . .
-RUN npm run build && FONT_DIR=/usr/local/share/fonts/abusamir ./scripts/install-fonts.sh && npm prune --omit=dev
+RUN npm run build && FONT_DIR=/usr/local/share/fonts/abusamir ./scripts/install-fonts.sh && npm prune --omit=dev && date -u +%Y-%m-%dT%H:%M:%SZ > /app/BUILD_TIME && (python3 -c "import PIL, pypdfium2" && echo python-ok >> /app/BUILD_TIME || echo python-missing >> /app/BUILD_TIME)
 EXPOSE 4000
 CMD ["node", "server/dist/index.js"]
