@@ -80,16 +80,22 @@ function letterHtml(l: { letter_no: string | null; letter_date: string; status: 
   const head = `<div class="ldate">التاريخ: ${esc(fmtDate(l.letter_date, true))}</div>
     <div class="laddr"><div><b>${esc(f.client_attention)}</b></div>${f.client_cr ? `<div>السجل التجاري رقم ${esc(f.client_cr)}</div>` : ''}<div>المحترمين</div></div>
     <p>${esc(f.greeting)}</p><p><b>الموضوع: ${esc(f.subject)}</b></p>${paras(f.intro)}<div class="sec"><h3>ملخص الارتباط</h3>${summary}</div>`;
-  const sig = `<p style="text-align:center;margin-top:5mm">${esc(f.closing)}</p>
+  const sigImg = issued && lh.signature_data_url ? `<img src="${lh.signature_data_url}" alt="">` : '';
+  const stampImg = issued && lh.stamp_data_url ? `<img class="stamp" src="${lh.stamp_data_url}" alt="">` : '';
+  // كتلة التوقيع: عنوان الطرف ثم اسمه ثم الموقّع، وصورة التوقيع على السطر بجانب كلمة "التوقيع"، والختم أسفلها مباشرة
+  const sig = `<p style="text-align:center;margin:4mm 0 3mm">${esc(f.closing)}</p>
     <table class="lsig"><tr><th>${esc(f.party1_label)}</th><th>${esc(f.party2_label)}</th></tr>
-    <tr><td>${esc(f.party1_name)}</td><td>${esc(f.party2_name)}</td></tr>
-    <tr><td><div class="sigbox"></div>${esc(f.party1_signatory || '')}</td><td><div class="sigbox">${issued && lh.signature_data_url ? `<img src="${lh.signature_data_url}">` : ''}</div>${esc(f.party2_signatory || lh.signatory_name || '')}${!issued ? '<div class="muted">يُوقَّع ويُختم عند تعليم الخطاب «صادرًا»</div>' : ''}</td></tr>
-    <tr><td>التوقيع: ______________</td><td>التوقيع: ______________${lh.license_number ? `<div class="muted">قيد رقم (${esc(lh.license_number)})</div>` : ''}</td></tr>
-    <tr><td>التاريخ: ______________</td><td>التاريخ: ${esc(fmtDate(l.letter_date, false))}${issued && lh.stamp_data_url ? `<div><img src="${lh.stamp_data_url}" style="max-height:30mm;margin-top:2mm"></div>` : ''}</td></tr></table>`;
+    <tr><td class="pn">${esc(f.party1_name)}</td><td class="pn">${esc(f.party2_name)}</td></tr>
+    <tr><td>${esc(f.party1_signatory || '')}</td><td>${esc(f.party2_signatory || lh.signatory_name || '')}${lh.license_number ? ` <span class="muted">(قيد رقم ${esc(lh.license_number)})</span>` : ''}</td></tr>
+    <tr><td><div class="sl"><span>التوقيع:</span><span class="si"></span></div></td><td><div class="sl"><span>التوقيع:</span><span class="si">${sigImg}</span></div></td></tr>
+    <tr><td><div class="sl"><span>التاريخ:</span><span class="si dt"></span></div></td><td><div class="sl"><span>التاريخ:</span><span class="si dt">${esc(fmtDate(l.letter_date, false))}</span></div></td></tr>
+    <tr><td></td><td>${stampImg}</td></tr></table>`;
   const css = `.lcover{text-align:center;padding-top:60mm;page-break-after:always;break-after:page}.lcover .lt{font-size:20pt;font-weight:700;text-decoration:underline;margin-bottom:22mm}.lcover .ln{font-size:13pt;font-weight:700;margin:5mm 0}.lcover .ls{font-size:12pt;color:#1f3a5f;margin:-16mm 0 18mm}.lcover .lr{font-size:10pt;color:#555;margin-top:14mm}
     .ltab{width:100%;border-collapse:collapse;margin:2mm 0 3mm;font-size:10pt}.ltab th,.ltab td{border:1px solid #c9d1dc;padding:1.5mm 2.5mm;text-align:right;vertical-align:top}.ltab thead th{background:#1f3a5f;color:#fff}.lsum th{width:32%;background:#f1f4f8;font-weight:700}
     .ldate{font-weight:700;margin-bottom:5mm}.laddr{margin-bottom:4mm;line-height:1.7}.sec{margin-top:3mm}.sec h3{font-size:11.5pt;margin:3mm 0 1.5mm;page-break-after:avoid}ol,ul{padding-right:8mm}li{margin-bottom:1.2mm}
-    .lsig{width:100%;margin-top:8mm;border:0;page-break-inside:avoid}.lsig th,.lsig td{border:0;text-align:center;padding:2mm;vertical-align:top;width:50%}.lsig th{font-weight:700;background:none;color:#1b1f24}.sigbox{height:22mm}.sigbox img{max-height:22mm;max-width:50mm}.muted{color:#555;font-size:9pt}`;
+    .lsig{width:100%;margin-top:4mm;border:0;page-break-inside:avoid}.lsig th,.lsig td{border:0;text-align:center;padding:1mm 2mm;vertical-align:top;width:50%}.lsig th{font-weight:700;background:none;color:#1b1f24;padding-bottom:2mm}.lsig td.pn{font-weight:700}
+    .sl{display:flex;align-items:flex-end;justify-content:center;gap:2.5mm}.sl>span:first-child{padding-bottom:1mm;white-space:nowrap}.si{display:inline-block;width:46mm;height:14mm;border-bottom:1px solid #555;text-align:center;position:relative}.si img{max-height:17mm;max-width:44mm;position:absolute;bottom:-2mm;left:50%;transform:translateX(-50%)}.si.dt{height:auto;padding-bottom:1mm}
+    .stamp{max-height:28mm;max-width:40mm;margin-top:1mm}.muted{color:#555;font-size:9pt}`;
   return wrapWithLetterhead(cover + head + sections + sig, lh, { title: f.subject, reference_no: l.letter_no ?? '', client_name: f.entity_name, confidentiality: lh.confidentiality_ar }, { forPdf, watermark: l.status === 'draft' ? 'مسودة' : null, extraCss: css });
 }
 
