@@ -141,3 +141,35 @@ export async function aiStatus() {
   const provider = getProvider();
   return { provider: provider.name, available: provider.available(), authorized: auth.allowed, reason: auth.reason ?? null, share_client_names: auth.shareClientNames, model: provider.name === 'anthropic' ? (await import('../../config.js')).config.ai.model : null };
 }
+
+/** التحليل المحلي (الافتراضي): بلا أي اتصال خارجي؛ يُحفظ بنفس شكل مخرجات المساعد ليظهر في الشاشة والتقارير */
+export async function runLocalAnalysis(engagementId: string, periodId: string, userId: string) {
+  const { buildLocalContext, localAnalysis, localObservations } = await import('./local.js');
+  const ctx = await buildLocalContext(engagementId, periodId);
+  const analysis = localAnalysis(ctx);
+  const output = { ...analysis, _verification: { engine: 'local', numbers_checked: true, unverified_numbers: [] as string[], model: 'local-rules', generated_at: new Date().toISOString() } };
+  const run = await withTransaction(async (tx) => {
+    const r = await one<{ id: string }>(`INSERT INTO analysis_runs (client_id, engagement_id, period_id, run_type, status, summary, result, started_by, finished_at) VALUES ($1,$2,$3,'ai_analysis','completed',$4,$5,$6,now()) RETURNING id`,
+      [ctx.clientId, engagementId, periodId, JSON.stringify({ engine: 'local', observations: analysis.observations.length }), JSON.stringify(output), userId], tx);
+    await upsertFindings({ clientId: ctx.clientId, engagementId, periodId, runId: r!.id, rulePrefix: ['LA-'], findings: localObservations(ctx), userId }, tx);
+    return r!;
+  });
+  return { run_id: run.id, analysis: output };
+}
+
+/** المحادثة عبر المزوّد الخارجي (جاهزة ومعطلة افتراضيًا): تُستخدم فقط إن فُعّل المزوّد وسمحت السياسة */
+export async function externalChat(engagementId: string, periodId: string, question: string, userId: string) {
+  const auth = await checkAuthorization();
+  if (!auth.allowed) throw badRequest(auth.reason ?? 'المزوّد الخارجي غير مفعّل');
+  const { input } = await buildAnalysisInput(engagementId, periodId, auth.shareClientNames);
+  const { z } = await import('zod');
+  const schema = z.object({ answer_ar: z.string().min(2).max(6000), figures_used: z.array(z.string().max(60)).max(40) });
+  const provider = getProvider();
+  const userMsg = `سؤال المحاسب: ${question}\nأجب بالعربية مستخدمًا فقط البيانات التالية (JSON) والمبادئ المحاسبية العامة، واذكر الأرقام حرفيًا:\n${JSON.stringify(input)}`;
+  const reqRow = await one<{ id: string }>(`INSERT INTO ai_requests (engagement_id, period_id, provider, purpose, input_hash, created_by) VALUES ($1,$2,$3,'chat',$4,$5) RETURNING id`, [engagementId, periodId, provider.name, sha256(userMsg), userId]);
+  const result = await provider.run({ purpose: 'chat', system: SYSTEM_PROMPT, user: userMsg, schema, maxTokens: 4000 });
+  if (!result.ok) { await query(`UPDATE ai_requests SET status = 'failed', error_message = $2, finished_at = now() WHERE id = $1`, [reqRow!.id, result.error]); throw badRequest(result.error); }
+  const known = collectNumbers(input); const unverified = numbersInText(result.data.answer_ar).filter((x) => !known.has(x));
+  await query(`UPDATE ai_requests SET status = 'completed', model = $2, input_tokens = $3, output_tokens = $4, response = $5, finished_at = now() WHERE id = $1`, [reqRow!.id, result.model, result.inputTokens, result.outputTokens, JSON.stringify(result.data)]);
+  return { answer: result.data.answer_ar, unverified_numbers: unverified, model: result.model };
+}

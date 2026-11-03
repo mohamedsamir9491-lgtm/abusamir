@@ -156,9 +156,11 @@ describe('deterministic analysis', () => {
     expect(r.status).toBe(200); expect(r.body.reconciliation.matched).toBe(true); expect(r.body.reconciliation.difference).toBe('0.00');
     expect(r.body.findings.map((f: { rule_code: string }) => f.rule_code)).toContain('AR-002');
   });
-  it('AI is disabled by default and deterministic functions still work', async () => {
+  it('external AI is off by default; the local accountant works without it', async () => {
     const s = await request(app).get('/api/ai/status').set(auth(accountant)); expect(s.body.authorized).toBe(false);
-    const r = await request(app).post('/api/ai/analyze').set(auth(accountant)).send({ engagement_id: engA, period_id: pA25, confirm_external_transfer: true }); expect(r.status).toBe(400);
+    const r = await request(app).post('/api/ai/analyze').set(auth(accountant)).send({ engagement_id: engA, period_id: pA25, engine: 'external', confirm_external_transfer: true }); expect(r.status).toBe(400);
+    const l = await request(app).post('/api/ai/analyze').set(auth(accountant)).send({ engagement_id: engA, period_id: pA25 }); expect(l.status).toBe(200); expect(l.body.analysis._verification.engine).toBe('local');
+    const c = await request(app).post('/api/ai/chat').set(auth(accountant)).send({ engagement_id: engA, period_id: pA25, message: 'كم إجمالي الأصول؟' }); expect(c.status).toBe(200); expect(c.body.engine).toBe('local'); expect(c.body.sources.length).toBeGreaterThan(0);
   });
 });
 
