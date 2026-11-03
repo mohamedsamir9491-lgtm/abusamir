@@ -81,6 +81,8 @@ officeRouter.post('/branding/:kind', requirePermission('office.manage'), upload.
     checkUpload(kind === 'letterhead' ? 'letterhead' : 'image', req.file.originalname, req.file.mimetype);
     const f = await saveFile({ purpose: kind, subdir: 'branding', originalName: req.file.originalname, mime: req.file.mimetype, data: req.file.buffer, userId: req.user!.id });
     await query(`UPDATE office_settings SET ${col} = $1, updated_by = $2, updated_at = now() WHERE id = 1`, [f.id, req.user!.id]);
+    if (kind === 'signature') await query('UPDATE office_settings SET use_signature = TRUE WHERE id = 1'); // رفع التوقيع يفعّل استخدامه تلقائيًا
+    if (kind === 'stamp') await query('UPDATE office_settings SET use_stamp = TRUE WHERE id = 1');
     if (kind === 'letterhead') { // تصميم مرفوع: يُفعَّل وضع التصميم تلقائيًا وتُحجز مساحة كافية للرأس والتذييل
       const b = await detectLetterheadBounds(f.id);
       await query(`UPDATE office_settings SET letterhead_mode = 'design', letterhead_top_mm = $1, letterhead_bottom_mm = $2, page_margin_top_mm = LEAST(page_margin_top_mm, 8), page_margin_bottom_mm = LEAST(page_margin_bottom_mm, 8) WHERE id = 1`, [b?.top_mm ?? null, b?.bottom_mm ?? null]);

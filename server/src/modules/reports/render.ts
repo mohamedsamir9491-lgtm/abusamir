@@ -237,9 +237,10 @@ export function renderReportHtml(content: ReportContent, lh: OfficeLetterhead, o
   for (const s of sections) {
     if (s.type === 'cover') continue;
     body.push(`<section><h2>${esc(s.title)}</h2>${s.blocks.map(renderBlock).join('')}</section>`);
+    const signed = m.status === 'approved' || m.status === 'issued'; // لا توقيع ولا ختم على المسودات أو النسخ غير المعتمدة
     if (s.type === 'signatures') body.push(`<div class="signatures">
-      <div class="box">${lh.signature_data_url ? `<img src="${lh.signature_data_url}">` : '<div style="height:22mm"></div>'}<div>${esc(lh.signatory_name ?? lh.name_ar)}</div><div style="font-size:9pt;color:#555">${esc(lh.signatory_title ?? '')}</div></div>
-      <div class="box">${lh.stamp_data_url ? `<img src="${lh.stamp_data_url}">` : '<div style="height:22mm"></div>'}<div>${esc(lh.name_ar)}</div></div></div>`);
+      <div class="box">${signed && lh.signature_data_url ? `<img src="${lh.signature_data_url}">` : '<div style="height:22mm"></div>'}<div>${esc(lh.signatory_name ?? lh.name_ar)}</div><div style="font-size:9pt;color:#555">${esc(lh.signatory_title ?? '')}</div></div>
+      <div class="box">${signed && lh.stamp_data_url ? `<img src="${lh.stamp_data_url}">` : '<div style="height:22mm"></div>'}<div>${esc(lh.name_ar)}</div></div></div>`);
   }
   const watermark = m.status === 'draft' ? 'مسودة' : null;
   return wrapWithLetterhead(body.join('\n'), lh, m, { ...opts, watermark });

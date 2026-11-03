@@ -62,7 +62,7 @@ async function loadLetter(engagementId: string) {
 function pickKnown(old: Record<string, unknown>): Partial<LetterFields> { const o: Partial<LetterFields> = {}; if (typeof old.client_cr === 'string') o.client_cr = old.client_cr; if (typeof old.subject === 'string') o.subject = old.subject; return o; }
 
 function letterHtml(l: { letter_no: string | null; letter_date: string; status: string; fields: LetterFields }, lh: Awaited<ReturnType<typeof loadLetterhead>>, forPdf: boolean) {
-  const f = l.fields;
+  const f = l.fields; const issued = l.status === 'issued'; // التوقيع والختم يظهران على النسخة الصادرة فقط؛ المسودة تحمل علامة مائية وخانة توقيع فارغة
   const list = (s: LetterSection) => !s.items.length || s.items_style === 'none' ? '' : s.items_style === 'bullets' ? `<ul>${s.items.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : `<ol>${s.items.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>`;
   const paras = (ps: string[]) => ps.filter((x) => x.trim()).map((x) => `<p>${esc(x)}</p>`).join('');
   const feeTable = f.fees_schedule?.length ? `<table class="ltab"><thead><tr><th>مرحلة السداد</th><th>النسبة</th><th>موعد الاستحقاق</th></tr></thead><tbody>${f.fees_schedule.map((r) => `<tr><td>${esc(r.stage)}</td><td>${esc(r.pct)}</td><td>${esc(r.due)}</td></tr>`).join('')}</tbody></table>` : '';
@@ -78,9 +78,9 @@ function letterHtml(l: { letter_no: string | null; letter_date: string; status: 
   const sig = `<p style="text-align:center;margin-top:5mm">${esc(f.closing)}</p>
     <table class="lsig"><tr><th>${esc(f.party1_label)}</th><th>${esc(f.party2_label)}</th></tr>
     <tr><td>${esc(f.party1_name)}</td><td>${esc(f.party2_name)}</td></tr>
-    <tr><td><div class="sigbox"></div>${esc(f.party1_signatory || '')}</td><td><div class="sigbox">${lh.signature_data_url ? `<img src="${lh.signature_data_url}">` : ''}</div>${esc(f.party2_signatory || lh.signatory_name || '')}</td></tr>
+    <tr><td><div class="sigbox"></div>${esc(f.party1_signatory || '')}</td><td><div class="sigbox">${issued && lh.signature_data_url ? `<img src="${lh.signature_data_url}">` : ''}</div>${esc(f.party2_signatory || lh.signatory_name || '')}${!issued ? '<div class="muted">يُوقَّع ويُختم عند تعليم الخطاب «صادرًا»</div>' : ''}</td></tr>
     <tr><td>التوقيع: ______________</td><td>التوقيع: ______________${lh.license_number ? `<div class="muted">قيد رقم (${esc(lh.license_number)})</div>` : ''}</td></tr>
-    <tr><td>التاريخ: ______________</td><td>التاريخ: ${esc(fmtDate(l.letter_date, false))}${lh.stamp_data_url ? `<div><img src="${lh.stamp_data_url}" style="max-height:30mm;margin-top:2mm"></div>` : ''}</td></tr></table>`;
+    <tr><td>التاريخ: ______________</td><td>التاريخ: ${esc(fmtDate(l.letter_date, false))}${issued && lh.stamp_data_url ? `<div><img src="${lh.stamp_data_url}" style="max-height:30mm;margin-top:2mm"></div>` : ''}</td></tr></table>`;
   const css = `.lcover{text-align:center;padding-top:60mm;page-break-after:always;break-after:page}.lcover .lt{font-size:20pt;font-weight:700;text-decoration:underline;margin-bottom:22mm}.lcover .ln{font-size:13pt;font-weight:700;margin:5mm 0}.lcover .ls{font-size:12pt;color:#1f3a5f;margin:-16mm 0 18mm}.lcover .lr{font-size:10pt;color:#555;margin-top:14mm}
     .ltab{width:100%;border-collapse:collapse;margin:2mm 0 3mm;font-size:10pt}.ltab th,.ltab td{border:1px solid #c9d1dc;padding:1.5mm 2.5mm;text-align:right;vertical-align:top}.ltab thead th{background:#1f3a5f;color:#fff}.lsum th{width:32%;background:#f1f4f8;font-weight:700}
     .ldate{font-weight:700;margin-bottom:5mm}.laddr{margin-bottom:4mm;line-height:1.7}.sec{margin-top:3mm}.sec h3{font-size:11.5pt;margin:3mm 0 1.5mm;page-break-after:avoid}ol,ul{padding-right:8mm}li{margin-bottom:1.2mm}
