@@ -11,6 +11,7 @@ import { FS_LINE_MAP } from '../../engine/fsLines.js';
 import type { AiAnalysis } from '../ai/schema.js';
 import { buildStatements } from '../../engine/statements.js';
 import { groupCompaniesForPeriod, listComponents, prefillSetup } from '../engagements/group.js';
+import { confirmedOfficial } from '../official/routes.js';
 
 /** شركات المجموعة لفترة التقرير: قوائم كل شركة مبنية مباشرة من ميزانها المعتمد (منفصلة، دون استبعادات) */
 async function collectGroupCompanies(engagementId: string, periodId: string, consolidation: Record<string, unknown> | null) {
@@ -77,8 +78,13 @@ export async function collectSnapshot(engagementId: string, periodId: string, pr
   const pm = prefixMapFor(entries);
   const tbRows = entries.map((t) => { const m = resolveMeta(t, accounts, pm); return { account_code: t.account_code, account_name: t.account_name, opening_net: toStr(net(t.opening_debit, t.opening_credit)), movement_net: toStr(net(t.period_debit, t.period_credit)), closing_debit: toStr(t.closing_debit), closing_credit: toStr(t.closing_credit), closing_net: toStr(net(t.closing_debit, t.closing_credit)), fs_line: FS_LINE_MAP[m.fs_line_code]?.label_ar ?? m.fs_line_code, account_type: m.account_type, source_row: t.source_row }; });
   const prior = pkg?.data.prior as { id: string; label: string } | null | undefined;
+  // البيانات النظامية المعتمدة: للشركة نفسها، ولكل شركات المجموعة في ارتباط المجموعة
+  const offComps = engagement.group_engagement_id ? [] : await listComponents(engagementId);
+  const offTargets = [{ id: engagementId, name: engagement.client_name ?? '' }, ...offComps.map((c) => ({ id: c.id, name: c.client_name }))];
+  const offRows = await confirmedOfficial(offTargets.map((t) => t.id));
+  const officialData = offTargets.map((t) => ({ name: t.name, records: offRows.filter((r) => r.engagement_id === t.id) })).filter((x) => x.records.length);
   const groupCompanies = engagement.group_engagement_id ? null : await collectGroupCompanies(engagementId, periodId, (consolidation?.result as Record<string, unknown> | null) ?? null);
   return { generated_at: new Date().toISOString(), engagement, period, prior: prior ?? null, office, tb: tbRun ? { run_id: tbRun.id, summary: tbRun.summary, run_at: iso(tbRun.started_at)! } : null, tb_rows: tbRows,
-    statements: pkg?.data.statements ?? null, ratios: pkg?.data.ratios ?? null, variance: pkg?.data.variance ?? null, findings, adjustments, documents: documents.map((d) => ({ ...d, uploaded_at: iso(d.uploaded_at), committed_at: iso(d.committed_at) })), consolidation: (consolidation?.result as Record<string, unknown> | null) ?? null, group_companies: groupCompanies, engagement_letter: letter ?? null, consolidation_run_at: iso(consolidation?.started_at as string | undefined), group_documents: groupSources.map((d) => ({ ...d, uploaded_at: iso(d.uploaded_at as string), committed_at: iso(d.committed_at as string) })), ai: (ai?.result as AiSnapshot | null) ?? null, ai_run_at: iso(ai?.started_at), subledger: sub, journal: journal ?? null, preparer };
+    statements: pkg?.data.statements ?? null, ratios: pkg?.data.ratios ?? null, variance: pkg?.data.variance ?? null, findings, adjustments, documents: documents.map((d) => ({ ...d, uploaded_at: iso(d.uploaded_at), committed_at: iso(d.committed_at) })), consolidation: (consolidation?.result as Record<string, unknown> | null) ?? null, group_companies: groupCompanies, official_data: officialData, engagement_letter: letter ?? null, consolidation_run_at: iso(consolidation?.started_at as string | undefined), group_documents: groupSources.map((d) => ({ ...d, uploaded_at: iso(d.uploaded_at as string), committed_at: iso(d.committed_at as string) })), ai: (ai?.result as AiSnapshot | null) ?? null, ai_run_at: iso(ai?.started_at), subledger: sub, journal: journal ?? null, preparer };
 }
 export type Snapshot = Awaited<ReturnType<typeof collectSnapshot>>;

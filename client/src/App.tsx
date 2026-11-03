@@ -20,6 +20,7 @@ import { Office } from './pages/Office';
 import { Users } from './pages/Users';
 import { Audit } from './pages/Audit';
 import { System } from './pages/System';
+import { Official } from './pages/Official';
 import { Cleanup } from './pages/Cleanup';
 
 export default function App() {
@@ -31,6 +32,7 @@ export default function App() {
       <Route path="/clients" element={<Clients />} /><Route path="/clients/:id" element={<ClientDetail />} />
       <Route path="/engagements" element={<Engagements />} /><Route path="/engagements/:id" element={<EngagementDetail />} /><Route path="/engagements/:id/letter" element={<EngagementLetter />} />
       <Route path="/upload" element={<UploadPage />} />
+      <Route path="/official" element={<Official />} />
       <Route path="/imports" element={<ImportsList />} /><Route path="/imports/:id" element={<ImportJob />} />
       <Route path="/trial-balance" element={<TrialBalance />} />
       <Route path="/analysis" element={<Analysis />} />

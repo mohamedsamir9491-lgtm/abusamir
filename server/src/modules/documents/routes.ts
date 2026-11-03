@@ -12,7 +12,7 @@ import { checkUpload, saveFile, getFile, readFileData, softDeleteFile } from '..
 export const documentsRouter = Router();
 documentsRouter.use(authenticate, requirePermission('clients.view'));
 
-const DOC_TYPES = ['trial_balance', 'general_ledger', 'journal_entries', 'chart_of_accounts', 'receivables', 'payables', 'inventory', 'fixed_assets', 'bank_statement', 'financial_statements', 'invoice', 'contract', 'articles_of_association', 'commercial_registration', 'other', 'unknown'] as const;
+const DOC_TYPES = ['trial_balance', 'general_ledger', 'journal_entries', 'chart_of_accounts', 'receivables', 'payables', 'inventory', 'fixed_assets', 'bank_statement', 'financial_statements', 'invoice', 'contract', 'articles_of_association', 'commercial_registration', 'zakat_certificate', 'vat_certificate', 'municipal_license', 'partners_resolution', 'other', 'unknown'] as const;
 
 documentsRouter.post('/upload', requirePermission('documents.upload'), upload.array('files', 5), async (req, res, next) => {
   try {

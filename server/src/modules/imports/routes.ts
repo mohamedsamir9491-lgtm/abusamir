@@ -6,6 +6,7 @@ import { badRequest, notFound } from '../../lib/errors.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
 import { audit } from '../../middleware/audit.js';
 import { createImportJob, previewJob, updateMapping, validateJob, commitJob, listRecords, getJob } from './service.js';
+import { OFFICIAL_TYPES } from '../official/routes.js';
 import { FIELDS, DATA_TYPES, DATA_TYPE_LABELS } from './fields.js';
 
 export const importsRouter = Router();
@@ -29,6 +30,9 @@ importsRouter.get('/', async (req, res, next) => {
 importsRouter.post('/', requirePermission('imports.run'), async (req, res, next) => {
   try {
     const d = parse(z.object({ document_id: z.string().uuid(), data_type: z.enum(DATA_TYPES), period_id: z.string().uuid().nullable().optional() }), req.body);
+    // المستندات النظامية (عقود التأسيس، السجلات...) لا تُستورد كبيانات محاسبية؛ تُستخرج بياناتها من شاشة «البيانات النظامية»
+    const docType = await one<{ document_type: string }>('SELECT document_type FROM source_documents WHERE id = $1', [d.document_id]);
+    if (docType && (OFFICIAL_TYPES as readonly string[]).includes(docType.document_type)) throw badRequest('هذا مستند نظامي (عقد/سجل/شهادة) وليس بيانات محاسبية؛ استخرج بياناته من شاشة «البيانات النظامية».');
     const job = await createImportJob({ documentId: d.document_id, dataType: d.data_type, periodId: d.period_id ?? null, userId: req.user!.id });
     await audit(req, { action: 'import.created', entityType: 'import_job', entityId: job.id, clientId: job.client_id, details: { data_type: d.data_type, status: job.status, method: job.extraction_meta?.method } });
     res.status(201).json({ job });

@@ -13,6 +13,7 @@ import { clientsRouter } from './modules/clients/routes.js';
 import { engagementsRouter } from './modules/engagements/routes.js';
 import { letterRouter } from './modules/engagements/letter.js';
 import { groupRouter } from './modules/engagements/group.js';
+import { officialRouter } from './modules/official/routes.js';
 import { documentsRouter } from './modules/documents/routes.js';
 import { importsRouter } from './modules/imports/routes.js';
 import { accountsRouter } from './modules/accounts/routes.js';
@@ -51,6 +52,7 @@ export function createApp() {
   app.use('/api/system/cleanup', cleanupRouter);
   app.use('/api/engagements', engagementsRouter);
   app.use('/api/documents', documentsRouter);
+  app.use('/api/official', officialRouter);
   app.use('/api/imports', importsRouter);
   app.use('/api/accounts', accountsRouter);
   app.use('/api/trial-balance', trialBalanceRouter);

@@ -305,6 +305,35 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       if (v.licensed_valuer === 'required') blocks.push(note('الغرض يتطلب تقريرًا من مقيّم مرخّص من الهيئة السعودية للمقيمين المعتمدين (تقييم)؛ لا يُصدر هذا التقرير بصفة تقييم معتمد ما لم يوقّعه مقيّم مرخّص.', 'warning'));
       break;
     }
+    case 'official_data': {
+      const od = (snap as unknown as { official_data?: { name: string; records: { doc_kind: string; title: string; confirmed_at: string; fields: Record<string, { value: any }> }[] }[] }).official_data ?? []; // eslint-disable-line @typescript-eslint/no-explicit-any
+      if (!od.length) { blocks.push(note('لا توجد بيانات نظامية معتمدة. ارفع عقد التأسيس/النظام الأساس والسجل التجاري، واستخرج بياناتها واعتمدها من شاشة «البيانات النظامية».', 'warning')); break; }
+      const FORM: Record<string, string> = { llc: 'ذات مسؤولية محدودة', jsc: 'مساهمة', sole: 'مؤسسة فردية', partnership: 'تضامن/توصية', other: 'أخرى' };
+      const NAT: Record<string, string> = { capital: 'شريك بالمال', work: 'شريك بالعمل', founder: 'مؤسس', owner: 'مالك' };
+      const m = (n: unknown) => n == null ? null : fmtMoney(String(n));
+      for (const c of od) {
+        blocks.push({ type: 'heading', text: c.name } as ReportBlock);
+        const v = (k: string) => { for (const r of [...c.records].reverse()) { const x = r.fields[k]?.value; if (x != null && x !== '' && !(Array.isArray(x) && !x.length)) return x; } return null; };
+        const items: { label: string; value: string }[] = [];
+        const add = (label: string, val: unknown) => { if (val != null && val !== '') items.push({ label, value: String(val) }); };
+        add('الشكل القانوني', v('legal_form') ? `${FORM[v('legal_form')] ?? v('legal_form')}${v('single_person') ? ' (شخص واحد)' : ''}${v('closed_jsc') ? ' (مقفلة)' : ''}` : null);
+        add('الرقم الموحد', v('unified_no')); add('رقم السجل التجاري', v('cr_no')); add('تاريخ إصدار السجل', v('cr_issue_hijri') ? `${v('cr_issue_hijri')} هـ` : null); add('تاريخ انتهاء السجل', v('cr_expiry_hijri') ? `${v('cr_expiry_hijri')} هـ${v('cr_expiry') ? ` (${fmtDate(v('cr_expiry'), false)})` : ''}` : null);
+        add('تاريخ العقد', v('contract_date_hijri') ? `${v('contract_date_hijri')} هـ${v('contract_date') ? ` (${fmtDate(v('contract_date'), false)})` : ''}` : null);
+        add('رأس المال المصدر', m(v('capital'))); add('رأس المال المدفوع', m(v('paid_capital')));
+        add('عدد الحصص/الأسهم × القيمة', v('shares_count') != null ? `${Number(v('shares_count')).toLocaleString('en-US')} × ${m(v('share_value')) ?? '—'}` : null);
+        add('السداد', v('fully_paid') === true ? 'مدفوع بالكامل حسب المستند' : v('fully_paid') === false ? 'مدفوع جزئيًا حسب المستند' : null);
+        add('نهاية السنة المالية', v('fy_end_month') ? `${v('fy_end_day')}/${v('fy_end_month')}` : null); add('المركز الرئيس', v('head_office') ?? v('city'));
+        add('حالة المستند', v('is_draft') ? 'مسودة - تلزم النسخة المعتمدة' : null);
+        add('المصادر', c.records.map((r) => `${r.title} (اعتُمد ${fmtDate(r.confirmed_at, false)})`).join('؛ '));
+        blocks.push({ type: 'kv', items });
+        const partners = v('partners') as { name: string; nature: string; pct: number | null; amount: number | null; id_no: string | null }[] | null;
+        if (partners?.length) blocks.push({ type: 'table', caption: 'الشركاء / المؤسسون', columns: [{ key: 'n', label: 'الاسم' }, { key: 't', label: 'الصفة' }, { key: 'i', label: 'رقم الهوية/السجل' }, { key: 'a', label: 'قيمة الحصص', numeric: true }, { key: 'p', label: 'النسبة' }], rows: partners.map((p) => ({ n: p.name, t: NAT[p.nature] ?? p.nature, i: p.id_no ?? '—', a: p.amount != null ? fmtMoney(String(p.amount)) : '—', p: p.pct != null ? `${p.pct}%` : '—' })) });
+        const board = v('board') as { name: string; position: string }[] | null;
+        if (board?.length) blocks.push({ type: 'table', caption: 'الإدارة', columns: [{ key: 'n', label: 'الاسم' }, { key: 'p', label: 'المنصب' }], rows: board.map((b) => ({ n: b.name, p: b.position })) });
+      }
+      blocks.push(note('البيانات أعلاه مستخرجة آليًا من المستندات الرسمية المقدمة ومراجعة ومعتمدة من المحاسب؛ ملاحظات التعارض بينها وبين الدفاتر مدرجة في قسم الملاحظات.', 'info'));
+      break;
+    }
     case 'group_companies': {
       const gc = (snap as { group_companies?: Record<string, any>[] | null }).group_companies; // eslint-disable-line @typescript-eslint/no-explicit-any
       if (!gc || !gc.length) { blocks.push(note('لا توجد شركات مضافة إلى هذه المجموعة. أضفها من صفحة الارتباط ← «شركات المجموعة» ثم أعد توليد القسم.', 'warning')); break; }
