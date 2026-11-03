@@ -57,6 +57,10 @@ const fieldsSchema = z.object({
 async function loadLetter(engagementId: string) {
   const l = await one<{ id: string; engagement_id: string; client_id: string; letter_no: string | null; letter_date: string; fields: LetterFields; status: string; pdf_file_id: string | null; updated_at: string }>('SELECT *, letter_date::text AS letter_date FROM engagement_letters WHERE engagement_id = $1', [engagementId]);
   if (l && (!Array.isArray((l.fields as unknown as { sections?: unknown }).sections) || !(l.fields as unknown as { template_code?: string }).template_code)) l.fields = { ...(await defaults(engagementId)), ...pickKnown(l.fields as unknown as Record<string, unknown>) }; // خطابات محفوظة بالبنية القديمة
+  if (l) { // تنقية الخطابات المحفوظة بصياغة قديمة: لا تُذكر مدينة بعينها
+    const fix = (t: string) => t.replace('خارج مدينة الرياض', 'خارج مدينة مقر المكتب').replace('المختصة في مدينة الرياض', 'المختصة في المملكة العربية السعودية');
+    l.fields = { ...l.fields, intro: (l.fields.intro ?? []).map(fix), sections: (l.fields.sections ?? []).map((sec) => ({ ...sec, paragraphs: sec.paragraphs.map(fix), items: sec.items.map(fix), after: (sec.after ?? []).map(fix) })) };
+  }
   return l;
 }
 function pickKnown(old: Record<string, unknown>): Partial<LetterFields> { const o: Partial<LetterFields> = {}; if (typeof old.client_cr === 'string') o.client_cr = old.client_cr; if (typeof old.subject === 'string') o.subject = old.subject; return o; }
