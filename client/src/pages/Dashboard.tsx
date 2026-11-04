@@ -54,13 +54,13 @@ export function Dashboard() {
   const ratio = f.billed ? f.collected / f.billed : 0; const ageTot = f.aging.reduce((t, b) => t + b.v, 0);
   const kpis: [string, string, number, string, string, number?][] = [
     ['contact', 'عملاء نشطون', n('clients'), n('group_companies') ? `+ ${n('group_companies')} شركة ضمن مجموعات` : 'عملاء رئيسيون', 'blue'],
-    ['briefcase', 'ارتباطات تحت التنفيذ', n('active_engagements'), `أعمال لم يُطالب بها ${fmtMoney(f.unbilled, 0)}`, 'blue'],
-    ['flag', 'ملاحظات مرتفعة مفتوحة', n('high_findings'), n('high_findings') ? `في ${countAr(n('high_findings_engs'), { one: 'ارتباط واحد', two: 'ارتباطين', few: 'ارتباطات', many: 'ارتباطًا' })}` : 'لا ملاحظات مرتفعة', 'pink'],
-    ['requests', 'طلبات عملاء معلّقة', n('requests'), `منها ${n('requests_essential')} أساسية`, 'gold'],
-    ['revenue', `إيرادات ${f.year} (مفوترة)`, f.billed, `المكتسب حسب التنفيذ ${fmtMoney(f.earned, 0)}`, 'blue'],
+    ['briefcase', 'تحت التنفيذ', n('active_engagements'), `أعمال لم يُطالب بها ${fmtMoney(f.unbilled, 0)}`, 'blue'],
+    ['flag', 'ملاحظات مرتفعة', n('high_findings'), n('high_findings') ? `في ${countAr(n('high_findings_engs'), { one: 'ارتباط واحد', two: 'ارتباطين', few: 'ارتباطات', many: 'ارتباطًا' })}` : 'لا ملاحظات مرتفعة', 'pink'],
+    ['requests', 'طلبات معلّقة', n('requests'), `منها ${n('requests_essential')} أساسية`, 'gold'],
+    ['revenue', `المفوتر ${f.year}`, f.billed, `المكتسب حسب التنفيذ ${fmtMoney(f.earned, 0)}`, 'blue'],
     ['payments', 'المحصّل', f.collected, f.collection_rate != null ? `${f.collection_rate}% من المفوتر | بدون الضريبة` : 'لا مطالبات بعد', 'green'],
     ['aging', 'المستحق على العملاء', f.outstanding, f.late_clients ? `${f.late_clients} متأخرون أكثر من 60 يومًا` : 'شامل الضريبة', 'gold'],
-    ['letter', 'خطابات بانتظار التوقيع', f.awaiting_signature.count, f.awaiting_signature.count ? `قيمتها ${fmtMoney(f.awaiting_signature.value, 0)}` : 'لا خطابات معلّقة', 'gold'],
+    ['letter', 'بانتظار التوقيع', f.awaiting_signature.count, f.awaiting_signature.count ? `قيمتها ${fmtMoney(f.awaiting_signature.value, 0)}` : 'لا خطابات معلّقة', 'gold'],
   ];
   const next = data.deadlines[0];
   const nodes: HubNode[] = [
