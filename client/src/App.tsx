@@ -4,7 +4,9 @@ import { ToastProvider } from './components/ui';
 import { Layout } from './components/Layout';
 import { Login, ChangePassword } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
-import { Clients, ClientDetail } from './pages/Clients';
+import { ClientsHub, ClientProfile } from './pages/ClientsHub';
+import { FinanceClaims, FinancePayments, FinanceReceivables, FinanceRevenue, Letters } from './pages/Finance';
+import { Tasks } from './pages/Tasks';
 import { Engagements, EngagementDetail } from './pages/Engagements';
 import { EngagementLetter } from './pages/EngagementLetter';
 import { Consolidation } from './pages/Consolidation';
@@ -31,7 +33,9 @@ export default function App() {
     <Route path="/change-password" element={<ChangePassword />} />
     <Route element={<Layout />}>
       <Route path="/" element={<Dashboard />} />
-      <Route path="/clients" element={<Clients />} /><Route path="/clients/:id" element={<ClientDetail />} />
+      <Route path="/clients" element={<ClientsHub />} /><Route path="/clients/:id" element={<ClientProfile />} />
+      <Route path="/tasks" element={<Tasks />} /><Route path="/letters" element={<Letters />} />
+      <Route path="/finance/claims" element={<FinanceClaims />} /><Route path="/finance/payments" element={<FinancePayments />} /><Route path="/finance/receivables" element={<FinanceReceivables />} /><Route path="/finance/revenue" element={<FinanceRevenue />} />
       <Route path="/engagements" element={<Engagements />} /><Route path="/engagements/:id" element={<EngagementDetail />} /><Route path="/engagements/:id/letter" element={<EngagementLetter />} />
       <Route path="/upload" element={<UploadPage />} />
       <Route path="/official" element={<Official />} />

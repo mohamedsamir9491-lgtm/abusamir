@@ -71,9 +71,13 @@ def tess(img_path, args, timeout=240):
 DIGITS = ["-l", "eng", "-c", "tessedit_char_whitelist=0123456789.,-/()"]
 
 
+OCR_FIXES = [0]
 def ocr_image(img_path, page_no):
     """OCR بمرورين: (1) عربي+إنجليزي للنصوص، (2) أرقام فقط للمبالغ (أدق بكثير)، ثم استرجاع رموز الحسابات بقص كل سطر."""
     text_pass = tess(img_path, ["-l", "ara+eng", "--psm", "6"])
+    import sys as _s, os as _o; _s.path.insert(0, _o.path.dirname(_o.path.abspath(__file__))); from textnorm import fix_text
+    for w in text_pass:
+        w["text"], n = fix_text(w["text"]); OCR_FIXES[0] += n
     num_pass = [w for w in tess(img_path, [*DIGITS, "--psm", "11"]) if w["conf"] >= 60 and is_numeric(w["text"])]
     overlaps = lambda a, b: min(a["x1"], b["x1"]) > max(a["x0"], b["x0"]) and min(a["bottom"], b["bottom"]) > max(a["top"], b["top"])
     words = [w for w in text_pass if not is_numeric(w["text"]) or not any(overlaps(w, n) for n in num_pass)]
@@ -442,6 +446,7 @@ def main(path):
             pass
     if not out["tables"] and out["method"] == "ocr" and not any(p["words"] for p in pages):
         out["method"] = "needs_ocr"; out["warnings"].append("لم يُتعرف على نص في الصورة.")
+    if OCR_FIXES[0]: out["warnings"].append(f"صُحح تلقائيًا {OCR_FIXES[0]} رمزًا متشابهًا في القراءة الضوئية (مثل الحرف ا داخل رقم ← 1)؛ راجع الأرقام قبل الاعتماد.")
     print(json.dumps(out, ensure_ascii=False))
 
 

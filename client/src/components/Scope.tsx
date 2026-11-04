@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Building2, CalendarRange, ChevronLeft, ChevronDown, Network } from 'lucide-react';
+import { Building2, CalendarRange, ChevronDown, Search, CornerDownLeft, History, Check } from 'lucide-react';
+import { matches } from '../text';
 import { get } from '../api';
 import { useLoad } from './ui';
 
@@ -57,19 +58,47 @@ export function useScope() {
   return { eng: v.eng, period: v.period, engagement: v.engagement, periods: v.periods, periodRow: v.periodRow, Selector: v.Selector };
 }
 
-/** الشريط العلوي: العميل/الارتباط › الشركة › الفترة */
+const RECENT = 'recent-engagements';
+const recent = (): string[] => { try { return JSON.parse(localStorage.getItem(RECENT) ?? '[]'); } catch { return []; } };
+const pushRecent = (id: string) => { try { localStorage.setItem(RECENT, JSON.stringify([id, ...recent().filter((x) => x !== id)].slice(0, 6))); } catch { /* ignore */ } };
+
+/** قائمة الاختيار الذكية: بحث بالاسم أو السجل (بلا فرق بين أ/ا و١/1)، المجموعات وشركاتها، الأخيرة، الفترة؛ تعمل بلوحة المفاتيح */
 export function ContextBar() {
-  const v = useContext(Ctx)!; const roots = v.engagements.filter((e) => !e.group_engagement_id || e.id === v.eng);
-  const curRoot = v.engagement ? String(v.engagement.group_engagement_id ?? v.engagement.id) : '';
-  const [open, setOpen] = useState(false);
-  const short = (v.companies.find((c) => c.id === v.eng)?.name ?? String(v.engagement?.client_name ?? '')).replace(/\s*\(الأم\)$/, '') || 'اختر الارتباط';
-  return <><button className="ctx-mobile" onClick={() => setOpen((o) => !o)} aria-expanded={open}><Building2 size={16} /><b>{short}</b>{v.periodRow && <span className="muted">{String(v.periodRow.label).replace(/^الفترة من /, '')}</span>}<ChevronDown size={15} /></button>
-  <div className={`ctxbar${open ? ' open' : ''}`} onChange={() => setOpen(false)}>
-    <label className="ctx" title="العميل والارتباط"><Building2 size={16} /><span>الارتباط</span>
-      <select value={v.companies.length ? curRoot : v.eng} onChange={(e) => v.setEngagement(e.target.value)}><option value="">— اختر —</option>{roots.filter((e) => !e.group_engagement_id).map((e) => <option key={String(e.id)} value={String(e.id)}>{e.client_name}{e.is_demo ? ' (تجريبي)' : ''} — {e.title}</option>)}</select></label>
-    {v.companies.length > 0 && <><ChevronLeft size={14} className="sep" /><label className="ctx" title="الشركة داخل المجموعة"><Network size={16} /><span>الشركة</span>
-      <select value={v.eng} onChange={(e) => v.switchCompany(e.target.value)}>{v.companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label></>}
-    {v.eng && <><ChevronLeft size={14} className="sep" /><label className="ctx" title="الفترة"><CalendarRange size={16} /><span>الفترة</span>
-      <select value={v.period} onChange={(e) => v.setPeriod(e.target.value)}><option value="">—</option>{v.periods.map((p) => <option key={String(p.id)} value={String(p.id)}>{p.label}</option>)}</select></label></>}
-  </div></>;
+  const v = useContext(Ctx)!; const [open, setOpen] = useState(false); const [q, setQ] = useState(''); const [hi, setHi] = useState(0);
+  const roots = v.engagements.filter((e) => !e.group_engagement_id);
+  const kids = (id: unknown) => v.engagements.filter((e) => e.group_engagement_id === id);
+  const label = (e: Row) => String(e.client_name ?? '');
+  const items = useMemo(() => {
+    const out: { id: string; title: string; sub: string; child?: boolean; recent?: boolean; badge?: string }[] = [];
+    const add = (e: Row, child = false, rec = false) => out.push({ id: String(e.id), title: label(e), sub: child ? `${e.entity_role === 'at_cost' ? 'بالتكلفة' : 'تابعة'} | ضمن المجموعة` : String(e.title ?? ''), child, recent: rec, badge: !child && kids(e.id).length ? `${kids(e.id).length + 1} شركات` : e.is_demo ? 'تجريبي' : undefined });
+    if (!q.trim()) {
+      const rec = recent().map((id) => v.engagements.find((e) => e.id === id)).filter(Boolean) as Row[];
+      rec.slice(0, 4).forEach((e) => add(e, !!e.group_engagement_id, true));
+      roots.forEach((e) => { add(e); kids(e.id).filter((k) => k.entity_role !== 'at_cost').forEach((k) => add(k, true)); });
+    } else {
+      roots.forEach((e) => { const ks = kids(e.id); const hitRoot = matches(`${e.client_name} ${e.title}`, q); const hitKids = ks.filter((k) => matches(`${k.client_name}`, q));
+        if (hitRoot || hitKids.length) { add(e); (hitRoot ? ks.filter((k) => k.entity_role !== 'at_cost') : hitKids).forEach((k) => add(k, true)); } });
+    }
+    return out;
+  }, [q, v.engagements]); // eslint-disable-line
+  useEffect(() => { setHi(0); }, [q, open]);
+  useEffect(() => { const h = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, []);
+  const choose = (id: string) => { pushRecent(id); const isKid = v.engagements.find((e) => e.id === id)?.group_engagement_id; if (isKid || v.companies.some((c) => c.id === id)) v.switchCompany(id); if (!v.companies.some((c) => c.id === id)) v.setEngagement(id); setOpen(false); setQ(''); };
+  const cur = v.engagements.find((e) => e.id === v.eng);
+  const company = v.companies.find((c) => c.id === v.eng)?.name ?? (cur ? label(cur) : '');
+  return <div className="switcher">
+    <button className={`sw-btn${open ? ' on' : ''}`} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+      <Building2 size={16} /><b>{company.replace(/\s*\(الأم\)$/, '') || 'اختر العميل والارتباط'}</b>
+      {v.periodRow && <span className="sw-per"><CalendarRange size={14} />{String(v.periodRow.label).replace(/^الفترة من /, '')}</span>}<ChevronDown size={15} /></button>
+    {open && <><div className="sw-scrim" onClick={() => setOpen(false)} /><div className="sw-pop" role="dialog">
+      <div className="sw-search"><Search size={16} /><input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث باسم العميل أو الشركة أو الارتباط…"
+        onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); setHi((h) => Math.min(items.length - 1, h + 1)); } if (e.key === 'ArrowUp') { e.preventDefault(); setHi((h) => Math.max(0, h - 1)); } if (e.key === 'Enter' && items[hi]) choose(items[hi].id); }} /><kbd>Esc</kbd></div>
+      <div className="sw-list">{!items.length && <div className="sw-empty">لا نتائج لـ «{q}»</div>}
+        {items.map((it, i) => <div key={`${it.id}-${i}`}>{(i === 0 || items[i - 1].recent !== it.recent) && <div className="sw-grp">{it.recent ? 'الأخيرة' : q ? 'نتائج البحث' : 'كل العملاء والارتباطات'}</div>}
+          <button className={`sw-item${it.child ? ' child' : ''}${i === hi ? ' hi' : ''}${it.id === v.eng ? ' cur' : ''}`} onMouseEnter={() => setHi(i)} onClick={() => choose(it.id)}>
+            {it.child ? <CornerDownLeft size={14} /> : it.recent ? <History size={15} /> : <Building2 size={16} />}<span className="t"><b>{it.title}</b><small>{it.sub}</small></span>{it.badge && <span className="tag">{it.badge}</span>}{it.id === v.eng && <Check size={15} />}</button></div>)}</div>
+      {v.eng && v.periods.length > 0 && <div className="sw-periods"><span className="muted">الفترة:</span>{v.periods.map((p) => <button key={String(p.id)} className={`chip-btn${p.id === v.period ? ' on' : ''}`} onClick={() => { v.setPeriod(String(p.id)); setOpen(false); }}>{String(p.label).replace(/^الفترة من /, '')}</button>)}</div>}
+      <div className="sw-foot"><span><kbd>↑↓</kbd> تنقل</span><span><kbd>Enter</kbd> اختيار</span><span><kbd>Ctrl K</kbd> البحث الشامل</span></div>
+    </div></>}
+  </div>;
 }

@@ -16,6 +16,8 @@ import { groupRouter } from './modules/engagements/group.js';
 import { officialRouter } from './modules/official/routes.js';
 import { requestsRouter } from './modules/requests/routes.js';
 import { valuationRouter } from './modules/valuation/routes.js';
+import { financeRouter } from './modules/finance/routes.js';
+import { practiceRouter } from './modules/practice/routes.js';
 import { documentsRouter } from './modules/documents/routes.js';
 import { importsRouter } from './modules/imports/routes.js';
 import { accountsRouter } from './modules/accounts/routes.js';
@@ -57,6 +59,8 @@ export function createApp() {
   app.use('/api/official', officialRouter);
   app.use('/api/requests', requestsRouter);
   app.use('/api/valuation', valuationRouter);
+  app.use('/api/finance', financeRouter);
+  app.use('/api/practice', practiceRouter);
   app.use('/api/imports', importsRouter);
   app.use('/api/accounts', accountsRouter);
   app.use('/api/trial-balance', trialBalanceRouter);

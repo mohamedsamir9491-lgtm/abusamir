@@ -49,5 +49,12 @@ export const ACTION_LABELS: Record<string, string> = {
   'request.created': 'طلب عميل يدوي', 'request.deleted': 'استبعاد طلب', 'request.updated': 'تحديث طلب', 'requests.exported': 'تصدير الطلبات', 'requests.refreshed': 'تحديث طلبات العميل', 'requests.status': 'تحديث حالة الطلبات',
   'shareholders.saved': 'حفظ سجل المساهمين', 'valuation.saved': 'حفظ تعديلات التقييم', 'valuation.approved': 'اعتماد تعديلات التقييم', 'valuation.reopened': 'إعادة فتح التقييم',
   'system.backup_created': 'نسخة احتياطية', 'system.backup_verified': 'التحقق من نسخة احتياطية', 'system.cleanup': 'تنظيف بيانات', 'system.setting_updated': 'تعديل إعدادات النظام',
+  'letter.issue': 'إصدار خطاب', 'letter.sent': 'إرسال خطاب للعميل', 'letter.signed': 'توقيع العميل على الخطاب', 'letter.close': 'إقفال ارتباط', 'letter.cancel': 'إلغاء خطاب', 'letter.reopen': 'إعادة فتح خطاب', 'fees.schedule_generated': 'إنشاء جدول الأتعاب',
+  'claim.issued': 'إصدار مطالبة أتعاب', 'claim.updated': 'تعديل مطالبة', 'claim.cancelled': 'إلغاء مطالبة', 'payment.recorded': 'تسجيل تحصيل', 'payment.deleted': 'حذف تحصيل', 'task.created': 'مهمة جديدة',
   'template.created': 'قالب جديد', 'template.deleted': 'حذف قالب', 'template.updated': 'تعديل قالب', 'user.created': 'مستخدم جديد', 'user.updated': 'تعديل مستخدم',
 };
+
+/** عدّ بالعربية مع مطابقة المعدود: 1 عميلًا واحدًا، 2 عميلين، 3-10 عملاء، 11+ عميلًا */
+export function countAr(n: number, w: { one: string; two: string; few: string; many: string }): string {
+  if (n === 0) return `لا ${w.few}`; if (n === 1) return w.one; if (n === 2) return w.two; const m = n % 100; return `${n} ${m >= 3 && m <= 10 ? w.few : w.many}`;
+}

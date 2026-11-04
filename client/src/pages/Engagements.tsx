@@ -7,6 +7,7 @@ import { Icon } from '../components/nav';
 import { ENG_STATUS, ENG_TYPE, FRAMEWORK, fmtDate, DOC_STATUS, IMPORT_STATUS, DATA_TYPE, OFFICIAL_TYPES } from '../format';
 import { useAuth } from '../auth';
 import { DocumentUpload } from './Upload';
+import { FinancePanel } from '../components/FinancePanel';
 import { GroupCompaniesCard, ComponentBanner, useGroupTargets } from './Group';
 import { fiscalYear, fiscalYearOf, isFullYear, periodLabel, periodType, periodErrors, periodWarnings, shiftYears, addDays, fmt } from '../periods';
 
@@ -110,6 +111,7 @@ export function EngagementDetail() {
       {can('clients.manage') && <div className="row" style={{ marginTop: 10 }}><button className="btn sec sm" onClick={() => { setNp(suggestPeriod(data.periods, Number(e.fiscal_year_end_month ?? 12), Number(e.fiscal_year_end_day ?? 31), fyInfo?.year ?? new Date().getFullYear())); setAddPeriod(true); }}><Plus size={15} /> إضافة فترة</button>
         {!e.group_engagement_id && <button className="btn sec sm" onClick={async () => { const r = await run(() => get<{ title: string; period: { start_date: string; end_date: string }; comparison: { label: string; has_tb: boolean } }>(`/engagements/${id}/next-year`)); if (r) setNextYear({ title: r.title, ...r.period, comparison: r.comparison }); }}>إنشاء ارتباط السنة التالية</button>}</div>}
     </div>
+    {!e.group_engagement_id && <div id="finance"><FinancePanel engagementId={String(id)} /></div>}
     {!e.group_engagement_id && <GroupCompaniesCard engagement={e} periods={data.periods} onChanged={() => { refresh(); setGroupVer((v) => v + 1); }} />}
     <div className="grid">
       <div className="card"><h2>المستندات</h2>

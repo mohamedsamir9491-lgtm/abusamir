@@ -62,9 +62,12 @@ def decode_shifted_page(path, pno):
         lines.append(' '.join(x for x in toks if x))
     return '\n'.join(lines)
 
+OCR_FIXES = [0]
 def ocr_png(png):
     r = subprocess.run(['tesseract', png, '-', '-l', 'ara+eng', '--psm', '6'], capture_output=True, text=True, timeout=300)
-    return norm(r.stdout)
+    import sys as _s, os as _o; _s.path.insert(0, _o.path.dirname(_o.path.abspath(__file__))); from textnorm import fix_text
+    t, n = fix_text(norm(r.stdout)); OCR_FIXES[0] += n
+    return t
 
 def ocr_pdf_page(path, p, tmp):
     base = os.path.join(tmp, f'p{p}')
@@ -97,6 +100,7 @@ def main(path):
                         out['warnings'].append(f'تعذر التعرف الضوئي للصفحة {p}: {e}')
                 out['pages'].append({'page': p, 'method': 'text', 'text': t})
             if ocr_pages: out['warnings'].append(f'قُرئت {ocr_pages} صفحة بالتعرف الضوئي (نصها في الملف تالف أو صورة)؛ راجع القيم المستخرجة.')
+    if OCR_FIXES[0]: out['warnings'].append(f'صُحح تلقائيًا {OCR_FIXES[0]} رمزًا متشابهًا في القراءة الضوئية (مثل الحرف ا داخل رقم ← 1، أو الرقم ١ داخل كلمة ← ا)؛ راجع القيم قبل الاعتماد.')
     print(json.dumps(out, ensure_ascii=False))
 
 if __name__ == '__main__':
