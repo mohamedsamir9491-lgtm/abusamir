@@ -42,7 +42,7 @@ export function FinancePanel({ engagementId, compact }: { engagementId: string; 
         {['draft', 'issued', 'sent'].includes(lc) && <button className="btn sm" disabled={busy} onClick={() => setModal({ kind: 'sign' })}><PenTool size={15} /> رفع النسخة الموقعة</button>}
         {lc === 'signed' && <button className="btn sec sm" disabled={busy} onClick={() => confirm('إقفال الارتباط بعد التسليم والتحصيل؟') && act('close')}><BadgeCheck size={15} /> إقفال</button>}
         {['closed', 'cancelled'].includes(lc) && <button className="btn sec sm" onClick={() => act('reopen')}><RotateCcw size={15} /> إعادة فتح</button>}
-        {!['closed', 'cancelled'].includes(lc) && <button className="btn danger-outline sm" onClick={() => confirm('إلغاء الخطاب؟ لن يُحتسب في الإيرادات') && act('cancel')}><Ban size={15} /></button>}</>}</span></div>
+        {!['closed', 'cancelled'].includes(lc) && <button className="btn danger-outline sm" title="إلغاء الخطاب (لا يُحتسب في الإيرادات، ويمكن إعادة فتحه)" onClick={() => confirm('إلغاء الخطاب؟ لن يُحتسب في الإيرادات، ويمكن إعادة فتحه لاحقًا.') && act('cancel')}><Ban size={15} /> إلغاء الخطاب</button>}</>}</span></div>
     <div className="life">{steps.map(([I, l, d, st]) => <div key={l} className={`lf ${st}`}><span className="lfi"><I size={18} /></span><b>{l}</b><small>{d}</small></div>)}</div>
     <div className="dgrid" style={{ marginTop: 16 }}>
       <div className="s8"><div className="phk" style={{ marginTop: 0 }}>

@@ -50,3 +50,14 @@
 @media (max-width:1499px),(max-height:799px){.gd-mid{height:auto!important;min-height:270px}.gd-mid > .gpan{min-height:270px}.gd-hub{min-height:270px}.gd-low{height:auto!important;min-height:200px}}
 .gcr{line-height:1.1;min-height:11px}
 .gk-t > span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* حد أدنى مقروء للخطوط الصغيرة */
+.app .main small{font-size:max(11px,.85em)}.gdonut .dl{font-size:11px}.gdc .db small{font-size:11px}.gleg small{font-size:11px}
+/* الجوال: عمود الإجراءات (آخر عمود) يبقى ظاهرًا بجانب الجدول دون سحب */
+@media (max-width:760px){
+  .card table.t tr > td.row:last-child,.card table.t tr > td:last-child:has(> .btn),.card table.t tr > td:last-child:has(> .row > .btn){position:sticky;left:0;z-index:2;background:var(--surface);box-shadow:6px 0 12px -6px rgba(0,0,0,.45)}
+  [data-theme=dark] .card table.t tr > td.row:last-child,[data-theme=dark] .card table.t tr > td:last-child:has(> .btn),[data-theme=dark] .card table.t tr > td:last-child:has(> .row > .btn){background:#081d42}
+  .card table.t thead th:last-child{position:sticky;left:0;z-index:3}
+}
+/* القمع لا يُقصّ في الخانات القصيرة */
+.gfun{justify-content:space-evenly;overflow:hidden}

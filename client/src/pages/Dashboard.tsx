@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, ReceiptText, Link2, Info, Hourglass, Clock3, RefreshCw, CalendarDays, Users, Zap, Maximize2, ChartLine, BarChart3 } from 'lucide-react';
 import { get } from '../api';
-import { Spinner, useLoad } from '../components/ui';
+import { Spinner, useLoad, useToast } from '../components/ui';
 import { Icon } from '../components/nav';
 import { CountUp, HeroWaves, Hub, type HubNode } from '../components/glass';
 import { fmtDate, fmtMoney, ENG_TYPE, ACTION_LABELS, countAr } from '../format';
@@ -43,7 +43,7 @@ function Hello({ name }: { name: string }) {
 }
 
 export function Dashboard() {
-  const { can, user } = useAuth(); const nav = useNavigate();
+  const { can, user } = useAuth(); const nav = useNavigate(); const { show: toast } = useToast();
   const { data, loading, reload } = useLoad(() => get<Data>('/practice/dashboard'), []);
   if (loading || !data) return <Spinner />;
   const c = data.counts; const f = data.finance; const n = (k: string) => Number(c[k] ?? 0);
@@ -77,7 +77,7 @@ export function Dashboard() {
   return <div className="gd">
     <Hello name={user?.full_name ?? ''} />
     <div className="gd-hello">{!data.office_configured && <div className="gd-notice"><Info size={16} /><span><b>لم تُضبط هوية المكتب بعد:</b> <Link to="/office">اضبط اسم المكتب وشعاره</Link> ليظهرا في البرنامج والتقارير.</span></div>}
-      <button className="gd-refresh" onClick={reload} title="تحديث الأرقام"><RefreshCw size={15} /></button></div>
+      <button className="gd-refresh" onClick={() => { reload(); toast('تم تحديث أرقام اللوحة'); }} title="تحديث الأرقام" aria-label="تحديث الأرقام"><RefreshCw size={15} /></button></div>
 
     <section className="gp gd-hero"><HeroWaves />
       <div className="gh-txt"><div className="gh-date">{greet}، {user?.full_name} | {greg}{hijri ? ` | ${hijri}` : ''}</div>

@@ -20,6 +20,7 @@ export function Requests() {
   const byCo = useMemo(() => { const m = new Map<string, Req[]>(); for (const r of rows) m.set(r.company, [...(m.get(r.company) ?? []), r]); return [...m.entries()]; }, [rows]);
   const q = `engagement_id=${eng}&period_id=${period}`;
   const refresh = async (reanalyze: boolean) => { const r = await run(() => post<{ added: number; updated: number; removed: number; analyzed: number }>('/requests/refresh', { engagement_id: eng, period_id: period, reanalyze }), 'تم تحديث قائمة الطلبات'); if (r) { toast(`أُضيف ${r.added}، حُدّث ${r.updated}، أُزيل ${r.removed}${reanalyze ? ` | أعيد تحليل ${r.analyzed} شركة` : ''}`); reload(); } };
+  const [undo, setUndo] = useState<{ id: string; title: string; status: string } | null>(null);
   const setStatus = async (r: Req, status: string) => { await run(() => patch(`/requests/${r.id}`, { status })); reload(); };
   const bulk = async (status: string) => { if (!sel.length) return; await run(() => patch('/requests/bulk/status', { ids: sel, status }), 'تم تحديث الحالة'); setSel([]); reload(); };
   const waText = () => {
@@ -35,7 +36,7 @@ export function Requests() {
       <button className="btn sec" onClick={waText} disabled={!data?.requests.length}>نص للواتساب</button>
       {can('reports.export') && <><button className="btn sec" onClick={() => download(`/requests/export.xlsx?${q}`, `طلبات ${engagement?.client_name ?? ''}.xlsx`)} disabled={!data?.requests.length}>Excel</button><button className="btn sec" onClick={() => window.open(`/api/requests/print?${q}`, '_blank')} disabled={!data?.requests.length}>طباعة / PDF</button></>}
       {canEdit && <button className="btn sec" onClick={() => setAdding(true)}><Plus size={15} /> طلب يدوي</button>}</div>}>
-    <Selector />
+    <Selector />{undo && <div className="alert info row between"><span>استُبعد الطلب «{undo.title}».</span><button className="btn sec sm" onClick={async () => { const u = undo; setUndo(null); await setStatus({ id: u.id } as Req, u.status === 'dismissed' ? 'pending' : u.status); }}>تراجع</button></div>}
     {!eng || !period ? <Empty text="اختر الارتباط والفترة" /> : loading ? <Spinner /> : !data ? null : <>
       <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
         <span className="badge neutral">الطلبات القائمة: {data.stats.total}</span><span className="badge danger">أساسية مفتوحة: {data.stats.essential_open}</span><span className="badge ok">وصل: {data.stats.received}</span>
@@ -52,7 +53,9 @@ export function Requests() {
             <td className="num">{r.amount ? <Money v={r.amount} /> : '—'}</td>
             <td>{canEdit ? <select value={r.status} onChange={(e) => setStatus(r, e.target.value)}>{Object.entries(STATUS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select> : <span className={`badge ${TONE[r.status]}`}>{STATUS[r.status]}</span>}</td>
             <td className="wrap">{r.document_id ? <span className="badge ok" title={r.document_title ?? ''}><Paperclip size={13} /> {(r.document_title ?? 'مستند').slice(0, 28)}</span> : can('documents.upload') && r.period_id ? <button className="btn sec sm" onClick={() => setUp(r)}>رفع المستند</button> : null}{r.response_note && <div className="muted" style={{ fontSize: 12 }}>{r.response_note}</div>}</td>
-            <td>{canEdit && <div className="row" style={{ gap: 4 }}><button className="btn sec sm" onClick={() => setEdit(r)}>تعديل</button><button className="btn sec sm" title={r.source === 'auto' ? 'استبعاد (لن يعود عند التحديث)' : 'حذف'} onClick={async () => { await run(() => del(`/requests/${r.id}`)); reload(); }}><Trash2 size={15} /></button></div>}</td>
+            <td>{canEdit && <div className="row" style={{ gap: 4 }}><button className="btn sec sm" onClick={() => setEdit(r)}>تعديل</button><button className="btn danger-outline sm" title={r.source === 'auto' ? 'استبعاد الطلب (لن يعود عند تحديث الطلبات)' : 'حذف الطلب'} aria-label={r.source === 'auto' ? 'استبعاد الطلب' : 'حذف الطلب'} onClick={async () => {
+              if (!confirm(r.source === 'auto' ? `استبعاد الطلب «${r.title}»؟\nلن يعود عند تحديث الطلبات، ويمكنك التراجع فورًا.` : `حذف الطلب «${r.title}» نهائيًا؟`)) return;
+              const ok = await run(() => del(`/requests/${r.id}`).then(() => true), r.source === 'auto' ? 'استُبعد الطلب' : 'حُذف الطلب'); if (ok && r.source === 'auto') setUndo({ id: r.id, title: r.title, status: r.status }); reload(); }}><Trash2 size={15} /></button></div>}</td>
           </tr>)}</tbody></table></div></div>)}
     </>}
     {wa != null && <Modal title="نص الطلبات للواتساب (للنسخ والإرسال منك)" onClose={() => setWa(null)} wide><textarea readOnly value={wa} style={{ width: '100%', minHeight: 360, fontFamily: 'inherit' }} /><div className="row end"><button className="btn" onClick={async () => { try { await navigator.clipboard.writeText(wa); toast('نُسخ النص'); } catch { toast('تعذر النسخ تلقائيًا؛ انسخه يدويًا'); } }}>نسخ النص</button></div><p className="muted">بعد الإرسال حدّد الطلبات وعلّمها «أُرسلت للعميل».</p></Modal>}

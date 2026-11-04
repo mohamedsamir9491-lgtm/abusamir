@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { get, post, put } from '../api';
 import { Link } from 'react-router-dom';
-import { Page, useLoad, Spinner, Empty, Field, useAction, Money } from '../components/ui';
+import { Page, useLoad, Spinner, Empty, Field, useAction, useToast, Money } from '../components/ui';
 import { useScope } from '../components/Scope';
 import { useAuth } from '../auth';
 import { fmtDate } from '../format';
@@ -22,7 +22,7 @@ function PeriodSelect({ engagementId, value, onChange }: { engagementId: string;
 
 /** صفحة التوحيد الدفتري للمجموعة: تُحدد الأم والتابعات وحسابات الاستثمار والأرصدة البينية، ثم يُشغَّل المحرك وتُعرض ورقة العمل والقيود وسجل الفروق */
 export function Consolidation() {
-  const { eng, period, Selector } = useScope(); const { can } = useAuth(); const { run, busy } = useAction();
+  const { eng, period, Selector } = useScope(); const { can } = useAuth(); const { run, busy } = useAction(); const { show: toast } = useToast();
   const { data: engs } = useLoad(() => get<{ engagements: Row[] }>('/engagements'), []);
   const { data: last, reload } = useLoad(() => period ? get<{ run: { id: string; started_at: string; result: Record<string, unknown> } | null }>(`/analysis/group/latest?period_id=${period}`) : Promise.resolve(null), [period]);
   const [subs, setSubs] = useState<Sub[]>([]); const [costs, setCosts] = useState<AtCost[]>([]); const [result, setResult] = useState<Record<string, unknown> | null>(null);
@@ -67,7 +67,7 @@ export function Consolidation() {
   const R = result as null | { status: string; pending_reasons: string[]; parent: { label: string; book_equity: string }; group_equity_worksheet: string; hypothesis_unreconciled_not_assets: string; subsidiaries: { key: string; label: string }[]; worksheet: { rows: Row[]; entries: Row[]; register: Row[]; subsidiaries: Row[]; scope: Row[]; totals: Record<string, string> } };
   const comp: Record<string, string> = { parent: R?.parent.label ?? 'الأم', group: 'المجموعة', ...Object.fromEntries((R?.subsidiaries ?? []).map((s) => [s.key, s.label])) };
   return <Page title="التوحيد الدفتري للمجموعة" sub="اختر ارتباط الشركة الأم وفترتها، ثم أضف التابعات (ارتباط كل منها وفترتها وحسابات الاستثمار والجاري)، ثم شغّل. النتيجة تُحفظ ويمكن إدراجها قسمًا في أي تقرير على ارتباط الأم (قسم: التوحيد الدفتري للمجموعة)."
-    actions={eng && period && can('analysis.run') && <div className="row">{isGroup && <button className="btn sec" disabled={busy} onClick={() => saveSetup()}>حفظ الإعداد</button>}{isGroup && <button className="btn sec" disabled={busy} onClick={() => { setLoadedFor(''); reloadPre(); }} title="يعيد قراءة الشركات والحسابات المقترحة (يُبقي ما حفظته)">تحديث من المجموعة</button>}<button className="btn" disabled={busy || !subs.length} onClick={execute}>{busy ? 'جارٍ التشغيل…' : 'تشغيل التوحيد'}</button></div>}>
+    actions={eng && period && can('analysis.run') && <div className="row">{isGroup && <button className="btn sec" disabled={busy} onClick={() => saveSetup()}>حفظ الإعداد</button>}{isGroup && <button className="btn sec" disabled={busy} onClick={() => { setLoadedFor(''); reloadPre(); toast('أُعيدت قراءة الشركات والحسابات من المجموعة'); }} title="يعيد قراءة الشركات والحسابات المقترحة (يُبقي ما حفظته)">تحديث من المجموعة</button>}<button className="btn" disabled={busy || !subs.length} onClick={execute}>{busy ? 'جارٍ التشغيل…' : 'تشغيل التوحيد'}</button></div>}>
     <Selector />
     {grpInfo?.is_component && <div className="alert warn">هذه شركة ضمن مجموعة؛ التوحيد يُشغَّل من ارتباط المجموعة (الأم). <Link to={`/consolidation?engagement_id=${grpInfo.group_engagement_id}`}>افتح توحيد المجموعة</Link></div>}
     {eng && grpInfo && !grpInfo.is_component && !isGroup && <div className="alert info">الطريقة الموصى بها: أضف شركات المجموعة من صفحة ارتباط الأم («شركات المجموعة») ليملأ البرنامج هذه الشاشة تلقائيًا ويحفظ الإعداد. يمكنك أيضًا ربط ارتباطات منفصلة يدويًا أدناه.</div>}
