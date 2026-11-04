@@ -43,7 +43,9 @@ authRouter.post('/login', loginLimiter, async (req, res, next) => {
       [sessionId, user.id, sha256(token), expires, req.ip, req.headers['user-agent'] ?? null]);
     await query('UPDATE users SET failed_logins = 0, locked_until = NULL, last_login_at = now() WHERE id = $1', [user.id]);
     await audit(req, { action: 'auth.login', entityType: 'user', entityId: user.id });
-    res.cookie(COOKIE_NAME, token, { httpOnly: true, sameSite: 'lax', secure: config.cookieSecure, expires, path: '/' });
+    // الكوكي «آمن» عند الدخول عبر https (الرابط الخارجي)، وعادي عند الدخول من الشبكة المحلية عبر http://عنوان-الـNAS:المنفذ
+    const viaHttps = req.secure || String(req.headers['x-forwarded-proto'] ?? '').split(',')[0].trim() === 'https';
+    res.cookie(COOKIE_NAME, token, { httpOnly: true, sameSite: 'lax', secure: config.cookieSecure && viaHttps, expires, path: '/' });
     res.json({ user: { id: user.id, email, full_name: user.full_name, role_code: user.role_code, must_change_password: user.must_change_password }, token });
   } catch (e) { next(e); }
 });
