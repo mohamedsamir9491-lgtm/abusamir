@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { get, post, put, del } from '../api';
 import { useLoad, Modal, Field, useAction, DangerButton, Empty } from '../components/ui';
@@ -33,7 +34,7 @@ export function GroupCompaniesCard({ engagement, periods, onChanged }: { engagem
     if (r) { setAdd(false); setF({ ...f, legal_name_ar: '', legal_name_en: '', cr_number: '', client_id: '' }); reload(); onChanged(); }
   };
   const existing = (clients?.clients ?? []).filter((c) => c.id !== engagement.client_id && !comps.some((x) => x.client_id === c.id));
-  return <div className="card"><div className="row between"><h2>شركات المجموعة</h2>{can('clients.manage') && <button className="btn sec sm" onClick={() => setAdd(true)}>+ إضافة شركة للمجموعة</button>}</div>
+  return <div className="card"><div className="row between"><h2>شركات المجموعة</h2>{can('clients.manage') && <button className="btn sec sm" onClick={() => setAdd(true)}><Plus size={15} /> إضافة شركة للمجموعة</button>}</div>
     <p className="muted">كل شركة لها ميزان مراجعة منفصل تمامًا (لا تُخلط الأرصدة). تحلّل كل شركة وحدها من زر «فتح»، ويجمعها «التوحيد الدفتري» تلقائيًا، ويعرض تقرير المجموعة تقييمًا منفصلًا لكل شركة وتقييمًا موحدًا معًا. خطاب الارتباط واحد للمجموعة.</p>
     <table className="t ruled"><thead><tr><th>الشركة</th><th>العلاقة</th><th className="num">نسبة الملكية</th><th>ميزان {String(current?.label ?? 'الفترة الحالية')}</th><th></th></tr></thead><tbody>
       <tr><td><b>{String(engagement.client_name)}</b></td><td>{ROLE_AR.parent}</td><td className="num">—</td><td>هذه الصفحة</td><td /></tr>

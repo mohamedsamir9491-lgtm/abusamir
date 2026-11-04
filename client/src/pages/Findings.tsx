@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { get, post, put, del } from '../api';
 import { Page, useLoad, Spinner, Empty, Money, useAction, Sev, Tabs, Modal, Field, Badge, DangerButton } from '../components/ui';
@@ -43,7 +44,7 @@ function AdjustmentForm({ eng, period, findingId, onDone }: { eng: string; perio
   const submit = async (e: React.FormEvent) => { e.preventDefault(); const r = await run(() => post('/adjustments', { engagement_id: eng, period_id: period, finding_id: findingId ?? null, ...f, rationale: f.rationale || null, calculation: f.calculation || null, lines: lines.map((l) => ({ ...l, account_name: l.account_name || null, debit: String(Number(l.debit || 0)), credit: String(Number(l.credit || 0)) })) }), 'تم تسجيل التسوية المقترحة'); if (r) onDone(); };
   return <form onSubmit={submit}><Field label="وصف التسوية *"><input value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} required /></Field><Field label="الأساس المحاسبي"><textarea value={f.rationale} onChange={(e) => setF({ ...f, rationale: e.target.value })} /></Field><Field label="الاحتساب"><input value={f.calculation} onChange={(e) => setF({ ...f, calculation: e.target.value })} /></Field>
     <table className="t"><thead><tr><th>رمز الحساب</th><th>اسم الحساب</th><th>مدين</th><th>دائن</th><th></th></tr></thead><tbody>{lines.map((l, i) => <tr key={i}><td><input value={l.account_code} onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, account_code: e.target.value } : x))} required dir="ltr" /></td><td><input value={l.account_name} onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, account_name: e.target.value } : x))} /></td><td><input type="number" step="0.01" min="0" value={l.debit} onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, debit: e.target.value } : x))} dir="ltr" /></td><td><input type="number" step="0.01" min="0" value={l.credit} onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, credit: e.target.value } : x))} dir="ltr" /></td><td><button type="button" className="btn sec sm" onClick={() => setLines(lines.filter((_, j) => j !== i))}>×</button></td></tr>)}<tr className="total"><td colSpan={2}>الإجمالي</td><td className="num">{dr.toFixed(2)}</td><td className="num">{cr.toFixed(2)}</td><td>{Math.abs(dr - cr) < 0.005 ? <span className="badge ok">متوازن</span> : <span className="badge danger">غير متوازن</span>}</td></tr></tbody></table>
-    <div className="row between" style={{ marginTop: 8 }}><button type="button" className="btn sec sm" onClick={() => setLines([...lines, { account_code: '', account_name: '', debit: '0', credit: '0' }])}>+ سطر</button><button className="btn" disabled={busy || Math.abs(dr - cr) >= 0.005 || dr === 0}>حفظ كتسوية مقترحة</button></div>
+    <div className="row between" style={{ marginTop: 8 }}><button type="button" className="btn sec sm" onClick={() => setLines([...lines, { account_code: '', account_name: '', debit: '0', credit: '0' }])}><Plus size={15} /> سطر</button><button className="btn" disabled={busy || Math.abs(dr - cr) >= 0.005 || dr === 0}>حفظ كتسوية مقترحة</button></div>
     <p className="muted">التسوية لا تُرحَّل تلقائيًا؛ تمر بحالات: مقترحة → قيد المراجعة → معتمدة/مرفوضة. الترحيل يتم في النظام المحاسبي للعميل.</p></form>;
 }
 
@@ -57,7 +58,7 @@ export function Findings() {
   const [mf, setMf] = useState({ title: '', description: '', category: 'judgment', severity: 'medium', account_code: '', amount: '', recommendation: '' });
   const adjStatus = async (id: string, status: string) => { await run(() => post(`/adjustments/${id}/status`, { status }), 'تم تحديث حالة التسوية'); reloadAdj(); };
   return <Page title="الملاحظات والتسويات" sub="كل ملاحظة لها مرجع ومصدر ودليل حسابي؛ يراجعها المحاسب (قبول/رفض/معالجة) وتُحوّل عند الحاجة إلى تسوية مقترحة تمر بسير اعتماد."
-    actions={eng && can('findings.edit') && <><button className="btn sec" onClick={() => setManual(true)}>+ ملاحظة يدوية</button><button className="btn sec" onClick={() => setAdjFor('new')}>+ تسوية مقترحة</button></>}>
+    actions={eng && can('findings.edit') && <><button className="btn sec" onClick={() => setManual(true)}><Plus size={15} /> ملاحظة يدوية</button><button className="btn sec" onClick={() => setAdjFor('new')}><Plus size={15} /> تسوية مقترحة</button></>}>
     <Selector />
     {!eng ? <Empty text="اختر الارتباط" /> : <>
       <Tabs tabs={[{ key: 'findings', label: `الملاحظات (${data?.counts.total ?? 0})` }, { key: 'adjustments', label: `سجل التسويات (${adj?.adjustments.length ?? 0})` }]} active={tab} onChange={setTab} />

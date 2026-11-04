@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { get, post, put, del, download } from '../api';
 import { Page, useLoad, Spinner, Field, useAction, DangerButton } from '../components/ui';
@@ -69,7 +70,7 @@ export function EngagementLetter() {
           <Field label="المدة المتوقعة"><input value={f.duration} onChange={(e) => setF({ duration: e.target.value })} /></Field>
           <div className="row"><Field label="جهة الاتصال - المكتب"><input value={f.office_contact} onChange={(e) => setF({ office_contact: e.target.value })} /></Field><Field label="جهة الاتصال - العميل"><input value={f.client_contact} onChange={(e) => setF({ client_contact: e.target.value })} /></Field></div>
           <h3>جدول السداد</h3><table className="t"><thead><tr><th>المرحلة</th><th>النسبة</th><th>موعد الاستحقاق</th><th></th></tr></thead><tbody>{f.fees_schedule.map((r, i) => <tr key={i}><td><input value={r.stage} onChange={(e) => setFee(i, { stage: e.target.value })} /></td><td><input style={{ width: 70 }} value={r.pct} onChange={(e) => setFee(i, { pct: e.target.value })} /></td><td><input value={r.due} onChange={(e) => setFee(i, { due: e.target.value })} /></td><td><button className="btn sec sm" onClick={() => setF({ fees_schedule: f.fees_schedule.filter((_, k) => k !== i) })}>×</button></td></tr>)}</tbody></table>
-          <div className="row between"><button className="btn sec sm" onClick={() => setF({ fees_schedule: [...f.fees_schedule, { stage: '', pct: '', due: '' }] })}>+ مرحلة</button>{(() => { const sum = f.fees_schedule.reduce((a, r) => a + (parseFloat(r.pct.replace(/[^\d.]/g, '')) || 0), 0); return <span className={`badge ${Math.abs(sum - 100) < 0.01 ? 'ok' : 'warn'}`}>مجموع النسب: {sum}%{Math.abs(sum - 100) < 0.01 ? '' : ' (يجب أن يساوي 100%)'}</span>; })()}</div>
+          <div className="row between"><button className="btn sec sm" onClick={() => setF({ fees_schedule: [...f.fees_schedule, { stage: '', pct: '', due: '' }] })}><Plus size={15} /> مرحلة</button>{(() => { const sum = f.fees_schedule.reduce((a, r) => a + (parseFloat(r.pct.replace(/[^\d.]/g, '')) || 0), 0); return <span className={`badge ${Math.abs(sum - 100) < 0.01 ? 'ok' : 'warn'}`}>مجموع النسب: {sum}%{Math.abs(sum - 100) < 0.01 ? '' : ' (يجب أن يساوي 100%)'}</span>; })()}</div>
           <p className="muted">الافتراضي: 50% مقدمًا عند التوقيع و50% قبل تسليم التقرير النهائي. عدّل المراحل والنسب والمواعيد بحرية لكل عميل.</p>
         </>}
         {tab === 'head' && <>
@@ -92,7 +93,7 @@ export function EngagementLetter() {
             {s.items_style !== 'none' && <Field label="البنود (بند في كل سطر)"><textarea rows={6} value={lines(s.items)} onChange={(e) => setSec(i, { items: unlines(e.target.value) })} /></Field>}
             <Field label="فقرات بعد البنود (اختياري)"><textarea rows={2} value={lines(s.after ?? [])} onChange={(e) => setSec(i, { after: unlines(e.target.value) })} /></Field>
           </div>)}
-          <button className="btn sec sm" onClick={() => setF({ sections: [...f.sections, { title: 'قسم جديد', paragraphs: [], items: [], items_style: 'none', after: [] }] })}>+ إضافة قسم</button>
+          <button className="btn sec sm" onClick={() => setF({ sections: [...f.sections, { title: 'قسم جديد', paragraphs: [], items: [], items_style: 'none', after: [] }] })}><Plus size={15} /> إضافة قسم</button>
         </>}
         {tab === 'sign' && <>
           <Field label="الخاتمة"><input value={f.closing} onChange={(e) => setF({ closing: e.target.value })} /></Field>

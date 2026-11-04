@@ -164,3 +164,20 @@ table.t tr.strong-row td{font-weight:700}
 
 .chat .chat-log{max-height:62vh;overflow:auto;padding:4px}.msg{padding:10px 12px;border-radius:12px;margin:8px 0;max-width:92%}.msg.user{background:var(--primary-050);margin-inline-start:auto;border:1px solid var(--border)}.msg.assistant{background:var(--surface-2);border:1px solid var(--border)}.chip-btn{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:4px 10px;font-size:12.5px;cursor:pointer;color:var(--text-2)}.chip-btn:hover{border-color:var(--primary);color:var(--primary)}
 .card.kpi{padding:14px 16px}.card.kpi .muted{font-size:12.5px;margin-bottom:4px}.card.kpi .big{font-size:21px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* مراحل العمل */
+.stepper{display:flex;align-items:flex-start;margin:10px 0 4px}.stepper .st{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:var(--muted);position:relative;text-align:center;min-width:0}
+.stepper .st::after{content:"";position:absolute;top:13px;inset-inline-start:calc(50% + 17px);width:calc(100% - 34px);height:2px;background:var(--border)}.stepper .st:last-child::after{display:none}
+.stepper .dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border-strong);background:var(--surface);display:grid;place-items:center;z-index:1;font-size:12px;font-weight:600;color:var(--muted)}
+.stepper .st.done{color:var(--text-2)}.stepper .st.done .dot{background:var(--ok);border-color:var(--ok);color:#fff}.stepper .st.done::after{background:var(--ok)}
+.stepper .st.cur{color:var(--primary);font-weight:600}.stepper .st.cur .dot{border-color:var(--primary);color:var(--primary);box-shadow:0 0 0 4px var(--primary-050)}
+@media (max-width:700px){.stepper .lb{font-size:10.5px}}
+.period-block{padding:12px 0;border-bottom:1px solid var(--border)}.period-block:last-of-type{border-bottom:0}.period-block .meta{display:flex;gap:6px 14px;flex-wrap:wrap;color:var(--muted);font-size:12.5px}
+.status-select{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}.status-select select{width:auto;min-width:130px}
+/* الحقول المباشرة داخل صف (فلاتر وأشرطة أدوات) تصطف بعرض مناسب بدل سطر كامل لكل حقل */
+.row > select,.row > input:not([type=checkbox]):not([type=radio]):not([type=file]){width:auto;flex:0 1 220px;min-width:150px}
+.row > input[type=search],.row > input.grow{flex:1 1 260px}
+
+.file-pick{display:flex;align-items:center;gap:10px;min-height:var(--ctl);border:1px dashed var(--border-strong);border-radius:var(--radius-sm);padding:4px 6px;padding-inline-end:12px;cursor:pointer;background:var(--surface)}.file-pick:hover{border-color:var(--primary)}
+.file-pick input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}.file-pick .fn{color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+table.t td.row{white-space:normal;min-width:240px}table.t td.row > select{width:150px;flex:none;margin-top:4px}

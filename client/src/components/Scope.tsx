@@ -10,7 +10,7 @@ interface ScopeValue { eng: string; period: string; engagement: Row | null; peri
   setEngagement: (id: string) => void; setPeriod: (id: string) => void; switchCompany: (id: string) => void; Selector: () => null }
 
 /** الصفحات التي تعمل على ارتباط وفترة: يُطبَّق عليها سياق العمل المحفوظ تلقائيًا */
-export const SCOPED = ['/official', '/requests', '/trial-balance', '/analysis', '/consolidation', '/valuation', '/findings', '/ai', '/reports'];
+export const SCOPED = ['/upload', '/imports', '/official', '/requests', '/trial-balance', '/analysis', '/consolidation', '/valuation', '/findings', '/ai', '/reports'];
 const KEY = 'work-context';
 const load = (): { eng?: string; period?: string } => { try { return JSON.parse(localStorage.getItem(KEY) ?? '{}'); } catch { return {}; } };
 const save = (v: { eng?: string; period?: string }) => { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch { /* ignore */ } };

@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from 'react';
+import { Paperclip, Plus, Trash2 } from 'lucide-react';
 import { get, post, patch, del, upload, download } from '../api';
 import { useAuth } from '../auth';
 import { useScope } from '../components/Scope';
-import { Page, Spinner, Empty, Modal, Field, useLoad, useAction, useToast, Money } from '../components/ui';
+import { Page, Spinner, Empty, Modal, Field, useLoad, useAction, useToast, Money, FileInput } from '../components/ui';
 
 type Req = { id: string; ref: string; engagement_id: string; period_id: string | null; company: string; entity_role: string | null; title: string; reason: string | null; amount: string | null; priority: 'essential' | 'supporting'; status: string; source: string; obsolete: boolean; document_id: string | null; document_title: string | null; response_note: string | null; category: string };
 type Data = { root_engagement_id: string; root_period_id: string; companies: { engagement_id: string; period_id: string | null; name: string; role: string }[]; requests: Req[]; stats: { total: number; essential_open: number; received: number } };
@@ -33,7 +34,7 @@ export function Requests() {
       {can('analysis.run') && <><button className="btn" disabled={busy} onClick={() => refresh(false)}>{busy ? <Spinner /> : 'تحديث الطلبات من التحليل'}</button><button className="btn sec" disabled={busy} onClick={() => refresh(true)} title="يعيد التحليل المحلي لكل الشركات (بعد رفع مستندات جديدة) ثم يحدّث القائمة">إعادة التحليل ثم التحديث</button></>}
       <button className="btn sec" onClick={waText} disabled={!data?.requests.length}>نص للواتساب</button>
       {can('reports.export') && <><button className="btn sec" onClick={() => download(`/requests/export.xlsx?${q}`, `طلبات ${engagement?.client_name ?? ''}.xlsx`)} disabled={!data?.requests.length}>Excel</button><button className="btn sec" onClick={() => window.open(`/api/requests/print?${q}`, '_blank')} disabled={!data?.requests.length}>طباعة / PDF</button></>}
-      {canEdit && <button className="btn sec" onClick={() => setAdding(true)}>+ طلب يدوي</button>}</div>}>
+      {canEdit && <button className="btn sec" onClick={() => setAdding(true)}><Plus size={15} /> طلب يدوي</button>}</div>}>
     <Selector />
     {!eng || !period ? <Empty text="اختر الارتباط والفترة" /> : loading ? <Spinner /> : !data ? null : <>
       <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
@@ -50,8 +51,8 @@ export function Requests() {
             <td className="wrap"><div><b>{r.title}</b></div>{r.reason && <div className="muted" style={{ fontSize: 12.5, marginTop: 3 }}>{r.reason}</div>}{r.obsolete && <div className="muted" style={{ fontSize: 12 }}>لم يعد لازمًا حسب آخر تحليل</div>}{r.source === 'manual' && <div className="muted" style={{ fontSize: 11.5 }}>يدوي/معدّل</div>}</td>
             <td className="num">{r.amount ? <Money v={r.amount} /> : '—'}</td>
             <td>{canEdit ? <select value={r.status} onChange={(e) => setStatus(r, e.target.value)}>{Object.entries(STATUS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select> : <span className={`badge ${TONE[r.status]}`}>{STATUS[r.status]}</span>}</td>
-            <td className="wrap">{r.document_id ? <span className="badge ok" title={r.document_title ?? ''}>📎 {(r.document_title ?? 'مستند').slice(0, 28)}</span> : can('documents.upload') && r.period_id ? <button className="btn sec sm" onClick={() => setUp(r)}>رفع المستند</button> : null}{r.response_note && <div className="muted" style={{ fontSize: 12 }}>{r.response_note}</div>}</td>
-            <td>{canEdit && <div className="row" style={{ gap: 4 }}><button className="btn sec sm" onClick={() => setEdit(r)}>تعديل</button><button className="btn sec sm" title={r.source === 'auto' ? 'استبعاد (لن يعود عند التحديث)' : 'حذف'} onClick={async () => { await run(() => del(`/requests/${r.id}`)); reload(); }}>✕</button></div>}</td>
+            <td className="wrap">{r.document_id ? <span className="badge ok" title={r.document_title ?? ''}><Paperclip size={13} /> {(r.document_title ?? 'مستند').slice(0, 28)}</span> : can('documents.upload') && r.period_id ? <button className="btn sec sm" onClick={() => setUp(r)}>رفع المستند</button> : null}{r.response_note && <div className="muted" style={{ fontSize: 12 }}>{r.response_note}</div>}</td>
+            <td>{canEdit && <div className="row" style={{ gap: 4 }}><button className="btn sec sm" onClick={() => setEdit(r)}>تعديل</button><button className="btn sec sm" title={r.source === 'auto' ? 'استبعاد (لن يعود عند التحديث)' : 'حذف'} onClick={async () => { await run(() => del(`/requests/${r.id}`)); reload(); }}><Trash2 size={15} /></button></div>}</td>
           </tr>)}</tbody></table></div></div>)}
     </>}
     {wa != null && <Modal title="نص الطلبات للواتساب (للنسخ والإرسال منك)" onClose={() => setWa(null)} wide><textarea readOnly value={wa} style={{ width: '100%', minHeight: 360, fontFamily: 'inherit' }} /><div className="row end"><button className="btn" onClick={async () => { try { await navigator.clipboard.writeText(wa); toast('نُسخ النص'); } catch { toast('تعذر النسخ تلقائيًا؛ انسخه يدويًا'); } }}>نسخ النص</button></div><p className="muted">بعد الإرسال حدّد الطلبات وعلّمها «أُرسلت للعميل».</p></Modal>}
@@ -94,7 +95,7 @@ function UploadModal({ r, onClose, onDone }: { r: Req; onClose: () => void; onDo
   return <Modal title={`رفع مستند للطلب ${r.ref}`} onClose={onClose}>
     <p><b>{r.company}</b>: {r.title}</p>
     <Field label="نوع المستند"><select value={type} onChange={(e) => setType(e.target.value)}>{DOC_TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
-    <Field label="الملف"><input type="file" ref={ref} /></Field>
+    <Field label="الملف"><FileInput inputRef={ref} /></Field>
     <p className="muted">ميزان المراجعة يُرفع من «رفع المستندات» ثم «الاستيراد والتحقق»، والعقود والسجلات تُستخرج بياناتها من «البيانات النظامية». بعد رفع المستندات اضغط «إعادة التحليل ثم التحديث».</p>
     <div className="row end"><button className="btn sec" onClick={onClose}>إلغاء</button><button className="btn" disabled={busy} onClick={go}>{busy ? <Spinner /> : 'رفع وربط'}</button></div>
   </Modal>;

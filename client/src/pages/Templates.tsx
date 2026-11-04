@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Plus } from 'lucide-react';
 import { get, post, put, del } from '../api';
 import { Page, useLoad, Spinner, useAction, Modal, Field, DangerButton } from '../components/ui';
 import { useAuth } from '../auth';
@@ -20,6 +21,6 @@ export function Templates() {
       <div className="grid c3"><Field label="الرمز"><input value={edit.code} onChange={(e) => setEdit({ ...edit, code: e.target.value.toUpperCase() })} disabled={!isNew} dir="ltr" /></Field><Field label="الاسم (عربي)"><input value={edit.name_ar} onChange={(e) => setEdit({ ...edit, name_ar: e.target.value })} /></Field><Field label="الاسم (إنجليزي)"><input value={edit.name_en} onChange={(e) => setEdit({ ...edit, name_en: e.target.value })} dir="ltr" /></Field></div>
       <Field label="الوصف"><input value={edit.description ?? ''} onChange={(e) => setEdit({ ...edit, description: e.target.value })} /></Field>
       <h3>الأقسام</h3>{edit.sections.map((s, i) => <div key={s.key} className={`sec-item ${s.enabled ? '' : 'off'}`}><div className="head"><input type="checkbox" checked={s.enabled} onChange={(e) => upd(i, { enabled: e.target.checked })} /><input value={s.title_ar} onChange={(e) => upd(i, { title_ar: e.target.value })} style={{ flex: 1 }} /><select value={s.type} onChange={(e) => upd(i, { type: e.target.value })}>{Object.entries(data.section_types).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select><button className="btn sec sm" onClick={() => move(i, -1)}>↑</button><button className="btn sec sm" onClick={() => move(i, 1)}>↓</button><button className="btn sec sm" onClick={() => setEdit({ ...edit, sections: edit.sections.filter((_, k) => k !== i) })}>حذف</button></div></div>)}
-      <div className="row between"><button className="btn sec sm" onClick={() => setEdit({ ...edit, sections: [...edit.sections, { key: `custom_${Date.now().toString(36)}`, type: 'custom_text', title_ar: 'قسم جديد', title_en: 'New section', enabled: true, order: edit.sections.length + 1 }] })}>+ قسم</button><button className="btn" onClick={save} disabled={busy}>حفظ القالب</button></div></Modal>}
+      <div className="row between"><button className="btn sec sm" onClick={() => setEdit({ ...edit, sections: [...edit.sections, { key: `custom_${Date.now().toString(36)}`, type: 'custom_text', title_ar: 'قسم جديد', title_en: 'New section', enabled: true, order: edit.sections.length + 1 }] })}><Plus size={15} /> قسم</button><button className="btn" onClick={save} disabled={busy}>حفظ القالب</button></div></Modal>}
   </Page>;
 }

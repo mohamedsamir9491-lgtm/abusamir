@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { get, post, put } from '../api';
 import { Page, useLoad, Spinner, Empty, Field, useAction, Badge, Modal, Sev } from '../components/ui';
@@ -26,8 +27,8 @@ export function Official() {
   // فتح مستند وصل من صفحة الارتباط: استخراج تلقائي إن لم يُستخرج، وإلا فتح سجله
   useEffect(() => { if (!data || !docParam) return; const d = data.companies.flatMap((c) => c.documents).find((x) => x.id === docParam); if (!d) return; if (d.record_id) setSp((s) => { s.set('record_id', String(d.record_id)); s.delete('document_id'); return s; }); else if (can('documents.upload') && !extracting) extract(docParam); }, [data, docParam]); // eslint-disable-line
   return <Page title="البيانات النظامية" sub="تُقرأ عقود التأسيس والأنظمة الأساسية والسجلات التجارية محليًا (نص أو تعرف ضوئي)، وتُعرض الحقول مع مصدر كل منها لتراجعها وتعتمدها، ثم تُطبَّق على بيانات العميل والمجموعة وتُطابق بالدفاتر.">
-    <div className="card tight"><Field label="الارتباط"><select value={eng} onChange={(e) => setSp(e.target.value ? { engagement_id: e.target.value } : {})} style={{ minWidth: 360 }}><option value="">— اختر —</option>{engs?.engagements.filter((e) => !e.group_engagement_id).map((e) => <option key={String(e.id)} value={String(e.id)}>{e.client_name} — {e.title}</option>)}</select></Field></div>
-    {!eng ? <Empty text="اختر الارتباط" /> : loading || !data ? <Spinner /> : <>
+
+    {!eng ? <Empty text="اختر الارتباط من الشريط العلوي" /> : loading || !data ? <Spinner /> : <>
       {recParam && <RecordReview id={recParam} onClose={() => setSp((s) => { s.delete('record_id'); return s; })} onChanged={reload} />}
       {data.companies.map((c) => <div key={c.engagement_id} className="card"><div className="row between"><h2>{c.name} <span className="muted" style={{ fontSize: 13 }}>({ROLE_AR[c.role] ?? c.role})</span></h2><Link className="btn sec sm" to={`/engagements/${c.engagement_id}`}>رفع مستند لهذه الشركة</Link></div>
         <div className="row" style={{ marginBottom: 8 }}>{c.checklist.map((k) => <span key={k.key} className={`badge ${ST[k.status]?.[1] ?? 'neutral'}`}>{k.label}: {ST[k.status]?.[0] ?? k.status}{!k.required && k.status === 'missing' ? ' (اختياري)' : ''}</span>)}</div>
@@ -80,7 +81,7 @@ function RecordReview({ id, onClose, onChanged }: { id: string; onClose: () => v
       <td className="num"><input value={p.amount ?? ''} dir="ltr" style={{ width: 120 }} onChange={(e) => set('partners', partners.map((x, j) => j === i ? { ...x, amount: e.target.value ? Number(e.target.value.replace(/,/g, '')) : null } : x))} /></td>
       <td className="num"><input value={p.pct ?? ''} dir="ltr" style={{ width: 100 }} onChange={(e) => set('partners', partners.map((x, j) => j === i ? { ...x, pct: e.target.value ? Number(e.target.value) : null } : x))} /></td>
       <td><button className="btn sec sm" onClick={() => set('partners', partners.filter((_, j) => j !== i))}>حذف</button></td></tr>)}</tbody></table>
-    <div className="row"><button className="btn sec sm" onClick={() => set('partners', [...partners, { name: '', nature: 'capital', id_no: null, amount: null, pct: null }])}>+ شريك</button>{evid('partners')}</div>
+    <div className="row"><button className="btn sec sm" onClick={() => set('partners', [...partners, { name: '', nature: 'capital', id_no: null, amount: null, pct: null }])}><Plus size={15} /> شريك</button>{evid('partners')}</div>
     {board.length > 0 && <><h3>الإدارة</h3><table className="t ruled"><thead><tr><th>الاسم</th><th>المنصب</th></tr></thead><tbody>{board.map((b, i) => <tr key={i}><td>{b.name}</td><td>{b.position}</td></tr>)}</tbody></table></>}
     {Array.isArray(v('activities')) && v('activities').length > 0 && <details style={{ marginTop: 8 }}><summary>الأنشطة ({v('activities').length})</summary><ul>{(v('activities') as string[]).map((a, i) => <li key={i}>{a}</li>)}</ul></details>}
     <h3>نتيجة المطابقة مع الدفاتر وبيانات العميل</h3>

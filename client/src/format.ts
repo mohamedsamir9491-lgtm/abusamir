@@ -31,3 +31,23 @@ export const EXTRACT_METHOD: Record<string, string> = { xlsx: 'Excel', xls: 'Exc
 
 /** المستندات النظامية: تُستخرج بياناتها من شاشة «البيانات النظامية» ولا تُستورد كبيانات محاسبية */
 export const OFFICIAL_TYPES = ['articles_of_association', 'commercial_registration', 'zakat_certificate', 'vat_certificate', 'municipal_license', 'partners_resolution', 'contract'];
+
+/** أسماء الإجراءات المسجلة في سجل التدقيق بالعربية */
+export const ACTION_LABELS: Record<string, string> = {
+  'account.updated': 'تعديل حساب', 'account.upserted': 'حفظ حساب', 'accounts.auto_classified': 'تصنيف آلي للحسابات', 'adjustment.deleted': 'حذف تسوية', 'adjustment.proposed': 'اقتراح تسوية', 'adjustment.status_changed': 'تغيير حالة تسوية', 'adjustment.updated': 'تعديل تسوية',
+  'ai.analysis_completed': 'تحليل المزوّد الخارجي', 'ai.analysis_requested': 'طلب تحليل خارجي', 'ai.chat': 'محادثة المحاسب الذكي', 'ai.local_analysis': 'تحليل محلي', 'ai.section_drafted': 'صياغة قسم',
+  'analysis.group_consolidation': 'توحيد دفتري', 'analysis.journal': 'تحليل اليومية', 'analysis.statements': 'توليد القوائم', 'analysis.tb_validation': 'فحص الميزان', 'analysis_run.deleted': 'حذف تشغيل تحليل',
+  'auth.login': 'تسجيل دخول', 'auth.login_failed': 'محاولة دخول فاشلة', 'auth.logout': 'تسجيل خروج', 'auth.password_changed': 'تغيير كلمة المرور',
+  'client.archived': 'أرشفة عميل', 'client.created': 'عميل جديد', 'client.purged': 'حذف عميل نهائيًا', 'client.updated': 'تعديل عميل', 'data.deletion_requested': 'طلب حذف بيانات',
+  'document.deleted': 'حذف مستند', 'document.downloaded': 'تنزيل مستند', 'document.moved': 'نقل مستند', 'document.updated': 'تعديل مستند', 'document.uploaded': 'رفع مستند',
+  'engagement.created': 'ارتباط جديد', 'engagement.deleted': 'حذف ارتباط', 'engagement.rolled_forward': 'ارتباط السنة التالية', 'engagement.updated': 'تعديل ارتباط', 'engagement_letter.create': 'خطاب ارتباط', 'engagement_letter.update': 'تحديث خطاب', 'engagement_letter.deleted': 'حذف خطاب', 'engagement_letter.pdf': 'طباعة خطاب',
+  'finding.commented': 'تعليق على ملاحظة', 'finding.created': 'ملاحظة جديدة', 'finding.deleted': 'حذف ملاحظة', 'finding.status_changed': 'تغيير حالة ملاحظة', 'finding.updated': 'تعديل ملاحظة',
+  'group.company_added': 'إضافة شركة للمجموعة', 'group.company_removed': 'إزالة شركة من المجموعة', 'group.company_updated': 'تعديل شركة في المجموعة',
+  'import.cancelled': 'إلغاء استيراد', 'import.committed': 'اعتماد استيراد', 'import.created': 'استيراد جديد', 'import.deleted': 'حذف استيراد', 'import.manual_entry': 'إدخال يدوي', 'import.mapped': 'ربط الأعمدة', 'import.validated': 'التحقق من الاستيراد',
+  'office.settings_updated': 'تعديل هوية المكتب', 'official.confirmed': 'اعتماد بيانات نظامية', 'official.extracted': 'استخراج بيانات نظامية', 'period.created': 'فترة جديدة', 'period.deleted': 'حذف فترة',
+  'report.commented': 'تعليق على تقرير', 'report.content_updated': 'تعديل تقرير', 'report.created': 'تقرير جديد', 'report.delete': 'حذف تقرير', 'report.exported_pdf': 'تصدير PDF', 'report.exported_xlsx': 'تصدير Excel', 'report.file_downloaded': 'تنزيل تقرير', 'report.regenerated': 'إعادة توليد تقرير',
+  'request.created': 'طلب عميل يدوي', 'request.deleted': 'استبعاد طلب', 'request.updated': 'تحديث طلب', 'requests.exported': 'تصدير الطلبات', 'requests.refreshed': 'تحديث طلبات العميل', 'requests.status': 'تحديث حالة الطلبات',
+  'shareholders.saved': 'حفظ سجل المساهمين', 'valuation.saved': 'حفظ تعديلات التقييم', 'valuation.approved': 'اعتماد تعديلات التقييم', 'valuation.reopened': 'إعادة فتح التقييم',
+  'system.backup_created': 'نسخة احتياطية', 'system.backup_verified': 'التحقق من نسخة احتياطية', 'system.cleanup': 'تنظيف بيانات', 'system.setting_updated': 'تعديل إعدادات النظام',
+  'template.created': 'قالب جديد', 'template.deleted': 'حذف قالب', 'template.updated': 'تعديل قالب', 'user.created': 'مستخدم جديد', 'user.updated': 'تعديل مستخدم',
+};

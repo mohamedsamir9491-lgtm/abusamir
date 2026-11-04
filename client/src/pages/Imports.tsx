@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useScope } from '../components/Scope';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { get, post, put, del } from '../api';
 import { Page, useLoad, Spinner, Empty, Field, useAction, Steps, Badge, Modal, DangerButton, Money } from '../components/ui';
@@ -16,8 +17,8 @@ interface Report { total_rows: number; data_rows: number; ok: number; warnings: 
 
 export function ImportsList() {
   const [sp] = useSearchParams(); const nav = useNavigate(); const { run, busy } = useAction(); const { can } = useAuth();
-  const { data: engs } = useLoad(() => get<{ engagements: Row[] }>('/engagements'), []);
-  const [eng, setEng] = useState(sp.get('engagement_id') ?? '');
+  const scope = useScope(); const [eng, setEng] = useState(sp.get('engagement_id') ?? scope.eng ?? '');
+  useEffect(() => { if (scope.eng && scope.eng !== eng) { setEng(scope.eng); setPeriod(''); if (!sp.get('document_id')) setDoc(''); } }, [scope.eng]); // eslint-disable-line
   const { data: types } = useLoad(() => get<{ data_types: { code: string; label_ar: string }[] }>('/imports/data-types'), []);
   const { data: det } = useLoad(() => eng ? get<{ periods: Row[]; documents: Row[] }>(`/engagements/${eng}`) : Promise.resolve(null), [eng]);
   const { data: jobs, reload } = useLoad(() => eng ? get<{ jobs: Row[] }>(`/imports?engagement_id=${eng}`) : Promise.resolve({ jobs: [] }), [eng]);
@@ -26,7 +27,7 @@ export function ImportsList() {
   const start = async () => { const r = await run(() => post<{ job: Job }>('/imports', { document_id: doc, data_type: dt, period_id: period || null })); if (r) { if (r.job.status === 'failed') { reload(); } else nav(`/imports/${r.job.id}`); } };
   return <Page title="الاستيراد والتحقق" sub="معالج من مراحل: استخراج → تحديد الورقة والعناوين → ربط الأعمدة → التحقق → تأكيد الاعتماد">
     <div className="card"><div className="grid c4">
-      <Field label="الارتباط"><select value={eng} onChange={(e) => { setEng(e.target.value); setDoc(''); }}><option value="">— اختر —</option>{engs?.engagements.map((e) => <option key={String(e.id)} value={String(e.id)}>{e.client_name} — {e.title}</option>)}</select></Field>
+
       <Field label="المستند" hint="المستندات النظامية (عقود التأسيس والسجلات والشهادات) لا تظهر هنا؛ تُستخرج بياناتها من «البيانات النظامية»"><select value={doc} onChange={(e) => setDoc(e.target.value)} disabled={!det}><option value="">— اختر —</option>{det?.documents.filter((d) => !OFFICIAL_TYPES.includes(String(d.document_type))).map((d) => <option key={String(d.id)} value={String(d.id)}>{d.original_name} ({DOC_STATUS[String(d.status)] ?? d.status})</option>)}</select></Field>
       <Field label="نوع البيانات"><select value={dt} onChange={(e) => setDt(e.target.value)}>{types?.data_types.map((t) => <option key={t.code} value={t.code}>{t.label_ar}</option>)}</select></Field>
       <Field label="الفترة المالية"><select value={period} onChange={(e) => setPeriod(e.target.value)}><option value="">—</option>{det?.periods.map((p) => <option key={String(p.id)} value={String(p.id)}>{p.label}</option>)}</select></Field></div>

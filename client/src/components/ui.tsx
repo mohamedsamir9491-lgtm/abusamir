@@ -1,6 +1,7 @@
+import type React from 'react';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
-import { X, Check } from 'lucide-react';
+import { X, Check, Paperclip } from 'lucide-react';
 import { Icon, pageIcon } from './nav';
 import { fmtMoney, SEVERITY } from '../format';
 
@@ -45,6 +46,17 @@ export function Tabs({ tabs, active, onChange }: { tabs: { key: string; label: s
 }
 export function Steps({ steps, current }: { steps: string[]; current: number }) {
   return <div className="steps">{steps.map((s, i) => <div key={s} className={`s ${i < current ? 'done' : i === current ? 'cur' : ''}`}><span className="n">{i < current ? <Check size={13} strokeWidth={2.4} /> : i + 1}</span>{s}</div>)}</div>;
+}
+/** اختيار ملف بواجهة عربية موحدة (بدل نص المتصفح الافتراضي) */
+export function FileInput({ onFiles, multiple, accept, inputRef, label = 'اختر الملف', required }: { onFiles?: (f: FileList | null) => void; multiple?: boolean; accept?: string; inputRef?: React.Ref<HTMLInputElement>; label?: string; required?: boolean }) {
+  const [names, setNames] = useState<string>('');
+  return <label className="file-pick"><input type="file" ref={inputRef} multiple={multiple} accept={accept} required={required} onChange={(e) => { const f = e.target.files; setNames(f && f.length ? [...f].map((x) => x.name).join('، ') : ''); onFiles?.(f); }} />
+    <span className="btn sec sm"><Paperclip size={15} /> {multiple ? 'اختر الملفات' : label}</span><span className="fn">{names || 'لم يُختر ملف'}</span></label>;
+}
+/** مراحل العمل: نقاط متصلة؛ المرحلة الحالية = أول مرحلة غير مكتملة */
+export function Stepper({ items }: { items: { label: string; done: boolean }[] }) {
+  const cur = items.findIndex((i) => !i.done);
+  return <div className="stepper">{items.map((it, i) => <div key={it.label} className={`st ${it.done ? 'done' : i === cur ? 'cur' : ''}`}><span className="dot">{it.done ? <Check size={13} strokeWidth={2.6} /> : i + 1}</span><span className="lb">{it.label}</span></div>)}</div>;
 }
 /** زر حذف/إجراء خطر بتأكيد صريح؛ يستخدم في كل الشاشات لتوحيد السلوك */
 export function DangerButton({ label = 'حذف', text, onConfirm, small = true, disabled }: { label?: string; text: string; onConfirm: () => Promise<unknown> | void; small?: boolean; disabled?: boolean }) {
