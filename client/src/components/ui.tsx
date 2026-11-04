@@ -1,4 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
+import { X, Check } from 'lucide-react';
+import { Icon, pageIcon } from './nav';
 import { fmtMoney, SEVERITY } from '../format';
 
 // ---------- Toast ----------
@@ -26,11 +29,12 @@ export function useLoad<T>(fn: () => Promise<T>, deps: unknown[]): { data: T | n
 
 export const Spinner = () => <span className="spinner" />;
 export const Empty = ({ text = 'لا توجد بيانات' }: { text?: string }) => <div className="empty">{text}</div>;
-export function Page({ title, sub, actions, children }: { title: string; sub?: ReactNode; actions?: ReactNode; children: ReactNode }) {
-  return <><div className="topbar"><div><h1>{title}</h1>{sub && <div className="sub">{sub}</div>}</div><div className="row">{actions}</div></div>{children}</>;
+export function Page({ title, sub, actions, children, icon }: { title: string; sub?: ReactNode; actions?: ReactNode; children: ReactNode; icon?: string }) {
+  const loc = useLocation(); const ic = icon ?? pageIcon(loc.pathname);
+  return <><div className="topbar">{ic && <div className="pic"><Icon n={ic} size={23} /></div>}<div className="ttl"><h1>{title}</h1>{sub && <div className="sub">{sub}</div>}</div>{actions && <div className="acts">{actions}</div>}</div>{children}</>;
 }
 export function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
-  return <div className="modal-bg" onClick={onClose}><div className={`modal${wide ? ' wide' : ''}`} onClick={(e) => e.stopPropagation()}><div className="row between" style={{ marginBottom: 12 }}><h2 style={{ margin: 0 }}>{title}</h2><button className="btn sec sm" onClick={onClose}>إغلاق</button></div>{children}</div></div>;
+  return <div className="modal-bg" onClick={onClose}><div className={`modal${wide ? ' wide' : ''}`} onClick={(e) => e.stopPropagation()}><div className="row between" style={{ marginBottom: 12 }}><h2 style={{ margin: 0 }}>{title}</h2><button className="iconbtn" onClick={onClose} aria-label="إغلاق" title="إغلاق"><X size={18} /></button></div>{children}</div></div>;
 }
 export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) { return <div className="field"><label>{label}</label>{children}{hint && <span className="muted">{hint}</span>}</div>; }
 export const Money = ({ v, d = 2 }: { v: string | number | null | undefined; d?: number }) => <span className="mono" style={{ color: Number(v) < 0 ? 'var(--danger)' : undefined }}>{fmtMoney(v, d)}</span>;
@@ -40,7 +44,7 @@ export function Tabs({ tabs, active, onChange }: { tabs: { key: string; label: s
   return <div className="tabs">{tabs.map((t) => <button key={t.key} className={active === t.key ? 'active' : ''} onClick={() => onChange(t.key)}>{t.label}</button>)}</div>;
 }
 export function Steps({ steps, current }: { steps: string[]; current: number }) {
-  return <div className="steps">{steps.map((s, i) => <div key={s} className={`s ${i < current ? 'done' : i === current ? 'cur' : ''}`}><span className="n">{i < current ? '✓' : i + 1}</span>{s}</div>)}</div>;
+  return <div className="steps">{steps.map((s, i) => <div key={s} className={`s ${i < current ? 'done' : i === current ? 'cur' : ''}`}><span className="n">{i < current ? <Check size={13} strokeWidth={2.4} /> : i + 1}</span>{s}</div>)}</div>;
 }
 /** زر حذف/إجراء خطر بتأكيد صريح؛ يستخدم في كل الشاشات لتوحيد السلوك */
 export function DangerButton({ label = 'حذف', text, onConfirm, small = true, disabled }: { label?: string; text: string; onConfirm: () => Promise<unknown> | void; small?: boolean; disabled?: boolean }) {
