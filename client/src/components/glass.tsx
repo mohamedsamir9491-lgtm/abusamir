@@ -28,6 +28,22 @@ export const IconDefs = () => <svg width="0" height="0" style={{ position: 'abso
 // ---------- الحركة: كاملة أو مخففة ----------
 const MKEY = 'motion';
 export const motionReduced = () => { try { const v = localStorage.getItem(MKEY); if (v) return v === 'reduced'; } catch { /* ignore */ } return typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches; };
+// ---------- مقياس الواجهة: تلقائي حسب الشاشة أو يدوي ----------
+const SKEY = 'ui-scale';
+export const UI_SCALES: [string, string][] = [['auto', 'تلقائي حسب الشاشة'], ['1', 'عادي'], ['1.15', 'كبير'], ['1.3', 'أكبر']];
+function applyScale() {
+  let mode = 'auto'; try { mode = localStorage.getItem(SKEY) || 'auto'; } catch { /* ignore */ }
+  const w = window.innerWidth, h = window.innerHeight;
+  const auto = w < 1100 ? 1 : Math.max(1, Math.min(1.6, w / 1680, h / 860));
+  const s = mode === 'auto' ? auto : Number(mode) || 1; const html = document.documentElement;
+  html.style.setProperty('zoom', s === 1 ? '' : String(+s.toFixed(3))); html.style.setProperty('--app-h', `${Math.floor(h / s)}px`); html.dataset.scale = String(+s.toFixed(3));
+}
+export function useUiScale() {
+  const [mode, setMode] = useState(() => { try { return localStorage.getItem(SKEY) || 'auto'; } catch { return 'auto'; } });
+  useEffect(() => { applyScale(); window.addEventListener('resize', applyScale); return () => window.removeEventListener('resize', applyScale); }, [mode]);
+  return { mode, set: (m: string) => { try { localStorage.setItem(SKEY, m); } catch { /* ignore */ } setMode(m); } };
+}
+
 export function useMotion() {
   const [reduced, setReduced] = useState(motionReduced);
   useEffect(() => { document.documentElement.classList.toggle('calm', reduced); }, [reduced]);
@@ -68,7 +84,7 @@ export function AmbientBg() {
     dust.current.forEach((p) => { const a = .2 + .45 * Math.abs(Math.sin(t * p.s + p.p)); c.fillStyle = `rgba(160,210,255,${a.toFixed(2)})`; c.fillRect(p.x * w, ((p.y * h - t * 6 * p.s) % h + h) % h, p.r, p.r); });
     c.globalCompositeOperation = 'source-over';
   }, sz.w, sz.h, 15, .5);
-  return <canvas ref={ref} className="ambient" style={{ width: sz.w, height: sz.h }} aria-hidden="true" />;
+  return <canvas ref={ref} className="ambient" aria-hidden="true" />;
 }
 
 // ---------- الكوكب أسفل الشريط الجانبي ----------

@@ -21,7 +21,7 @@ const compact = (v: number) => Math.abs(v) >= 1e6 ? `${(v / 1e6).toFixed(1)}M` :
 /** يصغّر الدائرة المركزية لتلائم عرض عمودها */
 function Fit({ w, h, children }: { w: number; h: number; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null); const [s, setS] = useState(1);
-  useEffect(() => { const el = ref.current; if (!el) return; const ro = new ResizeObserver(() => setS(Math.min(1.12, el.clientWidth / w, el.clientHeight / h))); ro.observe(el); return () => ro.disconnect(); }, [w, h]);
+  useEffect(() => { const el = ref.current; if (!el) return; const ro = new ResizeObserver(() => setS(Math.max(.55, Math.min(1.75, el.clientWidth / w, el.clientHeight / h)))); ro.observe(el); return () => ro.disconnect(); }, [w, h]);
   return <div ref={ref} className="fit"><div style={{ width: w, height: h, transform: `scale(${s})` }}>{children}</div></div>;
 }
 function Gauge2({ ratio }: { ratio: number }) {

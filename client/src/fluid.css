@@ -1,0 +1,47 @@
+/* =====================================================================
+   لوحة المكتب المرنة: تملأ ارتفاع الشاشة وعرضها على أي مقاس (1366 → 2560 وأكبر)
+   الأحجام نسبية للعرض عبر clamp() بدل أرقام ثابتة، والصفوف تتمدد بالـ fr
+   ===================================================================== */
+:root{--u:1px}
+/* مقياس الواجهة: يُضبط تلقائيًا من مقاس الشاشة (zoom) فتبقى النسب كما في التصور؛ --app-h = ارتفاع النافذة بعد المقياس */
+.app{min-height:var(--app-h,100vh)}.sidebar{height:var(--app-h,100vh)!important}
+.ambient{width:100%!important;height:100%!important}
+@media (min-width:1281px) and (min-height:700px){
+  .gd{height:calc(var(--app-h,100vh) - var(--ab-h,112px) - 18px);min-height:640px;grid-template-rows:auto auto auto minmax(0,1.32fr) minmax(0,1fr) auto;gap:calc(11 * var(--u))}
+  .gd-mid,.gd-low{height:auto!important;min-height:0}
+  .gd-mid > *,.gd-low > *{min-height:0}
+  .gd-hero{min-height:calc(128 * var(--u))}
+}
+.gd-hero{padding:calc(9 * var(--u)) calc(26 * var(--u))}
+.gd-hero h1{font-size:calc(25 * var(--u));margin:calc(3 * var(--u)) 0 calc(9 * var(--u))}
+.gh-date{font-size:calc(13.5 * var(--u))}
+.gbtn{height:calc(40 * var(--u));padding:0 calc(20 * var(--u));font-size:calc(14.5 * var(--u))}
+.g2{width:calc(118 * var(--u));height:calc(118 * var(--u))}
+.gh-gauge .gv small{font-size:calc(11 * var(--u))}.gh-gauge .gv b{font-size:calc(17 * var(--u))}
+.gd-kpis{gap:calc(10 * var(--u))}
+.gk{padding:calc(9 * var(--u)) calc(11 * var(--u))}
+.gk-t{font-size:calc(12.5 * var(--u));gap:calc(7 * var(--u))}.gk-t .tile{width:calc(28 * var(--u));height:calc(28 * var(--u))}
+.gk-v{font-size:calc(25 * var(--u))}.gk small{font-size:calc(11.5 * var(--u))}
+.gpan{padding:calc(12 * var(--u)) calc(14 * var(--u));gap:calc(8 * var(--u))}
+.gph{font-size:calc(15 * var(--u))}
+.gfs{height:auto;min-height:24px;flex:1 1 0;max-height:calc(36 * var(--u));font-size:calc(13 * var(--u))}.gfs b{font-size:calc(15 * var(--u))}
+.gfun{gap:calc(5 * var(--u))}.gfoot{font-size:calc(12 * var(--u))}
+.gcr{font-size:calc(11 * var(--u))}.gcb i{height:calc(4 * var(--u))}.gtot i{height:calc(12 * var(--u))}.gtot{font-size:calc(11 * var(--u))}.gleg{font-size:calc(11.5 * var(--u))}
+.gsub{font-size:calc(12.5 * var(--u))}.gbig{font-size:calc(27 * var(--u))}.gtrack{height:calc(11 * var(--u))}
+.gage > div{height:auto;min-height:26px;flex:1 1 0;max-height:calc(40 * var(--u));font-size:calc(13 * var(--u))}
+.gact{flex:1;justify-content:space-between}.gact > div{height:auto;flex:1 1 0;min-height:22px;max-height:calc(38 * var(--u));font-size:calc(13 * var(--u))}.gact .tm{font-size:calc(11 * var(--u))}
+.gmix{gap:calc(12 * var(--u))}.gdonut{width:calc(96 * var(--u));height:calc(96 * var(--u))}.gmx > div{height:auto;min-height:26px;flex:1 1 0;max-height:calc(38 * var(--u));font-size:calc(11 * var(--u))}.gmx > div b{font-size:calc(12.5 * var(--u))}
+.gmx{align-self:stretch;justify-content:center}
+.gdc .dt{font-size:calc(13 * var(--u))}.gdc .db{width:calc(46 * var(--u));height:calc(50 * var(--u))}
+.gtop{flex:1}.gtop .th{height:calc(30 * var(--u));font-size:calc(12.5 * var(--u))}.gtop .tr{min-height:calc(46 * var(--u));font-size:calc(13.5 * var(--u))}.gtop .cn b{font-size:calc(14 * var(--u))}
+.gd-quick{padding:calc(8 * var(--u)) calc(14 * var(--u))}.gd-quick .qb{height:calc(54 * var(--u));font-size:calc(14 * var(--u))}.gd-quick .qt{font-size:calc(16 * var(--u))}
+.hello-in .hi b{font-size:calc(22 * var(--u))}.hello-in .hi span{font-size:calc(14 * var(--u))}
+/* الدائرة المركزية تكبر لتملأ خانتها */
+.gd-hub .fit{inset:0}
+
+/* الشريط الجانبي: قسم واحد مفتوح، والقائمة تتمرر داخليًا فلا يختفي الكوكب ولا حالة النظام */
+.sidebar nav{flex:1 1 auto!important;min-height:0;overflow-y:auto;scrollbar-width:thin}
+.globe-box{flex:0 0 auto;height:230px}
+@media (max-height:760px){.globe-box{display:none}}
+.me-scale{padding:8px 10px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:4px 0}.me-scale > span{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}.me-scale > div{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.me-pop .me-scale button{justify-content:center;padding:6px;border:1px solid var(--border);font-size:12px}.me-pop .me-scale button.on{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}

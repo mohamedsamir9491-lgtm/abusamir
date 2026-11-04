@@ -7,7 +7,7 @@ import { ScopeProvider, ContextBar } from './Scope';
 import { Icon, NAV, groupOf } from './nav';
 import { CommandPalette, NotificationsBell } from './Palette';
 import { Assistant, AssistantBar } from './Assistant';
-import { AmbientBg, Globe, GIcon, IconDefs, SahmLogo, useMotion } from './glass';
+import { AmbientBg, Globe, GIcon, IconDefs, SahmLogo, useMotion, useUiScale, UI_SCALES } from './glass';
 export { Icon } from './nav';
 
 /** الثيم: الزجاجي الليلي افتراضيًا، والصباحي الفاتح اختياري */
@@ -34,11 +34,13 @@ function useOnline() {
 }
 
 export function Layout() {
-  const { user, loading, logout, can } = useAuth(); const { theme, toggle } = useTheme(); const office = useOffice(); const loc = useLocation(); const online = useOnline(); const motion = useMotion();
+  const { user, loading, logout, can } = useAuth(); const { theme, toggle } = useTheme(); const office = useOffice(); const loc = useLocation(); const online = useOnline(); const motion = useMotion(); const scale = useUiScale();
   const [open, setOpen] = useState(false); const [pal, setPal] = useState(false); const [ai, setAi] = useState(false); const [me, setMe] = useState(false);
   const cur = groupOf(loc.pathname);
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => { try { return JSON.parse(localStorage.getItem('nav-open') ?? '{}'); } catch { return {}; } });
   useEffect(() => { setOpen(false); setMe(false); }, [loc.pathname]);
+  // ارتفاع الشريط العلوي (لتملأ لوحة المكتب باقي الشاشة بالضبط)
+  useEffect(() => { const el = document.querySelector('.appbar'); if (!el) return; const ro = new ResizeObserver(() => document.documentElement.style.setProperty('--ab-h', `${(el as HTMLElement).offsetHeight}px`)); ro.observe(el); return () => ro.disconnect(); });
   useEffect(() => { try { localStorage.setItem('nav-open', JSON.stringify(expanded)); } catch { /* ignore */ } }, [expanded]);
   useEffect(() => { const h = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPal(true); } if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'j') { e.preventDefault(); setAi(true); } }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, []);
   useEffect(() => { const h = () => setAi(true); window.addEventListener('open-assistant', h); return () => window.removeEventListener('open-assistant', h); }, []);
@@ -57,7 +59,7 @@ export function Layout() {
       <nav>{NAV.map((g) => { const items = g.items.filter(([, , perm]) => can(perm)); if (!items.length) return null; const o = isOpen(g.key); const single = items.length === 1;
         return <div key={g.key} className={`navgroup${o ? ' open' : ''}${cur === g.key ? ' cur' : ''}`}>
           {single ? <NavLink className="group" to={items[0][0]} end={items[0][0] === '/'}><span>{g.title}</span><GIcon n={GROUP_ICON[g.key] ?? 'box'} /></NavLink>
-            : <button className="group" onClick={() => setExpanded((x) => ({ ...x, [g.key]: !o }))} aria-expanded={o}><span>{g.title}</span>{o ? <ChevronDown size={14} className="chev" /> : <ChevronLeft size={14} className="chev" />}<GIcon n={GROUP_ICON[g.key] ?? 'box'} /></button>}
+            : <button className="group" onClick={() => setExpanded(o ? { [g.key]: false } : Object.fromEntries(NAV.map((x) => [x.key, x.key === g.key])))} aria-expanded={o}><span>{g.title}</span>{o ? <ChevronDown size={14} className="chev" /> : <ChevronLeft size={14} className="chev" />}<GIcon n={GROUP_ICON[g.key] ?? 'box'} /></button>}
           {o && !single && <div className="items">{items.map(([to, label, , ic]) => <NavLink key={to} to={to} end={to === '/'} title={label}><Icon n={ic} size={16} /><span>{label}</span></NavLink>)}</div>}</div>; })}</nav>
       {glass && <div className="globe-box"><Globe /></div>}
       <div className="side-status"><div><span>{online == null ? 'جارٍ الفحص…' : online.ok ? 'النظام متصل' : 'تعذر الاتصال بالخادم'}</span><i className={online?.ok === false ? 'off' : ''} /></div><small dir="ltr">SAHM ERP{online?.build ? ` · ${online.build}` : ''}</small></div>
@@ -70,6 +72,7 @@ export function Layout() {
             {me && <><div className="sw-scrim" onClick={() => setMe(false)} /><div className="me-pop">
               <div className="me-h"><b>{user.full_name}</b><small>{user.email}</small></div>
               <button onClick={() => { motion.toggle(); }}><Gauge size={16} /><span>{motion.reduced ? 'تشغيل الحركة الكاملة' : 'تخفيف الحركة (للأجهزة الأبطأ)'}</span></button>
+              <div className="me-scale"><span>حجم الواجهة</span><div>{UI_SCALES.map(([k, l]) => <button key={k} className={scale.mode === k ? 'on' : ''} onClick={() => scale.set(k)}>{l}</button>)}</div></div>
               <button onClick={toggle}>{glass ? <Sun size={16} /> : <Moon size={16} />}<span>{glass ? 'الوضع الصباحي الفاتح' : 'الثيم الزجاجي الليلي'}</span></button>
               <button onClick={() => { setMe(false); setAi(true); }}><Sparkles size={16} /><span>مساعد سهم الذكي <kbd>Ctrl J</kbd></span></button>
               <button className="danger" onClick={logout}><LogOut size={16} /><span>تسجيل الخروج</span></button></div></>}</div>
