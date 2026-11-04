@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Building2, CalendarRange, ChevronLeft, Network } from 'lucide-react';
+import { Building2, CalendarRange, ChevronLeft, ChevronDown, Network } from 'lucide-react';
 import { get } from '../api';
 import { useLoad } from './ui';
 
@@ -61,12 +61,15 @@ export function useScope() {
 export function ContextBar() {
   const v = useContext(Ctx)!; const roots = v.engagements.filter((e) => !e.group_engagement_id || e.id === v.eng);
   const curRoot = v.engagement ? String(v.engagement.group_engagement_id ?? v.engagement.id) : '';
-  return <div className="ctxbar">
+  const [open, setOpen] = useState(false);
+  const short = (v.companies.find((c) => c.id === v.eng)?.name ?? String(v.engagement?.client_name ?? '')).replace(/\s*\(الأم\)$/, '') || 'اختر الارتباط';
+  return <><button className="ctx-mobile" onClick={() => setOpen((o) => !o)} aria-expanded={open}><Building2 size={16} /><b>{short}</b>{v.periodRow && <span className="muted">{String(v.periodRow.label).replace(/^الفترة من /, '')}</span>}<ChevronDown size={15} /></button>
+  <div className={`ctxbar${open ? ' open' : ''}`} onChange={() => setOpen(false)}>
     <label className="ctx" title="العميل والارتباط"><Building2 size={16} /><span>الارتباط</span>
       <select value={v.companies.length ? curRoot : v.eng} onChange={(e) => v.setEngagement(e.target.value)}><option value="">— اختر —</option>{roots.filter((e) => !e.group_engagement_id).map((e) => <option key={String(e.id)} value={String(e.id)}>{e.client_name}{e.is_demo ? ' (تجريبي)' : ''} — {e.title}</option>)}</select></label>
     {v.companies.length > 0 && <><ChevronLeft size={14} className="sep" /><label className="ctx" title="الشركة داخل المجموعة"><Network size={16} /><span>الشركة</span>
       <select value={v.eng} onChange={(e) => v.switchCompany(e.target.value)}>{v.companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label></>}
     {v.eng && <><ChevronLeft size={14} className="sep" /><label className="ctx" title="الفترة"><CalendarRange size={16} /><span>الفترة</span>
       <select value={v.period} onChange={(e) => v.setPeriod(e.target.value)}><option value="">—</option>{v.periods.map((p) => <option key={String(p.id)} value={String(p.id)}>{p.label}</option>)}</select></label></>}
-  </div>;
+  </div></>;
 }

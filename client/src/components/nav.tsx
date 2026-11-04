@@ -1,13 +1,13 @@
 import {
   LayoutDashboard, Users, BriefcaseBusiness, Upload, FileCheck2, ScrollText, ClipboardList, Table2, ChartColumn, Network, Scale, Flag, Bot, FileText, LayoutTemplate,
-  Building2, UserCog, History, Settings, Trash2, Sun, Moon, LogOut, CalendarDays, Stamp, File, type LucideIcon,
+  Building2, UserCog, History, Settings, Trash2, Sun, Moon, LogOut, CalendarDays, Stamp, File, FilePenLine, type LucideIcon,
 } from 'lucide-react';
 
 /** مكتبة أيقونات موحدة (Lucide): نفس السمك والحجم في كل الشاشات */
 const ICONS: Record<string, LucideIcon> = {
   home: LayoutDashboard, users: Users, briefcase: BriefcaseBusiness, upload: Upload, import: FileCheck2, official: ScrollText, requests: ClipboardList, table: Table2, chart: ChartColumn,
   layers: Network, valuation: Scale, flag: Flag, sparkles: Bot, file: FileText, template: LayoutTemplate, office: Building2, usercog: UserCog, list: History, settings: Settings,
-  trash: Trash2, sun: Sun, moon: Moon, logout: LogOut, stamp: Stamp, calendar: CalendarDays,
+  trash: Trash2, letter: FilePenLine, sun: Sun, moon: Moon, logout: LogOut, stamp: Stamp, calendar: CalendarDays,
 };
 export const Icon = ({ n, size = 18 }: { n: string; size?: number }) => { const C = ICONS[n] ?? File; return <C size={size} strokeWidth={1.8} aria-hidden="true" />; };
 
@@ -21,6 +21,7 @@ export const NAV: { title: string; items: NavItem[] }[] = [
 ];
 /** أيقونة الصفحة الحالية (لرأس الصفحة) من القائمة */
 export function pageIcon(path: string): string | null {
+  if (/\/letter$/.test(path)) return 'letter';
   let best: NavItem | null = null;
   for (const g of NAV) for (const it of g.items) if ((it[0] === '/' ? path === '/' : path === it[0] || path.startsWith(it[0] + '/')) && (!best || it[0].length > best[0].length)) best = it;
   return best?.[3] ?? null;
