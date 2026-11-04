@@ -150,8 +150,12 @@ practiceRouter.get('/notifications', async (_req, res, next) => {
 
 /** لوحة المكتب: كل العملاء */
 practiceRouter.get('/dashboard', async (req, res, next) => {
-  try {
-    const year = Number(req.query.year ?? new Date().getFullYear());
+  try { const d = await practiceDashboard(Number(req.query.year ?? new Date().getFullYear())); res.json({ ...d, engagements: undefined }); } catch (e) { next(e); }
+});
+
+/** بيانات لوحة المكتب (تُستخدم أيضًا في مساعد سهم الذكي) */
+export async function practiceDashboard(year: number) {
+  {
     const fin = await officeFinance(year);
     const counts = await one<Record<string, string>>(`SELECT (SELECT count(*) FROM clients WHERE deleted_at IS NULL AND parent_client_id IS NULL AND is_active) AS clients,
       (SELECT count(*) FROM clients WHERE deleted_at IS NULL AND parent_client_id IS NOT NULL) AS group_companies,
@@ -167,8 +171,8 @@ practiceRouter.get('/dashboard', async (req, res, next) => {
     const deadlines = [...items.map((x) => ({ date: x.date, title: x.title, client: x.client, tone: x.tone })), ...manual.map((m) => ({ date: m.date, title: m.title, client: m.client ?? 'عام', tone: 'pri' }))].sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6);
     const top = [...fin.engagements].sort((a, b) => b.fee - a.fee || String(b.title).localeCompare(String(a.title))).slice(0, 6);
     const team = Number(counts?.users ?? 1) > 1 ? await many(`SELECT u.full_name, count(e.id) AS engagements FROM users u LEFT JOIN engagements e ON e.assigned_to = u.id AND e.status <> 'closed' AND e.group_engagement_id IS NULL WHERE u.is_active GROUP BY u.id ORDER BY 2 DESC`) : [];
-    const activity = await many(`SELECT a.action, a.created_at, u.full_name AS user_name, c.legal_name_ar AS client_name FROM audit_logs a LEFT JOIN users u ON u.id = a.user_id LEFT JOIN clients c ON c.id = a.client_id WHERE a.action NOT LIKE 'auth.%' ORDER BY a.created_at DESC LIMIT 8`);
+    const activity = await many(`SELECT a.action, a.created_at, u.full_name AS user_name, c.legal_name_ar AS client_name FROM audit_logs a LEFT JOIN users u ON u.id = a.user_id LEFT JOIN clients c ON c.id = a.client_id WHERE a.action NOT LIKE 'auth.%' AND a.action NOT IN ('ai.assistant','ai.chat') ORDER BY a.created_at DESC LIMIT 8`);
     const office = await one<{ name_ar: string | null }>('SELECT name_ar FROM office_settings WHERE id = 1');
-    res.json({ counts, finance: { ...fin, engagements: undefined }, deadlines, top, team, activity, office_configured: !!office?.name_ar });
-  } catch (e) { next(e); }
-});
+    return { counts, finance: { ...fin, engagements: undefined }, engagements: fin.engagements, deadlines, top, team, activity, office_configured: !!office?.name_ar };
+  }
+}

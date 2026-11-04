@@ -35,7 +35,7 @@ export const OFFICIAL_TYPES = ['articles_of_association', 'commercial_registrati
 /** أسماء الإجراءات المسجلة في سجل التدقيق بالعربية */
 export const ACTION_LABELS: Record<string, string> = {
   'account.updated': 'تعديل حساب', 'account.upserted': 'حفظ حساب', 'accounts.auto_classified': 'تصنيف آلي للحسابات', 'adjustment.deleted': 'حذف تسوية', 'adjustment.proposed': 'اقتراح تسوية', 'adjustment.status_changed': 'تغيير حالة تسوية', 'adjustment.updated': 'تعديل تسوية',
-  'ai.analysis_completed': 'تحليل المزوّد الخارجي', 'ai.analysis_requested': 'طلب تحليل خارجي', 'ai.chat': 'محادثة المحاسب الذكي', 'ai.local_analysis': 'تحليل محلي', 'ai.section_drafted': 'صياغة قسم',
+  'ai.analysis_completed': 'تحليل المزوّد الخارجي', 'ai.analysis_requested': 'طلب تحليل خارجي', 'ai.chat': 'محادثة المحاسب الذكي', 'ai.assistant': 'سؤال لمساعد سهم', 'ai.local_analysis': 'تحليل محلي', 'ai.section_drafted': 'صياغة قسم',
   'analysis.group_consolidation': 'توحيد دفتري', 'analysis.journal': 'تحليل اليومية', 'analysis.statements': 'توليد القوائم', 'analysis.tb_validation': 'فحص الميزان', 'analysis_run.deleted': 'حذف تشغيل تحليل',
   'auth.login': 'تسجيل دخول', 'auth.login_failed': 'محاولة دخول فاشلة', 'auth.logout': 'تسجيل خروج', 'auth.password_changed': 'تغيير كلمة المرور',
   'client.archived': 'أرشفة عميل', 'client.created': 'عميل جديد', 'client.purged': 'حذف عميل نهائيًا', 'client.updated': 'تعديل عميل', 'data.deletion_requested': 'طلب حذف بيانات',
