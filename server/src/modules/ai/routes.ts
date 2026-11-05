@@ -8,7 +8,7 @@ import { audit } from '../../middleware/audit.js';
 import { loadEngagement } from '../../middleware/scope.js';
 import { runAiAnalysis, latestAiAnalysis, draftSection, aiStatus, runLocalAnalysis, externalChat } from './service.js';
 import { answerQuestion } from './chat.js';
-import { isLegalQuestion, legalAnswer, LEGAL_NOT_FOUND } from '../legal/answer.js';
+import { isLegalQuestion, legalAnswer, standardAnswer, LEGAL_NOT_FOUND } from '../legal/answer.js';
 import { officeAnswer, OFFICE_SUGGEST } from './office.js';
 
 export const aiRouter = Router();
@@ -54,6 +54,8 @@ aiRouter.post('/assistant', async (req, res, next) => {
     const office = await officeAnswer(d.message);
     if (office) { res.json({ engine: 'local', scope: 'office', ...office }); return; }
     if (d.engagement_id && d.period_id) { await loadEngagement(d.engagement_id); res.json({ engine: 'local', scope: 'engagement', ...(await answerQuestion(d.engagement_id, d.period_id, d.message)) }); return; }
+    const std = await standardAnswer(d.message);
+    if (std) { res.json({ engine: 'local', scope: 'standard', ...std }); return; }
     res.json({ engine: 'local', scope: 'help', intent: 'help', company: 'المكتب', period: '', sources: [], suggestions: OFFICE_SUGGEST,
       text: ['أجيب عن أسئلة المكتب: المستحقات، والتحصيل، والإيرادات، والمكتسب، والمواعيد، والخطابات، والملاحظات، والطلبات، وأي عميل بالاسم.', 'ولأسئلة القوائم والحسابات (الأصول، الأرباح، النسب…) اختر الارتباط من الشريط العلوي ثم اسألني.', 'وأجيب عن أسئلة الزكاة والضريبة والجمارك بنص المادة ومرجعها من المكتبة النظامية.'] });
   } catch (e) { next(e); }

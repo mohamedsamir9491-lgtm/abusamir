@@ -2,6 +2,7 @@
 import { searchKey } from '../../lib/arabic.js';
 import type { ChatAnswer } from '../ai/chat.js';
 import { searchLegal, snippet, type LegalHit } from './library.js';
+import { findTopics } from '../ai/knowledge.js';
 
 const N = (s: string) => searchKey(s).replace(/[؟?!.,،:؛()]/g, ' ').replace(/\s+/g, ' ').trim();
 // مفردات تدل على سؤال نظامي (زكاة، ضرائب، جمارك، أنظمة)
@@ -26,12 +27,12 @@ const cite = (h: LegalHit) => `${h.title} | ${h.ref}${h.heading ? ` (${h.heading
 export async function legalAnswer(question: string): Promise<(ChatAnswer & { links: { label: string; href: string }[] }) | null> {
   const r = await searchLegal(question, { limit: 8 });
   if (!r.hits.length) return null;
-  const need = Math.max(1, Math.ceil(r.terms.length * 0.5));
+  const need = Math.max(1, Math.ceil(r.groups * 0.5));
   const good = r.hits.filter((h) => h.matched >= need);
   if (!good.length) return null;
   // السارية أولًا ما لم يكن السابق أعلى مطابقة بفارق واضح
   const active = good.filter((h) => h.status === 'active');
-  const top = active.length && active[0].score >= good[0].score - 4 ? active[0] : good[0];
+  const top = active.length && active[0].score >= good[0].score - 8 ? active[0] : good[0];
   const rest = good.filter((h) => h.id !== top.id).slice(0, 3);
   const text = [`حسب ${top.title}، ${top.ref}${top.heading ? ` «${top.heading}»` : ''}${top.page_from ? ` (ص ${top.page_from})` : ''}:`, snippet(top.body, r.terms, 700)];
   if (top.status !== 'active') text.push('تنبيه: هذا النص من إصدار سابق أو ملغى؛ راجع النسخة السارية.');
@@ -43,6 +44,18 @@ export async function legalAnswer(question: string): Promise<(ChatAnswer & { lin
     links: [top, ...rest].map((h) => ({ label: `${h.ref} | ${h.title.slice(0, 50)}`, href: LINK(h, question) })),
     suggestions: [],
   };
+}
+
+/** أسئلة المعايير الدولية: الشرح العربي من قاعدة المعرفة + الملخص الرسمي من المكتبة */
+export async function standardAnswer(question: string): Promise<(ChatAnswer & { links: { label: string; href: string }[] }) | null> {
+  const topics = findTopics(question); const r = await searchLegal(`معيار ${question}`, { limit: 3, type: 'standard' });
+  const hit = r.hits.find((h) => h.matched >= Math.max(1, Math.ceil(r.groups * 0.5)));
+  if (!topics.length && !hit) return null;
+  const t = topics[0]; const text: string[] = [];
+  if (t) text.push(`${t.title} (${t.ref}):`, t.body);
+  if (hit) text.push(`الملخص الرسمي من مؤسسة IFRS: ${hit.ref}${hit.heading ? ` | ${hit.heading}` : ''}.`);
+  return { intent: 'standard', company: 'المعايير الدولية', period: '', text, sources: [...(t ? [t.ref] : []), ...(hit ? [cite(hit)] : [])],
+    links: hit ? [{ label: `${hit.ref} | الملخص الرسمي`, href: LINK(hit, question) }] : [], suggestions: topics.slice(1, 4).map((x) => `اشرح ${x.title}`) };
 }
 
 export const LEGAL_NOT_FOUND = (): ChatAnswer => ({ intent: 'legal.none', company: 'المكتبة النظامية', period: '', sources: [], suggestions: ['ما سعر ضريبة الدخل؟', 'الاستقطاع على المدفوعات لغير المقيم', 'غرامة التأخر في السداد'],

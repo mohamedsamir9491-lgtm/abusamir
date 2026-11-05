@@ -43,7 +43,7 @@ export async function loadLegalCorpus(file = CORPUS_FILE): Promise<{ loaded: boo
 }
 
 // ---------- البحث ----------
-const STOP = new Set(['في', 'من', 'علي', 'عن', 'الي', 'ما', 'ماذا', 'هو', 'هي', 'هل', 'كم', 'كيف', 'متي', 'اين', 'لماذا', 'هذا', 'هذه', 'ذلك', 'التي', 'الذي', 'او', 'ام', 'ثم', 'مع', 'كل', 'اي', 'بين', 'عند', 'قد', 'لا', 'لم', 'لن', 'ان', 'انه', 'كان', 'يكون', 'تكون', 'وفق', 'حسب', 'المملكه', 'السعوديه',
+const STOP = new Set(['في', 'من', 'علي', 'عن', 'الي', 'ما', 'ماذا', 'هو', 'هي', 'هل', 'كم', 'كيف', 'متي', 'اين', 'لماذا', 'هذا', 'هذه', 'ذلك', 'التي', 'الذي', 'او', 'ام', 'ثم', 'مع', 'كل', 'اي', 'بين', 'عند', 'قد', 'لا', 'لم', 'لن', 'ان', 'انه', 'كان', 'يكون', 'تكون', 'وفق', 'حسب', 'المملكه', 'السعوديه', 'يعد', 'تعد', 'لاغراض', 'اغراض', 'يجب', 'حال', 'حاله', 'بشان', 'خاص', 'خاصه', 'المتعلقه', 'متعلقه',
   'the', 'of', 'and', 'or', 'to', 'in', 'a', 'an', 'is', 'what', 'for', 'on', 'by', 'with']);
 /** نفس تقليص البادئات المستخدم في الفهرس (ar_stem_text) */
 export const arStem = (s: string) => searchKey(s).replace(/(^|[^ء-ي0-9a-z])(وبال|وكال|فبال|ولل|فلل|وال|بال|فال|كال|لل|ال|و)([ء-ي0-9a-z]{3,})/g, '$1$3');
@@ -51,21 +51,39 @@ export const arStem = (s: string) => searchKey(s).replace(/(^|[^ء-ي0-9a-z])(و
 const SYN: Record<string, string[]> = {
   سعر: ['اسعار', 'نسبه', 'نسب'], نسبه: ['سعر', 'اسعار', 'نسب'], اسعار: ['سعر', 'نسبه'], مده: ['مهله', 'خلال', 'موعد', 'مواعيد'], مهله: ['مده', 'موعد'], موعد: ['مواعيد', 'مهله', 'مده'],
   اقرار: ['اقرارات'], اقرارات: ['اقرار'], تعريف: ['تعريفات', 'يقصد'], غرامه: ['غرامات', 'عقوبه', 'عقوبات', 'مخالفه', 'مخالفات'], عقوبه: ['عقوبات', 'غرامه', 'غرامات'], مخالفه: ['مخالفات', 'غرامه', 'عقوبه'],
-  مصروف: ['مصاريف', 'مصروفات', 'نفقات'], مصاريف: ['مصروف', 'مصروفات', 'نفقات'], حسم: ['يحسم', 'حسميات', 'خصم'], خصم: ['حسم', 'حسميات'], اعفاء: ['اعفاءات', 'معفاه', 'معفي'], معفاه: ['اعفاء', 'معفي'],
+  مصروف: ['مصاريف', 'مصروفات', 'نفقات'], مصاريف: ['مصروف', 'مصروفات', 'نفقات'], حسم: ['يحسم', 'حسميات', 'خصم'], حسميات: ['حسم', 'يحسم'], خصم: ['حسم', 'حسميات'], اعفاء: ['اعفاءات', 'معفاه', 'معفي'], معفاه: ['اعفاء', 'معفي'],
   شركه: ['شركات'], شركات: ['شركه'], مكلف: ['مكلفين'], اصل: ['اصول'], اصول: ['اصل'], استهلاك: ['اهلاك'], اهلاك: ['استهلاك'], مخصص: ['مخصصات'], مخصصات: ['مخصص'],
   ربح: ['ارباح'], ارباح: ['ربح'], خساره: ['خسائر'], خسائر: ['خساره'], قرض: ['قروض'], قروض: ['قرض'], فاتوره: ['فواتير', 'فوتره'], فواتير: ['فاتوره', 'فوتره'], فوتره: ['فاتوره', 'فواتير'],
   توريد: ['توريدات'], توريدات: ['توريد'], سلعه: ['سلع'], سلع: ['سلعه'], خدمه: ['خدمات'], خدمات: ['خدمه'], عقار: ['عقارات', 'عقاري', 'عقاريه'], عقاري: ['عقار', 'عقارات'],
   استرداد: ['يسترد', 'استرجاع'], تصدير: ['صادرات'], استيراد: ['واردات'], رسوم: ['رسم'], رسم: ['رسوم'], حصه: ['حصص'], حصص: ['حصه'],
   تاخر: ['تاخير', 'متاخر', 'متاخره'], تاخير: ['تاخر', 'متاخر'], سداد: ['تسديد', 'دفع', 'يسدد'], تسديد: ['سداد', 'دفع'], تقديم: ['يقدم', 'تقدم'], تسجيل: ['يسجل', 'مسجل'],
-  زكاه: ['زكوي', 'زكويه'], زكوي: ['زكاه'], جمرك: ['جمارك', 'جمركي', 'جمركيه'], جمارك: ['جمركي', 'جمركيه'], مقيم: ['مقيمه', 'اقامه'], اقامه: ['مقيم'],
+  زكاه: ['زكوي', 'زكويه'], معيار: ['معايير', 'ifrs', 'ias'], معايير: ['معيار', 'ifrs', 'ias'], زكوي: ['زكاه'], جمرك: ['جمارك', 'جمركي', 'جمركيه'], جمارك: ['جمركي', 'جمركيه'], مقيم: ['مقيمه', 'اقامه'], اقامه: ['مقيم'],
 };
 export function queryTerms(q: string): string[] {
   return [...new Set(arStem(q).replace(/[^ء-ي0-9a-z%]+/g, ' ').split(' ').filter((t) => t.length >= 2 && !STOP.has(t)))].slice(0, 12);
 }
 /** مجموعات الكلمات: كل كلمة من السؤال مع مرادفاتها */
 export const termGroups = (terms: string[]) => terms.map((t) => [t, ...(SYN[t] ?? [])]);
-const tsGroup = (g: string[]) => g.map((t) => t.replace(/[':&|!()\\]/g, '')).filter(Boolean).map((t) => (t.length >= 4 ? `${t}:*` : t)).join(' | ');
+// «مقيمًا» و«عقارية»: حذف ألف التنوين والتاء المربوطة في البادئة ليطابق «مقيم» و«عقاري»
+const tsTerm = (t: string) => (t.length >= 5 && /[اه]$/.test(t) ? `${t.slice(0, -1)}:*` : t.length >= 4 ? `${t}:*` : t);
+const tsGroup = (g: string[]) => g.map((t) => t.replace(/[':&|!()\\]/g, '')).filter(Boolean).map(tsTerm).join(' | ');
+/** نوع الضريبة المذكور في السؤال ← نمط يطابق عنوان المصدر أو تصنيفه */
+// [نمط السؤال، نمط عنوان المصدر، كلمات النوع التي يُستغنى عنها في الترتيب لأنها في كل مواد النظام]
+const DOMAINS: [RegExp, string, string[]][] = [
+  [/التصرفات العقاري/, 'التصرفات العقارية', ['ضريبه', 'تصرفات', 'عقاريه']], [/انتقايي/, 'انتقائي', ['ضريبه', 'انتقاييه', 'انتقايي']],
+  [/القيمه المضافه|\bvat\b|ضريبه المدخلات|ضريبه المخرجات/, 'القيمة المضافة', ['ضريبه', 'قيمه', 'مضافه']],
+  [/زكا|زكوي/, 'زكا|زكوي', ['زكاه', 'زكوي', 'زكويه', 'وعاء', 'جبايه']], [/جمارك|جمركي|الاستيراد|الفسح/, 'جمارك|جمركي|الجمارك', ['جمارك', 'جمركي', 'جمركيه']],
+  [/ضريبه الدخل|استقطاع|الاستقطاع|غير المقيم/, 'ضريبة الدخل|الاستقطاع|الدخل', ['ضريبه', 'ضريبي', 'دخل']],
+  [/\bifrs\b|\bias\b|معيار|معايير/, 'IFRS|standard', ['معيار', 'معايير', 'ifrs', 'ias']],
+];
+const GENERAL = ['نظام', 'لايحه', 'تنفيذيه'];
+const domainOf = (q: string) => { const k = searchKey(q); return DOMAINS.find(([re]) => re.test(k)) ?? null; };
+export function taxDomain(q: string): string | null { return domainOf(q)?.[1] ?? null; }
 /** «المادة 7 من نظام ضريبة الدخل» → رقم المادة */
+export function standardRef(q: string): string | null {
+  const m = q.match(/\b(IFRS|IAS|IFRIC|SIC)[\s\-]?(\d{1,2})\b/i); if (!m) return null;
+  const k = m[1].toUpperCase(); return k === 'SIC' ? `SIC-${m[2]}` : `${k} ${m[2]}`;
+}
 export function articleNumber(q: string): number | null {
   const m = searchKey(q).match(/ماد[ةه]\s*\(?\s*(\d{1,3})\b/);
   return m ? Number(m[1]) : null;
@@ -74,30 +92,43 @@ export function articleNumber(q: string): number | null {
 export interface LegalHit { id: string; source_code: string; ref: string; heading: string | null; body: string; kind: string; num: number | null; page_from: number; page_to: number; title: string; category: string; doc_type: string; status: string; source_url: string | null; score: number; matched: number }
 
 /** بحث مرتب: عدد الكلمات المطابقة أولًا، ثم كثافتها، مع تفضيل الأنظمة واللوائح السارية */
-export async function searchLegal(q: string, opts: { limit?: number; category?: string; status?: string; type?: string; source?: string } = {}): Promise<{ terms: string[]; hits: LegalHit[] }> {
-  const terms = queryTerms(q); if (!terms.length) return { terms, hits: [] };
-  const groups = termGroups(terms); const tq = groups.map((g) => `(${tsGroup(g)})`).join(' | ');
-  const artNo = articleNumber(q);
-  const params: unknown[] = [tq]; const cond: string[] = [artNo ? `(c.tsv @@ to_tsquery('simple', $1) OR (c.kind = 'article' AND c.num = ${artNo}))` : 'c.tsv @@ to_tsquery(\'simple\', $1)'];
+export async function searchLegal(q: string, opts: { limit?: number; category?: string; status?: string; type?: string; source?: string } = {}): Promise<{ terms: string[]; groups: number; hits: LegalHit[] }> {
+  const terms = queryTerms(q); if (!terms.length) return { terms, groups: 0, hits: [] };
+  const d = domainOf(q); const dom = d?.[1] ?? null; const drop = new Set([...(d?.[2] ?? []), ...(d ? GENERAL : [])]);
+  const core = terms.filter((t) => !drop.has(t));
+  const groups = termGroups(core.length ? core : terms); const tq = groups.map((g) => `(${tsGroup(g)})`).join(' | ');
+  const artNo = articleNumber(q); const std = standardRef(q);
+  const params: unknown[] = [tq]; const cond: string[] = [`(c.tsv @@ to_tsquery('simple', $1)${artNo ? ` OR (c.kind = 'article' AND c.num = ${artNo})` : ''}${std ? ` OR c.ref = '${std}'` : ''})`];
   if (opts.category) { params.push(`%${opts.category}%`); cond.push(`s.category ILIKE $${params.length}`); }
   if (opts.status) { params.push(opts.status); cond.push(`s.status = $${params.length}`); }
   if (opts.type) { params.push(opts.type); cond.push(`s.doc_type = $${params.length}`); }
   if (opts.source) { params.push(opts.source); cond.push(`s.code = $${params.length}`); }
   const gi = groups.map((g) => { params.push(tsGroup(g)); return params.length; });
+  // ندرة الكلمة (IDF): «الوعاء» و«الضريبة» شائعة في كل المواد، أما «المخصصات» فتحدد الموضوع
+  const df = await one<Record<string, string>>(`SELECT count(*) AS n, ${gi.map((i, k) => `count(*) FILTER (WHERE tsv @@ to_tsquery('simple', $${k + 1})) AS d${k}`).join(', ')} FROM legal_chunks`, gi.map((i) => params[i - 1]));
+  const N = Number(df?.n ?? 1); const idf = gi.map((_, k) => Math.log((N + 1) / (Number(df?.[`d${k}`] ?? 0) + 1)));
+  const mx = Math.max(...idf, 0.01); const w = idf.map((v) => Math.max(0.15, v / mx).toFixed(3));
   const matchedExpr = gi.map((i) => `(c.tsv @@ to_tsquery('simple', $${i}))::int`).join(' + ');
-  // تطابق الكلمة مع عنوان المادة أو عنوان النظام يرفع الترتيب (العنوان يحدد موضوع المادة)
-  const headExpr = gi.map((i) => `(to_tsvector('simple', ar_stem_text(coalesce(c.heading, '') || ' ' || s.title)) @@ to_tsquery('simple', $${i}))::int`).join(' + ');
+  const wMatched = gi.map((i, k) => `(c.tsv @@ to_tsquery('simple', $${i}))::int * ${w[k]}`).join(' + ');
+  // عنوان المادة يحدد موضوعها: تطابقه أقوى من تطابق المتن، وعنوان النظام يحدد المصدر المقصود
+  const headExpr = gi.map((i, k) => `(to_tsvector('simple', ar_stem_text(coalesce(c.heading, ''))) @@ to_tsquery('simple', $${i}))::int * ${w[k]}`).join(' + ');
+  const titleExpr = gi.map((i) => `(to_tsvector('simple', ar_stem_text(s.title || ' ' || s.category)) @@ to_tsquery('simple', $${i}))::int`).join(' + ');
+  // نوع الضريبة المذكور في السؤال يحصر الترجيح في مصادره
+  let domExpr = '0';
+  if (dom) { params.push(dom); domExpr = `CASE WHEN (s.title || ' ' || s.category || ' ' || s.doc_type) ~ $${params.length} THEN 4 ELSE -1.5 END`; }
   params.push(Math.min(50, opts.limit ?? 10));
   const rows = await many<LegalHit>(`SELECT * FROM (SELECT c.id::text, c.source_code, c.ref, c.heading, c.body, c.kind, c.num, c.page_from, c.page_to, s.title, s.category, s.doc_type, s.status, s.source_url,
       (${matchedExpr}) AS matched,
-      ((${matchedExpr}) * 3 + (${headExpr}) * 2.5 + ts_rank_cd(c.tsv, to_tsquery('simple', $1), 32) * 20
+      ((${wMatched}) * 4 + (${headExpr}) * 6 + (${titleExpr}) * 1 + (${domExpr}) + ts_rank_cd(c.tsv, to_tsquery('simple', $1), 1) * 12
+        - CASE WHEN length(c.body) > 2500 THEN ln(length(c.body) / 2500.0) * 4 ELSE 0 END
         + CASE WHEN ${artNo ? `c.kind = 'article' AND c.num = ${artNo}` : 'false'} THEN 8 ELSE 0 END
-        + CASE WHEN s.status = 'active' THEN 1.5 ELSE 0 END
-        + CASE s.doc_type WHEN 'law' THEN 1.2 WHEN 'regulation' THEN 1.2 WHEN 'rules' THEN .6 WHEN 'decision' THEN .5 WHEN 'guide' THEN .4 ELSE 0 END
-        + CASE WHEN c.kind = 'article' THEN .5 ELSE 0 END) AS score
+        + CASE WHEN ${std ? `c.ref = '${std}'` : 'false'} THEN 20 ELSE 0 END
+        + CASE WHEN s.status = 'active' THEN 3 ELSE 0 END
+        + CASE s.doc_type WHEN 'law' THEN 1.2 WHEN 'regulation' THEN 1.2 WHEN 'standard' THEN 1 WHEN 'rules' THEN .6 WHEN 'decision' THEN .5 WHEN 'guide' THEN .4 ELSE 0 END
+        + CASE WHEN c.kind = 'article' THEN .8 WHEN c.kind = 'intro' THEN -1.5 ELSE 0 END) AS score
     FROM legal_chunks c JOIN legal_sources s ON s.code = c.source_code
     WHERE ${cond.join(' AND ')}) x ORDER BY score DESC LIMIT $${params.length}`, params);
-  return { terms, hits: rows.map((r) => ({ ...r, score: Number(r.score), matched: Number(r.matched) })) };
+  return { terms, groups: groups.length, hits: rows.map((r) => ({ ...r, score: Number(r.score), matched: Number(r.matched) })) };
 }
 
 /** مقتطف حول أول ظهور لكلمات البحث */
