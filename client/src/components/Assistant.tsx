@@ -1,12 +1,13 @@
 /** مساعد سهم الذكي: شريط طويل في الأعلى → نافذة محادثة منبثقة (كتابة أو صوت)، يجيب محليًا من بيانات البرنامج */
 import { useEffect, useRef, useState } from 'react';
 import { Mic, Send, X, Volume2, VolumeX } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { post } from '../api';
 import { useScope } from './Scope';
 
-type Ans = { scope: string; intent: string; company: string; period: string; text: string[]; table?: { columns: string[]; rows: (string | number)[][] }; sources: string[]; suggestions: string[] };
-type Msg = { who: 'me' | 'bot'; text: string; table?: Ans['table']; sources?: string[] };
-const FIRST = ['كم المستحق على العملاء؟', 'كم حصلنا هذا العام؟', 'ما الإيراد المكتسب؟', 'ما مواعيدي القادمة؟', 'ملخص المكتب'];
+type Ans = { scope: string; intent: string; company: string; period: string; text: string[]; table?: { columns: string[]; rows: (string | number)[][] }; sources: string[]; suggestions: string[]; links?: { label: string; href: string }[] };
+type Msg = { who: 'me' | 'bot'; text: string; table?: Ans['table']; sources?: string[]; links?: Ans['links'] };
+const FIRST = ['كم المستحق على العملاء؟', 'كم حصلنا هذا العام؟', 'ما الإيراد المكتسب؟', 'ما مواعيدي القادمة؟', 'ملخص المكتب', 'ما سعر ضريبة الدخل على الشركات؟'];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const SR: any = typeof window !== 'undefined' ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : null;
 
@@ -30,7 +31,7 @@ export function Assistant({ open, onClose }: { open: boolean; onClose: () => voi
   const ask = async (text: string) => {
     const m = text.trim(); if (!m || busy) return; setQ(''); setMsgs((x) => [...x, { who: 'me', text: m }]); setBusy(true);
     try { const r = await post<Ans>('/ai/assistant', { message: m, engagement_id: eng || null, period_id: period || null });
-      const t = r.text.join('\n'); setMsgs((x) => [...x, { who: 'bot', text: t, table: r.table, sources: r.sources }]); if (r.suggestions?.length) setSugs(r.suggestions.slice(0, 6));
+      const t = r.text.join('\n'); setMsgs((x) => [...x, { who: 'bot', text: t, table: r.table, sources: r.sources, links: r.links }]); if (r.suggestions?.length) setSugs(r.suggestions.slice(0, 6));
       if (spoke.current) { speak(r.text.slice(0, 3).join('. ')); spoke.current = false; } }
     catch (e) { setMsgs((x) => [...x, { who: 'bot', text: `تعذر الرد: ${(e as Error).message}` }]); }
     finally { setBusy(false); }
@@ -53,7 +54,8 @@ export function Assistant({ open, onClose }: { open: boolean; onClose: () => voi
       <button type="button" className="ai-x" onClick={onClose} aria-label="إغلاق"><X size={18} /></button></div>
     <div className="ai-log" ref={log}>{msgs.map((m, i) => <div key={i} className={`ai-m ${m.who}`}><div>{m.text}</div>
       {m.table && <div className="ai-tbl"><table className="t compact"><thead><tr>{m.table.columns.map((c) => <th key={c}>{c}</th>)}</tr></thead><tbody>{m.table.rows.slice(0, 12).map((r, j) => <tr key={j}>{r.map((v, k) => <td key={k} className={typeof v === 'number' || /^[\d,.()\-%/]+$/.test(String(v)) ? 'num' : ''}>{v}</td>)}</tr>)}</tbody></table></div>}
-      {m.sources?.length ? <small className="ai-src">المصدر: {m.sources.join('، ')}</small> : null}</div>)}
+      {m.links?.length ? <div className="ai-links">{m.links.map((l) => <Link key={l.href} to={l.href} onClick={onClose}>{l.label}</Link>)}</div>
+        : m.sources?.length ? <small className="ai-src">المصدر: {m.sources.join('، ')}</small> : null}</div>)}
       {busy && <div className="ai-typing"><i /><i /><i /></div>}</div>
     <div className="ai-sugs">{sugs.map((s) => <button key={s} type="button" onClick={() => ask(s)}>{s}</button>)}</div>
     <form className="ai-inp" onSubmit={(e) => { e.preventDefault(); ask(q); }}>

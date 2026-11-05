@@ -26,6 +26,7 @@ import { analysisRouter } from './modules/analysis/routes.js';
 import { findingsRouter } from './modules/findings/routes.js';
 import { adjustmentsRouter } from './modules/findings/adjustments.js';
 import { aiRouter } from './modules/ai/routes.js';
+import { legalRouter } from './modules/legal/routes.js';
 import { reportsRouter } from './modules/reports/routes.js';
 import { templatesRouter } from './modules/reports/templates.routes.js';
 import { auditRouter } from './modules/audit/routes.js';
@@ -68,6 +69,7 @@ export function createApp() {
   app.use('/api/findings', findingsRouter);
   app.use('/api/adjustments', adjustmentsRouter);
   app.use('/api/ai', aiRouter);
+  app.use('/api/legal', legalRouter);
   app.use('/api/reports', reportsRouter);
   app.use('/api/report-templates', templatesRouter);
   app.use('/api/audit', auditRouter);

@@ -18,7 +18,7 @@ function useTheme() {
 }
 const initials = (name: string) => name.trim().replace(/^(شركة|مكتب|مؤسسة)\s+/, '').split(/\s+/).slice(0, 2).map((x) => x[0]).join('');
 const ROLE: Record<string, string> = { admin: 'مدير النظام', partner: 'الشريك', manager: 'مدير', senior: 'محاسب أول', accountant: 'محاسب', reviewer: 'مراجع', viewer: 'مشاهد' };
-const GROUP_ICON: Record<string, string> = { command: 'home', clients: 'users', finance: 'coins', data: 'box', analysis: 'bars', outputs: 'letter', settings: 'gear' };
+const GROUP_ICON: Record<string, string> = { command: 'home', clients: 'users', finance: 'coins', data: 'box', analysis: 'bars', legal: 'book', outputs: 'letter', settings: 'gear' };
 
 /** هوية المكتب (الاسم والشعار) من «هوية المكتب والترويسة» */
 function useOffice() {

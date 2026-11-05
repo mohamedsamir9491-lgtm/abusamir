@@ -8,12 +8,15 @@ import { createApp } from './app.js';
 import { runMigrations } from './db/migrate.js';
 import { ensureStorageDirs } from './modules/files/storage.js';
 import { seedReferenceData } from './db/seed.js';
+import { loadLegalCorpus } from './modules/legal/library.js';
 import { pool } from './db/pool.js';
 
 async function main() {
   ensureStorageDirs();
   await runMigrations();
   await seedReferenceData();
+  // المكتبة النظامية: تُحمَّل عند تغيّر إصدارها (لا توقف التشغيل إن فشلت)
+  loadLegalCorpus().catch((e) => logger.error({ err: e }, 'legal library load failed'));
   const app = createApp();
 
   // خدمة واجهة العميل المبنية (للنشر على خادم المكتب) إن وُجدت

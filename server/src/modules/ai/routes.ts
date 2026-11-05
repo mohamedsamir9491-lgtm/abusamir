@@ -8,6 +8,7 @@ import { audit } from '../../middleware/audit.js';
 import { loadEngagement } from '../../middleware/scope.js';
 import { runAiAnalysis, latestAiAnalysis, draftSection, aiStatus, runLocalAnalysis, externalChat } from './service.js';
 import { answerQuestion } from './chat.js';
+import { isLegalQuestion, legalAnswer, LEGAL_NOT_FOUND } from '../legal/answer.js';
 import { officeAnswer, OFFICE_SUGGEST } from './office.js';
 
 export const aiRouter = Router();
@@ -39,6 +40,7 @@ aiRouter.post('/chat', async (req, res, next) => {
     const e = await loadEngagement(d.engagement_id);
     await audit(req, { action: 'ai.chat', entityType: 'engagement', entityId: e.id, clientId: e.client_id, details: { engine: d.engine, question: d.message.slice(0, 200) } });
     if (d.engine === 'external') { if (d.confirm_external_transfer !== true) throw badRequest('يلزم تأكيد إرسال البيانات للمزوّد الخارجي'); res.json({ engine: 'external', ...(await externalChat(d.engagement_id, d.period_id, d.message, req.user!.id)) }); return; }
+    if (isLegalQuestion(d.message)) { res.json({ engine: 'local', scope: 'legal', ...((await legalAnswer(d.message)) ?? LEGAL_NOT_FOUND()) }); return; }
     res.json({ engine: 'local', ...(await answerQuestion(d.engagement_id, d.period_id, d.message)) });
   } catch (e) { next(e); }
 });
@@ -48,11 +50,12 @@ aiRouter.post('/assistant', async (req, res, next) => {
   try {
     const d = parse(z.object({ engagement_id: z.string().uuid().nullable().optional(), period_id: z.string().uuid().nullable().optional(), message: z.string().min(1).max(1000) }), req.body);
     await audit(req, { action: 'ai.assistant', entityType: 'office', entityId: null, details: { question: d.message.slice(0, 200), engagement_id: d.engagement_id ?? null } });
+    if (isLegalQuestion(d.message)) { res.json({ engine: 'local', scope: 'legal', ...((await legalAnswer(d.message)) ?? LEGAL_NOT_FOUND()) }); return; }
     const office = await officeAnswer(d.message);
     if (office) { res.json({ engine: 'local', scope: 'office', ...office }); return; }
     if (d.engagement_id && d.period_id) { await loadEngagement(d.engagement_id); res.json({ engine: 'local', scope: 'engagement', ...(await answerQuestion(d.engagement_id, d.period_id, d.message)) }); return; }
     res.json({ engine: 'local', scope: 'help', intent: 'help', company: 'المكتب', period: '', sources: [], suggestions: OFFICE_SUGGEST,
-      text: ['أجيب عن أسئلة المكتب: المستحقات، والتحصيل، والإيرادات، والمكتسب، والمواعيد، والخطابات، والملاحظات، والطلبات، وأي عميل بالاسم.', 'ولأسئلة القوائم والحسابات (الأصول، الأرباح، النسب…) اختر الارتباط من الشريط العلوي ثم اسألني.'] });
+      text: ['أجيب عن أسئلة المكتب: المستحقات، والتحصيل، والإيرادات، والمكتسب، والمواعيد، والخطابات، والملاحظات، والطلبات، وأي عميل بالاسم.', 'ولأسئلة القوائم والحسابات (الأصول، الأرباح، النسب…) اختر الارتباط من الشريط العلوي ثم اسألني.', 'وأجيب عن أسئلة الزكاة والضريبة والجمارك بنص المادة ومرجعها من المكتبة النظامية.'] });
   } catch (e) { next(e); }
 });
 
