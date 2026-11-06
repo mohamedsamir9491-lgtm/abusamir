@@ -250,7 +250,7 @@ kbd{font:600 10.5px var(--font);border-radius:6px;padding:1px 6px;background:var
 .pal-bg{position:fixed;inset:0;background:rgba(2,10,24,.45);backdrop-filter:blur(3px);z-index:80;display:flex;justify-content:center;align-items:flex-start;padding-top:12vh}.pal{position:relative;top:0;inset-inline-start:auto;width:min(640px,94vw)}
 /* التنبيهات */
 .bell{position:relative}.bell .iconbtn em{position:absolute;top:4px;left:4px;min-width:17px;height:17px;border-radius:9px;background:#d03b3b;color:#fff;font:700 10px/17px var(--font);font-style:normal;padding:0 4px;box-shadow:0 0 0 2px var(--surface)}
-.bell-pop{position:absolute;top:48px;inset-inline-end:0;width:min(400px,92vw);max-height:70vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:0 30px 60px -20px rgba(11,37,64,.45);padding:10px;z-index:60}
+.bell-pop{position:absolute;top:48px;inset-inline-start:0;width:min(400px,92vw);max-height:70vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:0 30px 60px -20px rgba(11,37,64,.45);padding:10px;z-index:60}
 .note-item{display:flex;gap:10px;align-items:flex-start;width:100%;padding:10px;border:0;background:none;border-radius:12px;text-align:start;font:inherit;color:var(--text-2);cursor:pointer}.note-item:hover{background:var(--surface-2)}.note-item b{display:block;font-size:13px;color:var(--text)}.note-item small{color:var(--muted);font-size:11.5px}
 .ni-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex-shrink:0;background:var(--primary-050);color:var(--primary)}.ni-ic.danger{background:var(--danger-100);color:var(--danger)}.ni-ic.warn{background:var(--warn-100);color:var(--warn)}.ni-ic.gold{background:var(--gold-050);color:var(--gold-600)}
 @media (max-width:960px){.sidebar{margin:0;height:100vh;top:0;border-radius:0}.sw-btn{max-width:none;flex:1}.switcher{flex:1}.sw-per{display:none}.sw-pop{position:fixed;top:64px;inset-inline:8px;width:auto}.appbar{height:60px;padding:0 10px}}
@@ -368,7 +368,7 @@ html.calm *,html.calm *::before,html.calm *::after{animation:none!important;tran
 .me-wrap{position:relative}.me{display:flex;align-items:center;gap:10px;border:0;background:none;cursor:pointer;font:inherit;color:var(--text);padding:0}
 .me .mt{display:flex;flex-direction:column;text-align:end;line-height:1.3}.me .mt b{font-size:15px;white-space:nowrap}.me .mt small{font-size:12.5px;color:var(--muted)}
 .me .avatar{width:40px;height:40px;font-size:14px}[data-theme=dark] .me .avatar{background:#f2f5fb;color:#0b1840}
-.me-pop{position:absolute;top:50px;inset-inline-end:0;width:290px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-lg);padding:8px;z-index:60}
+.me-pop{position:absolute;top:50px;inset-inline-start:0;width:290px;max-width:calc(100vw - 16px);max-height:calc(100vh - 70px);overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-lg);padding:8px;z-index:60}
 [data-theme=dark] .me-pop{background:linear-gradient(170deg,#0d2b5c,#061a3a);border-color:rgba(120,190,255,.4)}
 .me-h{padding:8px 10px 10px;border-bottom:1px solid var(--border);margin-bottom:6px}.me-h b{display:block}.me-h small{color:var(--muted)}
 .me-pop button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:0;background:none;border-radius:10px;color:var(--text-2);font:inherit;font-size:13.5px;cursor:pointer;text-align:start}.me-pop button:hover{background:var(--primary-050);color:var(--text)}.me-pop button.danger{color:var(--danger)}.me-pop kbd{margin-inline-start:auto}
@@ -623,3 +623,5 @@ i.b{background:#2f8bff;box-shadow:0 0 6px #2f8bff}i.c{background:#f6c344;box-sha
 [data-theme=dark] .rt-card,[data-theme=dark] .rt-kinds button{background:rgba(12,32,70,.45);border-color:rgba(105,180,255,.28)}
 [data-theme=dark] .rt-row{border-color:rgba(105,180,255,.25)}[data-theme=dark] .rt-ex{background:rgba(8,24,56,.55)}
 @media (max-width:700px){.rt-head{grid-template-columns:auto 1fr auto}.rt-head .badge{grid-column:2/-1;justify-self:start}.rt-ev{grid-template-columns:1fr}}
+/* القوائم المنسدلة في الشريط العلوي لا تخرج عن الشاشة على الجوال */
+@media (max-width:600px){.bell-pop{position:fixed;top:64px;left:8px;right:8px;width:auto}}
