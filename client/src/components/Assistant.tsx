@@ -36,14 +36,33 @@ export function Assistant({ open, onClose }: { open: boolean; onClose: () => voi
     catch (e) { setMsgs((x) => [...x, { who: 'bot', text: `تعذر الرد: ${(e as Error).message}` }]); }
     finally { setBusy(false); }
   };
-  const mic = () => {
+  // رسالة واحدة لا تتكرر إذا ضغط المستخدم الزر أكثر من مرة
+  const notice = (text: string) => setMsgs((x) => (x.length && x[x.length - 1].text === text ? x : [...x, { who: 'bot', text }]));
+  const MIC_MSG: Record<string, string> = {
+    nodevice: 'لا يوجد ميكروفون متصل بالجهاز. جهاز Mac mini لا يحتوي ميكروفونًا مدمجًا: وصّل سماعة بميكروفون أو AirPods أو ميكروفون USB، ثم أعد تحميل الصفحة وجرّب.',
+    denied: 'الميكروفون ممنوع. في Chrome: رمز الإعدادات بجوار عنوان الموقع ← الميكروفون ← سماح، ثم أعد تحميل الصفحة. وفي macOS: إعدادات النظام ← الخصوصية والأمان ← الميكروفون ← فعّل Google Chrome.',
+    insecure: 'الإدخال الصوتي يتطلب فتح البرنامج عبر رابط https.',
+    network: 'التعرف على الصوت في Chrome يتم عبر خدمة Google ويحتاج اتصالًا بالإنترنت. تحقق من الاتصال أو اكتب سؤالك.',
+    nospeech: 'لم أسمع كلامًا. اضغط زر الميكروفون وتحدث بعد ظهور مؤشر الاستماع.',
+    other: 'تعذر تشغيل الإدخال الصوتي. اكتب سؤالك، أو أعد تحميل الصفحة وجرّب مرة أخرى.',
+  };
+  /** يتحقق من وجود ميكروفون وإذن استخدامه قبل بدء التعرف على الصوت، ويعيد سبب المنع إن وُجد */
+  const micReady = async (): Promise<string | null> => {
+    if (!window.isSecureContext) return 'insecure';
+    const md = navigator.mediaDevices; if (!md?.getUserMedia) return null;
+    try { const devs = await md.enumerateDevices(); if (!devs.some((d) => d.kind === 'audioinput')) return 'nodevice'; } catch { /* نكمل للفحص التالي */ }
+    try { const st = await md.getUserMedia({ audio: true }); st.getTracks().forEach((t) => t.stop()); return null; }
+    catch (e) { const n = (e as DOMException).name; return n === 'NotFoundError' || n === 'OverconstrainedError' ? 'nodevice' : n === 'NotAllowedError' || n === 'SecurityError' ? 'denied' : 'other'; }
+  };
+  const mic = async () => {
     if (listen) { rec.current?.stop(); return; }
-    if (!SR) { setMsgs((x) => [...x, { who: 'bot', text: 'المتصفح الحالي لا يدعم الإدخال الصوتي. استخدم Chrome أو Safari الحديث، أو اكتب سؤالك.' }]); return; }
+    if (!SR) { notice('المتصفح الحالي لا يدعم الإدخال الصوتي. استخدم Chrome أو Safari الحديث، أو اكتب سؤالك.'); return; }
+    const why = await micReady(); if (why) { notice(MIC_MSG[why]); return; }
     try { const r = new SR(); r.lang = 'ar-SA'; r.interimResults = true; r.maxAlternatives = 1; let final = '';
       r.onresult = (e: { results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }> }) => { const last = e.results[e.results.length - 1]; setQ(last[0].transcript); if (last.isFinal) final = last[0].transcript; };
-      r.onerror = (e: { error: string }) => { setListen(false); if (e.error === 'not-allowed') setMsgs((x) => [...x, { who: 'bot', text: 'لم يُسمح باستخدام الميكروفون. اسمح للمتصفح بالوصول إليه من إعدادات الموقع ثم أعد المحاولة.' }]); };
+      r.onerror = (e: { error: string }) => { setListen(false); const k = e.error === 'audio-capture' ? 'nodevice' : e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'denied' : e.error === 'network' ? 'network' : e.error === 'no-speech' ? 'nospeech' : e.error === 'aborted' ? '' : 'other'; if (k) notice(MIC_MSG[k]); };
       r.onend = () => { setListen(false); rec.current = null; if (final) { spoke.current = true; ask(final); } };
-      rec.current = r; r.start(); setListen(true); } catch { setListen(false); }
+      rec.current = r; r.start(); setListen(true); } catch { setListen(false); notice(MIC_MSG.other); }
   };
   const toggleVoice = () => { const v = !voice; setVoice(v); try { localStorage.setItem('ai-voice', v ? 'on' : 'off'); } catch { /* ignore */ } if (!v) try { speechSynthesis.cancel(); } catch { /* ignore */ } };
   if (!open) return null;
