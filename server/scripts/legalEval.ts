@@ -7,10 +7,11 @@ import { pool } from '../src/db/pool.js';
 import { searchLegal } from '../src/modules/legal/library.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-type Case = { q: string; src: string; art?: number | number[]; ref?: string };
+type Case = { q: string; src: string; art?: number | number[]; ref?: string; alt?: Omit<Case, 'q' | 'alt'>[] };  // alt: إجابات صحيحة بديلة (مثل مواد اللائحة نفسها)
 const file = process.argv[2] ?? path.resolve(here, '../assets/legal/eval.json');
 const cases = JSON.parse(fs.readFileSync(file, 'utf8')) as Case[];
-const ok = (h: { title: string; num: number | null; ref: string }, c: Case) => h.title.includes(c.src) && (c.ref ? h.ref === c.ref || h.ref.startsWith(`${c.ref} |`) : c.art == null ? true : [c.art].flat().includes(Number(h.num)));
+const ok1 = (h: { title: string; num: number | null; ref: string }, c: Omit<Case, 'q' | 'alt'>) => h.title.includes(c.src) && (c.ref ? h.ref === c.ref || h.ref.startsWith(`${c.ref} |`) : c.art == null ? true : [c.art].flat().includes(Number(h.num)));
+const ok = (h: { title: string; num: number | null; ref: string }, c: Case) => ok1(h, c) || (c.alt ?? []).some((a) => ok1(h, a));
 let top1 = 0; let top3 = 0; const miss: string[] = [];
 for (const c of cases) {
   const r = await searchLegal(c.q, { limit: 3 });
