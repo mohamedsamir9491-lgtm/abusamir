@@ -1,3 +1,5 @@
+import { getOfficeSettings } from '../office/routes.js';
+import { thresholdsOf, DEFAULT_THRESHOLDS, type AnalysisThresholds } from '../../lib/thresholds.js';
 /**
  * المحاسب الذكي المحلي: تحليل ومحادثة قائمان على قواعد محاسبية وبيانات البرنامج فقط، بلا أي اتصال خارجي.
  * كل رقم في المخرجات مأخوذ من الميزان/القوائم/الملاحظات المحسوبة في البرنامج ومعه مصدره؛ لا تُخترع أرقام ولا نسب ضرائب.
@@ -19,6 +21,7 @@ import type { EngineFinding, TbEntry } from '../../engine/types.js';
 export interface Acc { code: string; name: string; fs: string; label: string; section: string; statement: string; opening: number; debit: number; credit: number; closing: number }
 export interface LocalContext {
   engagementId: string; periodId: string; clientId: string; company: string; currency: string; entityType: string;
+  T?: AnalysisThresholds; // عتبات المكتب (الافتراضي عند غيابها)
   period: { label: string; start: string; end: string; phrase: string; full: boolean; days: number };
   accounts: Acc[]; kf: Record<string, number>; st: ReturnType<typeof buildStatements>; ratios: ReturnType<typeof computeRatios>;
   prior: { label: string } | null; variance: { key: string; label_ar: string; current: string; comparative: string; change: string; change_pct: string | null; material: boolean }[];
@@ -65,7 +68,8 @@ export async function buildLocalContext(engagementId: string, periodId: string):
     group = { companies: [{ name: rootName, role: 'parent', ownership: null, engagementId: rootId, periodId: rp?.id ?? null }, ...await Promise.all(comps.map(async (c) => ({ name: c.client_name, role: c.entity_role, ownership: c.ownership_pct, engagementId: c.id, periodId: (await matchingPeriod(c.id, p.start_date, p.end_date))?.id ?? null })))], consolidation: (cons?.result as Record<string, unknown> | null) ?? null };
   }
   const official = await many<{ title: string; type: string; fields: Record<string, { value: unknown }> }>(`SELECT d.title, d.document_type AS type, r.fields FROM official_records r JOIN source_documents d ON d.id = r.document_id WHERE r.engagement_id = $1 AND r.status = 'confirmed'`, [engagementId]);
-  return { engagementId, periodId, clientId: e.client_id, company: e.client_name, currency: e.currency, entityType: e.entity_type,
+  const T = thresholdsOf((await getOfficeSettings() as { analysis_thresholds?: unknown }).analysis_thresholds);
+  return { T, engagementId, periodId, clientId: e.client_id, company: e.client_name, currency: e.currency, entityType: e.entity_type,
     period: { label: p.label, start: p.start_date, end: p.end_date, phrase: periodPhrase(p.start_date, p.end_date), full: isFullYear(p.start_date, p.end_date), days },
     accounts, kf, st, ratios, prior: prior ? { label: (prior as { label: string }).label } : null, variance, findings, group, official, statementsGeneratedAt: pkg?.generated_at ?? null };
 }
@@ -76,6 +80,7 @@ const expenseAccounts = (c: LocalContext) => c.accounts.filter((a) => a.statemen
 
 /** إجراءات تحليلية محلية (قواعد) تكمّل فحوصات الميزان؛ رموزها LA- */
 export function localObservations(c: LocalContext): EngineFinding[] {
+  const T = c.T ?? DEFAULT_THRESHOLDS;
   const out: EngineFinding[] = []; const k = c.kf; const add = (f: Omit<EngineFinding, 'dedupe_key'>) => out.push({ ...f, dedupe_key: `${f.rule_code}:${f.account_code ?? f.fs_line_code ?? ''}` });
   const dep = n(k.depreciation);
   // أصول قابلة للاستهلاك دون استهلاك مسجل في الفترة
@@ -87,7 +92,7 @@ export function localObservations(c: LocalContext): EngineFinding[] {
     const rouOpen = rou.reduce((s, a) => s + a.opening, 0), rouClose = sumClose(rou);
     if (dep === 0 && rouClose > 0) add({ rule_code: 'LA-003', category: 'accounting_issue', severity: 'high', title: `أصل حق الاستخدام (${money(rouClose)}) دون استهلاك مسجل`, description: `IFRS 16 يتطلب استهلاك أصل حق الاستخدام على مدة العقد (أو العمر الإنتاجي إن كان أقصر). لا يظهر مصروف استهلاك ${c.period.phrase}${rouOpen === 0 ? '، والأصل أُثبت خلالها' : ''}؛ يلزم احتساب استهلاك الفترة من تاريخ بدء العقد.`, fs_line_code: 'ROU_ASSETS', amount: String(rouClose), evidence: { rou_opening: rouOpen, rou_closing: rouClose, depreciation: dep }, recommendation: 'طلب عقد الإيجار وجدول الاستهلاك والفائدة وإثبات القيود.' });
     const lease = sumClose(byFs(c, 'LEASE_LIAB_CURRENT', 'LEASE_LIAB_NON_CURRENT')); const fc = n(k.finance_cost);
-    if (lease < -1 && fc < Math.abs(lease) * 0.002) add({ rule_code: 'LA-004', category: 'accounting_issue', severity: 'medium', title: `التزام إيجار (${money(Math.abs(lease))}) دون مصروف فائدة يُذكر`, description: `مصروف التمويل ${money(fc)} فقط مقابل التزام إيجار ${money(Math.abs(lease))}. IFRS 16 يتطلب إثبات فائدة على التزام الإيجار بمعدل الخصم؛ غيابها يعني أن التزام الإيجار لم يُحدَّث.`, fs_line_code: 'LEASE_LIAB_NON_CURRENT', amount: String(Math.abs(lease)), evidence: { lease_liability: lease, finance_cost: fc }, recommendation: 'إعداد جدول إطفاء التزام الإيجار وإثبات الفائدة والدفعات.' });
+    if (lease < -1 && fc < Math.abs(lease) * T.lease_interest_min_pct / 100) add({ rule_code: 'LA-004', category: 'accounting_issue', severity: 'medium', title: `التزام إيجار (${money(Math.abs(lease))}) دون مصروف فائدة يُذكر`, description: `مصروف التمويل ${money(fc)} فقط مقابل التزام إيجار ${money(Math.abs(lease))}. IFRS 16 يتطلب إثبات فائدة على التزام الإيجار بمعدل الخصم؛ غيابها يعني أن التزام الإيجار لم يُحدَّث.`, fs_line_code: 'LEASE_LIAB_NON_CURRENT', amount: String(Math.abs(lease)), evidence: { lease_liability: lease, finance_cost: fc }, recommendation: 'إعداد جدول إطفاء التزام الإيجار وإثبات الفائدة والدفعات.' });
   }
   // رواتب مستحقة دون مصروف رواتب
   const accr = c.accounts.filter((a) => a.closing < -1 && /رواتب|أجور|اجور|موظفين/.test(a.name) && a.statement === 'sfp');
@@ -97,17 +102,17 @@ export function localObservations(c: LocalContext): EngineFinding[] {
   // تركّز المصروفات
   const exps = expenseAccounts(c); const totExp = exps.reduce((s, a) => s + a.closing, 0);
   const top = [...exps].sort((a, b) => b.closing - a.closing)[0];
-  if (top && totExp > 0 && top.closing / totExp >= 0.4 && exps.length >= 3) add({ rule_code: 'LA-007', category: 'judgment', severity: top.closing / totExp >= 0.7 ? 'medium' : 'low', title: `تركّز المصروفات في «${top.name}» (${pct(top.closing / totExp)} من الإجمالي)`, description: `الحساب ${top.code} ${top.name} بمبلغ ${money(top.closing)} يمثل ${pct(top.closing / totExp)} من مصروفات الفترة (${money(totExp)}). يلزم التحقق من طبيعته ومستنداته${/نثري/.test(top.name) ? '؛ المصاريف النثرية بهذا الحجم تحتاج تحليلًا وتوثيقًا تفصيليًا' : ''}.`, account_code: top.code, account_name: top.name, amount: String(top.closing), evidence: { share: top.closing / totExp, total_expenses: totExp }, recommendation: 'طلب كشف تفصيلي بالحركات والفواتير المؤيدة.' });
+  if (top && totExp > 0 && top.closing / totExp >= T.expense_concentration_pct / 100 && exps.length >= 3) add({ rule_code: 'LA-007', category: 'judgment', severity: top.closing / totExp >= Math.max(0.7, T.expense_concentration_pct / 100) ? 'medium' : 'low', title: `تركّز المصروفات في «${top.name}» (${pct(top.closing / totExp)} من الإجمالي)`, description: `الحساب ${top.code} ${top.name} بمبلغ ${money(top.closing)} يمثل ${pct(top.closing / totExp)} من مصروفات الفترة (${money(totExp)}). يلزم التحقق من طبيعته ومستنداته${/نثري/.test(top.name) ? '؛ المصاريف النثرية بهذا الحجم تحتاج تحليلًا وتوثيقًا تفصيليًا' : ''}.`, account_code: top.code, account_name: top.name, amount: String(top.closing), evidence: { share: top.closing / totExp, total_expenses: totExp }, recommendation: 'طلب كشف تفصيلي بالحركات والفواتير المؤيدة.' });
   // الأطراف ذات العلاقة
   const rp = c.accounts.filter((a) => ['RELATED_PARTY_DR', 'DUE_FROM_SHAREHOLDERS'].includes(a.fs) && a.closing > 0); const rpT = sumClose(rp); const ta = n(k.total_assets);
-  if (rpT > 0 && ta > 0 && rpT / ta >= 0.2) add({ rule_code: 'LA-008', category: 'judgment', severity: rpT / ta >= 0.4 ? 'high' : 'medium', title: `أرصدة مستحقة من أطراف ذات علاقة ${money(rpT)} (${pct(rpT / ta)} من الأصول)`, description: `جزء جوهري من الأصول أرصدة على أطراف ذات علاقة/مساهمين (${rp.map((a) => `${a.code} ${a.name}: ${money(a.closing)}`).join('؛ ')}). IAS 24 يتطلب الإفصاح، ويلزم تقييم قابلية التحصيل (IFRS 9) والشروط.`, amount: String(rpT), evidence: { accounts: rp.map((a) => a.code), share_of_assets: rpT / ta }, recommendation: 'طلب مصادقات الأرصدة واتفاقيات التمويل وخطة السداد.' });
+  if (rpT > 0 && ta > 0 && rpT / ta >= T.related_party_pct / 100) add({ rule_code: 'LA-008', category: 'judgment', severity: rpT / ta >= T.related_party_high_pct / 100 ? 'high' : 'medium', title: `أرصدة مستحقة من أطراف ذات علاقة ${money(rpT)} (${pct(rpT / ta)} من الأصول)`, description: `جزء جوهري من الأصول أرصدة على أطراف ذات علاقة/مساهمين (${rp.map((a) => `${a.code} ${a.name}: ${money(a.closing)}`).join('؛ ')}). IAS 24 يتطلب الإفصاح، ويلزم تقييم قابلية التحصيل (IFRS 9) والشروط.`, amount: String(rpT), evidence: { accounts: rp.map((a) => a.code), share_of_assets: rpT / ta }, recommendation: 'طلب مصادقات الأرصدة واتفاقيات التمويل وخطة السداد.' });
   // مؤشرات الاستمرارية مجتمعة
   const wc = n(k.current_assets) - n(k.current_liabilities); const ni = n(k.net_income); const eq = n(k.total_equity); const cfo = c.st.cf.status === 'ok' ? n(c.st.cf.totals.find((t) => t.key === 'operating')?.value) : null;
   const signals = [ni < 0 ? `صافي خسارة ${money(Math.abs(ni))}` : null, wc < 0 ? `رأس مال عامل سالب ${money(wc)}` : null, cfo != null && cfo < 0 ? `تدفق تشغيلي سالب ${money(cfo)}` : null, eq <= 0 ? 'حقوق ملكية سالبة' : null].filter(Boolean) as string[];
   if (signals.length >= 2) add({ rule_code: 'LA-009', category: 'judgment', severity: signals.length >= 3 || eq <= 0 ? 'high' : 'medium', title: `مؤشرات تستدعي تقييم الاستمرارية: ${signals.join('، ')}`, description: `اجتماع هذه المؤشرات ${c.period.phrase} يستدعي تقييم قدرة المنشأة على الاستمرار ومصادر تمويلها (IAS 1.25)، والإفصاح عن أي شكوك جوهرية.`, evidence: { net_income: ni, working_capital: wc, operating_cash_flow: cfo, equity: eq }, recommendation: 'طلب خطة الإدارة والتمويل للاثني عشر شهرًا القادمة وأي التزامات من الشركاء بالدعم.' });
   // إيرادات مؤجلة كبيرة مقابل الإيراد
   const def = c.accounts.filter((a) => /مؤجل/.test(a.name) && a.closing < 0 && a.statement === 'sfp'); const rev = n(k.revenue);
-  if (def.length && rev > 0 && Math.abs(sumClose(def)) / rev >= 0.3) add({ rule_code: 'LA-010', category: 'judgment', severity: 'low', title: `إيرادات مؤجلة ${money(Math.abs(sumClose(def)))} تعادل ${pct(Math.abs(sumClose(def)) / rev)} من إيراد الفترة`, description: 'يلزم التحقق من التزامات الأداء غير المنفذة وتوقيت الاعتراف بالإيراد (IFRS 15).', account_code: def[0]!.code, account_name: def[0]!.name, amount: String(Math.abs(sumClose(def))), evidence: {}, recommendation: 'طلب العقود وجدول الاعتراف بالإيراد.' });
+  if (def.length && rev > 0 && Math.abs(sumClose(def)) / rev >= T.deferred_revenue_pct / 100) add({ rule_code: 'LA-010', category: 'judgment', severity: 'low', title: `إيرادات مؤجلة ${money(Math.abs(sumClose(def)))} تعادل ${pct(Math.abs(sumClose(def)) / rev)} من إيراد الفترة`, description: 'يلزم التحقق من التزامات الأداء غير المنفذة وتوقيت الاعتراف بالإيراد (IFRS 15).', account_code: def[0]!.code, account_name: def[0]!.name, amount: String(Math.abs(sumClose(def))), evidence: {}, recommendation: 'طلب العقود وجدول الاعتراف بالإيراد.' });
   return out;
 }
 
@@ -134,12 +139,12 @@ export function localAnalysis(c: LocalContext): AiAnalysis {
   if (cf.status === 'ok') comm.push(`التدفقات النقدية: التشغيلية ${money(cft('operating'))}، الاستثمارية ${money(cft('investing'))}، التمويلية ${money(cft('financing'))}، وصافي التغير في النقد ${money(cft('net_change'))}.`);
   if (c.variance.length && c.prior) { const mat = c.variance.filter((v) => v.material && !v.key.startsWith('total:')).slice(0, 4); if (mat.length) comm.push(`مقارنة بـ${c.prior.label}: ${mat.map((v) => `${v.label_ar} ${n(v.change) >= 0 ? 'ارتفع' : 'انخفض'} بـ${money(Math.abs(n(v.change)))}${v.change_pct ? ` (${v.change_pct}%)` : ''}`).join('؛ ')}.`); }
   if (!c.period.full) comm.push(`الفترة جزئية (${c.period.days} يومًا)؛ أرقام الربحية والدوران غير محوّلة لأساس سنوي.`);
-  const de = tl / (eq || 1);
+  const de = tl / (eq || 1); const T = c.T ?? DEFAULT_THRESHOLDS;
   const risk = {
-    liquidity: cl <= 0 ? { level: 'low' as const, rationale: 'لا توجد التزامات متداولة.' } : { level: level(ca / cl < 1, ca / cl < 1.5), rationale: `نسبة التداول ${(ca / cl).toFixed(2)} (الأصول المتداولة ${money(ca)} ÷ الالتزامات المتداولة ${money(cl)}).` },
-    profitability: rev > 0 ? { level: level(ni < 0, ni / rev < 0.05), rationale: `هامش صافي الربح ${pct(ni / rev)}.` } : { level: (ni < 0 ? 'high' : 'unknown') as 'high' | 'unknown', rationale: ni < 0 ? `لا إيرادات مع صافي خسارة ${money(Math.abs(ni))}.` : 'لا إيرادات في الفترة.' },
-    leverage: eq <= 0 ? { level: 'high' as const, rationale: 'حقوق الملكية صفرية أو سالبة.' } : { level: level(de > 2, de > 1), rationale: `الالتزامات إلى حقوق الملكية ${de.toFixed(2)}.` },
-    working_capital: { level: level(wc < 0, ca > 0 && wc / ca < 0.1), rationale: `رأس المال العامل ${money(wc)}.` },
+    liquidity: cl <= 0 ? { level: 'low' as const, rationale: 'لا توجد التزامات متداولة.' } : { level: level(ca / cl < T.risk_cr_high, ca / cl < T.risk_cr_medium), rationale: `نسبة التداول ${(ca / cl).toFixed(2)} (الأصول المتداولة ${money(ca)} ÷ الالتزامات المتداولة ${money(cl)}).` },
+    profitability: rev > 0 ? { level: level(ni < 0, ni / rev < T.risk_margin_medium_pct / 100), rationale: `هامش صافي الربح ${pct(ni / rev)}.` } : { level: (ni < 0 ? 'high' : 'unknown') as 'high' | 'unknown', rationale: ni < 0 ? `لا إيرادات مع صافي خسارة ${money(Math.abs(ni))}.` : 'لا إيرادات في الفترة.' },
+    leverage: eq <= 0 ? { level: 'high' as const, rationale: 'حقوق الملكية صفرية أو سالبة.' } : { level: level(de > T.risk_de_high, de > T.risk_de_medium), rationale: `الالتزامات إلى حقوق الملكية ${de.toFixed(2)}.` },
+    working_capital: { level: level(wc < 0, ca > 0 && wc / ca < T.risk_wc_medium_pct / 100), rationale: `رأس المال العامل ${money(wc)}.` },
   };
   const questions = new Set<string>();
   for (const o of obs) questions.add(({ 'LA-001': 'ما سياسة الاستهلاك المتبعة؟ ولماذا لم يُسجل استهلاك الفترة؟', 'LA-002': 'ما العمر الإنتاجي للأصول غير الملموسة ولماذا لم تُطفأ؟', 'LA-003': 'ما تاريخ بدء عقد الإيجار ومدته ومعدل الخصم المستخدم؟', 'LA-004': 'هل سُددت دفعات الإيجار وكيف قُيدت؟', 'LA-005': 'هل الرواتب المستحقة قديمة؟ ولماذا لا يظهر مصروف رواتب للفترة؟', 'LA-006': 'كم عدد الموظفين وأجورهم لاحتساب مكافأة نهاية الخدمة؟', 'LA-007': 'ما طبيعة الحساب الأكبر في المصروفات وما مستنداته؟', 'LA-008': 'ما شروط الأرصدة مع الأطراف ذات العلاقة وموعد سدادها؟', 'LA-009': 'ما خطة الإدارة لتمويل العمليات خلال الاثني عشر شهرًا القادمة؟', 'LA-010': 'ما الالتزامات التعاقدية غير المنفذة المقابلة للإيرادات المؤجلة؟' } as Record<string, string>)[o.rule_code] ?? o.title);

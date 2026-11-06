@@ -9,6 +9,7 @@ const DOC_TYPE_LABELS: Record<string, string> = { ...(DATA_TYPE_LABELS as Record
 import { periodPhrase } from '../../lib/periods.js';
 import { TAX_DEP_NOTE } from '../valuation/nav.js';
 import { basisFor, basisLabel } from '../legal/basis.js';
+import { thresholdsOf } from '../../lib/thresholds.js';
 import { FS_LINE_MAP } from '../../engine/fsLines.js';
 import { fmtAmounts } from '../../lib/textfmt.js';
 import { DATA_TYPE_LABELS } from '../imports/fields.js';
@@ -271,9 +272,10 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       const names: Record<string, string> = { liquidity: 'السيولة', profitability: 'الربحية', leverage: 'المديونية', working_capital: 'رأس المال العامل' };
       if (ra) blocks.push({ type: 'table', columns: [{ key: 'a', label: 'المجال' }, { key: 'l', label: 'المستوى' }, { key: 'r', label: 'الأساس' }], rows: Object.entries(ra).map(([k, v]) => ({ a: names[k] ?? k, l: lv[v.level] ?? v.level, r: v.rationale })) });
       else if (snap.ratios) { const by = Object.fromEntries(snap.ratios.map((r) => [r.code, r])); const rows: Record<string, string>[] = [];
-        const cr = by.current_ratio?.value ? Number(by.current_ratio.value) : null; rows.push({ a: 'السيولة', l: cr === null ? 'غير محدد' : cr < 1 ? 'مرتفع' : cr < 1.5 ? 'متوسط' : 'منخفض', r: `نسبة التداول ${fmtRatio(by.current_ratio?.value, 'ratio')}` });
-        const nm = by.net_margin?.value ? Number(by.net_margin.value) : null; rows.push({ a: 'الربحية', l: nm === null ? 'غير محدد' : nm < 0 ? 'مرتفع' : nm < 5 ? 'متوسط' : 'منخفض', r: `هامش صافي الربح ${fmtRatio(by.net_margin?.value, 'pct')}` });
-        const de = by.debt_to_equity?.value ? Number(by.debt_to_equity.value) : null; rows.push({ a: 'المديونية', l: de === null ? 'غير محدد' : de > 2 ? 'مرتفع' : de > 1 ? 'متوسط' : 'منخفض', r: `الالتزامات إلى حقوق الملكية ${fmtRatio(by.debt_to_equity?.value, 'ratio')}` });
+        const T = thresholdsOf((snap.office as { analysis_thresholds?: unknown }).analysis_thresholds); // عتبات المكتب
+        const cr = by.current_ratio?.value ? Number(by.current_ratio.value) : null; rows.push({ a: 'السيولة', l: cr === null ? 'غير محدد' : cr < T.risk_cr_high ? 'مرتفع' : cr < T.risk_cr_medium ? 'متوسط' : 'منخفض', r: `نسبة التداول ${fmtRatio(by.current_ratio?.value, 'ratio')}` });
+        const nm = by.net_margin?.value ? Number(by.net_margin.value) : null; rows.push({ a: 'الربحية', l: nm === null ? 'غير محدد' : nm < 0 ? 'مرتفع' : nm < T.risk_margin_medium_pct ? 'متوسط' : 'منخفض', r: `هامش صافي الربح ${fmtRatio(by.net_margin?.value, 'pct')}` });
+        const de = by.debt_to_equity?.value ? Number(by.debt_to_equity.value) : null; rows.push({ a: 'المديونية', l: de === null ? 'غير محدد' : de > T.risk_de_high ? 'مرتفع' : de > T.risk_de_medium ? 'متوسط' : 'منخفض', r: `الالتزامات إلى حقوق الملكية ${fmtRatio(by.debt_to_equity?.value, 'ratio')}` });
         const wc = by.working_capital?.value ? Number(by.working_capital.value) : null; rows.push({ a: 'رأس المال العامل', l: wc === null ? 'غير محدد' : wc < 0 ? 'مرتفع' : 'منخفض', r: `رأس المال العامل ${fmtRatio(by.working_capital?.value, 'amount')}` });
         blocks.push({ type: 'table', columns: [{ key: 'a', label: 'المجال' }, { key: 'l', label: 'المستوى (قاعدي)' }, { key: 'r', label: 'الأساس' }], rows }); blocks.push(note('تقييم قاعدي مبني على عتبات عامة للنسب؛ يخضع لتقدير المحاسب وطبيعة النشاط.', 'info')); }
       else blocks.push(note('يتطلب توليد القوائم والنسب أولًا.', 'warning'));

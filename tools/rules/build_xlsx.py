@@ -42,10 +42,15 @@ def std_title(sd):
   return min(pref, key=len) if pref else None
 STATUS = OrderedDict([
  ('fixed', '✔️ صُحّحت واختُبرت'), ('fix', '⚠️ تحتاج تصحيح (تحقّقتُ منها)'), ('bug', '🐞 خلل برمجي (تحقّقتُ منه)'), ('link', '🔗 القيمة صحيحة وتحتاج ربطًا بجدول النسب'),
- ('decide', '🟡 تحتاج قرارك'), ('ok', '✅ موثّقة بنص (تحقّقتُ منها)'), ('pinned', '📌 مرتبطة بفقرة محددة (مطابقة آلية بالكلمات — للمراجعة)'), ('cand', '🔎 المعيار محدد والفقرة لم تُحدد بعد'),
+ ('decide', '🟡 تحتاج قرارك'), ('ok', '✅ موثّقة بنص (تحقّقتُ منها)'), ('pinned2', '📌 مرتبطة بفقرة محددة (ربط يدوي بعد المراجعة)'), ('pinned', '📌 مرتبطة بفقرة محددة (مطابقة آلية بالكلمات — للمراجعة)'), ('config', '🎚️ عتبة اجتهادية قابلة للضبط من الإعدادات'), ('design', '🧩 تصميم/صياغة/إجراء — لا يحتاج سندًا'), ('cand', '🔎 المعيار محدد والفقرة لم تُحدد بعد'),
  ('suspect', '❓ ملاحظة مراجِع آلي — لم أتحقق منها بعد'), ('practice', '📝 اجتهاد مهني بلا نص — يحتاج اعتماد المكتب'),
  ('absent', '📚 المعيار غير موجود في المكتبة'), ('none', '❔ لم يُعثر على سند بعد'), ('tech', '⚙️ تقني — لا يحتاج سندًا')])
-PINS = json.load(open(D + 'pins.json', encoding='utf-8'))
+PINS = json.load(open(D + 'pins.json', encoding='utf-8')); PINS2 = json.load(open(D + 'pins2.json', encoding='utf-8'))
+import re as _re
+def _short(t):
+  m = _re.search(r'\((ISA|ISRS|ISAE) ?\d+\)', t) or _re.match(r'(IAS|IFRS) ?\d+', t)
+  return m.group(0).strip('()') if m else t.split(' — ')[0][:40]
+CONFIG = {'var-material-rule', 'var-threshold-10', 'FS-010-current-ratio', 'FS-013-ocf-vs-profit', 'TB-014-material-change', 'LA-007-expense-concentration', 'ai-risk-levels', 'rpt-risk-rule-thresholds', 'tb-severity-by-materiality', 'office-late-60', 'fin-late-clients'}
 BASIS = json.load(open('/tmp/claude-0/-workspace/3f0c9cdb-eb6b-5493-bc6e-a6b73e9bf13f/scratchpad/basis/basis_final.json', encoding='utf-8'))
 rows = []
 for r in L:
@@ -70,6 +75,13 @@ for r in L:
   if st == 'cand' and pin:
     if pin['score'] >= 2: st = 'pinned'; src = f"{pin['ref']} — {pin['source'][:70]}"; snip = pin['quote'][:350]
     else: note = (note + ' ' if note else '') + f"فقرة مقترحة (مطابقة ضعيفة): {pin['ref']}"
+  p2 = PINS2.get(r['id'])
+  if p2 and st in ('cand', 'none', 'pinned', 'practice'):
+    if 'design' in p2: st = 'design'; note = p2['design']
+    else: st = 'pinned2'; src = f"{_short(p2['source'])} {p2['ref']} — {p2['source'][:70]}"; snip = p2['quote'][:350]; note = ('IFRS 18 يسري من 2027؛ وفي IAS 1 الحالي يُعرض الربح أو الخسارة بتحليل المصروفات حسب طبيعتها أو وظيفتها' if 'IFRS 18' in p2['source'] else (f"عبر أساس الملاحظة {p2['via']}" if p2.get('via') else ''))
+  elif st == 'practice':
+    if r['id'] in CONFIG: st = 'config'; note = 'عتبة اجتهادية تُضبط من «الإعدادات ← سياسات المكتب / عتبات التحليل»'
+    else: st = 'design'; note = note or 'تصميم أو صياغة أو إجراء داخلي في البرنامج (أو شرط تعاقدي يُعدَّل في الخطاب) — لا يحتاج سندًا نظاميًا'
   rows.append({**r, 'st': st, 'src': src, 'snip': snip, 'note': note, 'prio': prio})
 json.dump(rows, open(D + 'register.json', 'w'), ensure_ascii=False, indent=1)
 cnt = Counter(x['st'] for x in rows)
@@ -79,7 +91,7 @@ wb = Workbook(); NAVY = '1F2A44'; GOLD = 'B8962E'
 hdr = Font(bold=True, color='FFFFFF', name='Arial'); hfill = PatternFill('solid', fgColor=NAVY)
 thin = Side(style='thin', color='CCCCCC'); B = Border(top=thin, bottom=thin, left=thin, right=thin)
 wrap = Alignment(wrap_text=True, vertical='top', horizontal='right', readingOrder=2)
-FILL = {'pinned': 'E6EEFA', 'fixed': 'D9F2E3', 'fix': 'FDE2E1', 'bug': 'FDE2E1', 'link': 'FFF4D6', 'decide': 'FFF4D6', 'ok': 'E3F4E8', 'cand': 'EEF3FB', 'suspect': 'F3E8FF', 'practice': 'FFF9EB', 'absent': 'F1F1F1', 'none': 'F1F1F1', 'tech': 'FFFFFF'}
+FILL = {'pinned2': 'DCE8FA', 'config': 'FFF4D6', 'design': 'F7F7F7', 'pinned': 'E6EEFA', 'fixed': 'D9F2E3', 'fix': 'FDE2E1', 'bug': 'FDE2E1', 'link': 'FFF4D6', 'decide': 'FFF4D6', 'ok': 'E3F4E8', 'cand': 'EEF3FB', 'suspect': 'F3E8FF', 'practice': 'FFF9EB', 'absent': 'F1F1F1', 'none': 'F1F1F1', 'tech': 'FFFFFF'}
 def sheet(ws, cols, data, widths):
   ws.sheet_view.rightToLeft = True
   for i, c in enumerate(cols, 1):
@@ -98,7 +110,7 @@ ws['A2'].alignment = Alignment(wrap_text=True, horizontal='right', readingOrder=
 r0 = 4
 for i, c in enumerate(['الحالة', 'العدد', 'المعنى'], 1):
   x = ws.cell(row=r0, column=i, value=c); x.font = hdr; x.fill = hfill; x.border = B; x.alignment = Alignment(horizontal='center')
-MEAN = {'pinned': 'رُبطت بفقرة من النص الكامل للمعيار بمطابقة كلمات القاعدة مع موضوع الفقرة، مع مقتطف النص', 'fixed': 'خطأ مؤكد صُحّح في البرنامج وله اختبار آلي', 'fix': 'خطأ مؤكد في المعالجة أو الصياغة مقارنة بالنص؛ الإصلاح مقترح', 'bug': 'خلل في البرنامج نفسه', 'link': 'رقم صحيح مكتوب ثابتًا في الكود', 'decide': 'قيمة أو سياسة لا يحددها نص؛ القرار لك', 'ok': 'طابقتُ القاعدة مع نص المادة/المعيار', 'cand': 'وُجد المعيار والصفحة المرشحة آليًا؛ المطابقة الدقيقة في المرحلة التالية', 'suspect': 'شك من المراجعة الآلية للكود، أتحقق منه قبل أي تعديل', 'practice': 'حدود وعتبات من اجتهاد البرنامج (مثل 10% و120 يومًا)', 'absent': 'المعيار غير متوفر في ملفات المكتبة (IVS للتقييم، ISQM 1 لإدارة الجودة)', 'none': 'لم يظهر سند في البحث الآلي', 'tech': 'إجراء تقني (حفظ، ترقيم، قراءة ملفات)'}
+MEAN = {'pinned2': 'رُبطت يدويًا بالمادة أو الفقرة بعد مراجعة القاعدة، مع مقتطف من النص نفسه', 'config': 'رقم يقرره المكتب؛ قيمته الحالية في الإعدادات ويُذكر في الملاحظات أنه اجتهاد', 'design': 'طريقة عرض أو صياغة أو خطوة عمل داخل البرنامج، أو شرط تعاقدي يعدّله المكتب في الخطاب', 'pinned': 'رُبطت بفقرة من النص الكامل للمعيار بمطابقة كلمات القاعدة مع موضوع الفقرة، مع مقتطف النص', 'fixed': 'خطأ مؤكد صُحّح في البرنامج وله اختبار آلي', 'fix': 'خطأ مؤكد في المعالجة أو الصياغة مقارنة بالنص؛ الإصلاح مقترح', 'bug': 'خلل في البرنامج نفسه', 'link': 'رقم صحيح مكتوب ثابتًا في الكود', 'decide': 'قيمة أو سياسة لا يحددها نص؛ القرار لك', 'ok': 'طابقتُ القاعدة مع نص المادة/المعيار', 'cand': 'وُجد المعيار والصفحة المرشحة آليًا؛ المطابقة الدقيقة في المرحلة التالية', 'suspect': 'شك من المراجعة الآلية للكود، أتحقق منه قبل أي تعديل', 'practice': 'حدود وعتبات من اجتهاد البرنامج (مثل 10% و120 يومًا)', 'absent': 'المعيار غير متوفر في ملفات المكتبة (IVS للتقييم، ISQM 1 لإدارة الجودة)', 'none': 'لم يظهر سند في البحث الآلي', 'tech': 'إجراء تقني (حفظ، ترقيم، قراءة ملفات)'}
 for i, (k, lab) in enumerate(STATUS.items(), r0 + 1):
   for ci, v in enumerate([lab, cnt.get(k, 0), MEAN[k]], 1):
     x = ws.cell(row=i, column=ci, value=v); x.border = B; x.fill = PatternFill('solid', fgColor=FILL[k]); x.alignment = wrap

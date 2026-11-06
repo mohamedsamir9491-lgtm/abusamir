@@ -1,0 +1,571 @@
+{
+ "cls-finance-cost": {
+  "ref": "الفقرة 47",
+  "source": "IFRS 18 العرض والإفصاح في القوائم المالية (Presentation And Disclosure In Financial Statements) — النص الكامل 2026",
+  "quote": "47 An entity shall classify income and expenses included in the statement of profit or loss in one of five categories (see paragraph B29): (a) the operating category (see paragraph 52); (b) the investing category (see paragraphs 53–58); (c) the fi"
+ },
+ "cls-penalties": {
+  "ref": "الفقرة 47",
+  "source": "IFRS 18 العرض والإفصاح في القوائم المالية (Presentation And Disclosure In Financial Statements) — النص الكامل 2026",
+  "quote": "47 An entity shall classify income and expenses included in the statement of profit or loss in one of five categories (see paragraph B29): (a) the operating category (see paragraph 52); (b) the investing category (see paragraphs 53–58); (c) the fi"
+ },
+ "cls-finance-income": {
+  "ref": "الفقرة 47",
+  "source": "IFRS 18 العرض والإفصاح في القوائم المالية (Presentation And Disclosure In Financial Statements) — النص الكامل 2026",
+  "quote": "47 An entity shall classify income and expenses included in the statement of profit or loss in one of five categories (see paragraph B29): (a) the operating category (see paragraph 52); (b) the investing category (see paragraphs 53–58); (c) the fi"
+ },
+ "cls-other-income": {
+  "ref": "الفقرة 47",
+  "source": "IFRS 18 العرض والإفصاح في القوائم المالية (Presentation And Disclosure In Financial Statements) — النص الكامل 2026",
+  "quote": "47 An entity shall classify income and expenses included in the statement of profit or loss in one of five categories (see paragraph B29): (a) the operating category (see paragraph 52); (b) the investing category (see paragraphs 53–58); (c) the fi"
+ },
+ "cls-selling-expenses": {
+  "ref": "الفقرة 47",
+  "source": "IFRS 18 العرض والإفصاح في القوائم المالية (Presentation And Disclosure In Financial Statements) — النص الكامل 2026",
+  "quote": "47 An entity shall classify income and expenses included in the statement of profit or loss in one of five categories (see paragraph B29): (a) the operating category (see paragraph 52); (b) the investing category (see paragraphs 53–58); (c) the fi"
+ },
+ "cls-admin-expenses": {
+  "ref": "الفقرة 47",
+  "source": "IFRS 18 العرض والإفصاح في القوائم المالية (Presentation And Disclosure In Financial Statements) — النص الكامل 2026",
+  "quote": "47 An entity shall classify income and expenses included in the statement of profit or loss in one of five categories (see paragraph B29): (a) the operating category (see paragraph 52); (b) the investing category (see paragraphs 53–58); (c) the fi"
+ },
+ "cls-losses-other": {
+  "ref": "الفقرة 47",
+  "source": "IFRS 18 العرض والإفصاح في القوائم المالية (Presentation And Disclosure In Financial Statements) — النص الكامل 2026",
+  "quote": "47 An entity shall classify income and expenses included in the statement of profit or loss in one of five categories (see paragraph B29): (a) the operating category (see paragraph 52); (b) the investing category (see paragraphs 53–58); (c) the fi"
+ },
+ "fs-depreciation-own-line": {
+  "ref": "الفقرة 47",
+  "source": "IFRS 18 العرض والإفصاح في القوائم المالية (Presentation And Disclosure In Financial Statements) — النص الكامل 2026",
+  "quote": "47 An entity shall classify income and expenses included in the statement of profit or loss in one of five categories (see paragraph B29): (a) the operating category (see paragraph 52); (b) the investing category (see paragraphs 53–58); (c) the fi"
+ },
+ "fs-other-income-below-operating": {
+  "ref": "الفقرة 47",
+  "source": "IFRS 18 العرض والإفصاح في القوائم المالية (Presentation And Disclosure In Financial Statements) — النص الكامل 2026",
+  "quote": "47 An entity shall classify income and expenses included in the statement of profit or loss in one of five categories (see paragraph B29): (a) the operating category (see paragraph 52); (b) the investing category (see paragraphs 53–58); (c) the fi"
+ },
+ "cls-depreciation-expense": {
+  "ref": "الفقرة 50",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "50 The depreciable amount of an asset shall be allocated on a systematic basis over its useful life. 51 The residual value and the useful life of an asset shall be reviewed at least at each financial year-end and, if expectations differ from previous estimates, the change(s)"
+ },
+ "cls-acc-dep": {
+  "ref": "الفقرة 30",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "30 After recognition as an asset, an item of property, plant and equipment shall be carried at its cost less any accumulated depreciation and any accumulated impairment losses."
+ },
+ "cls-ppe": {
+  "ref": "الفقرة 30",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "30 After recognition as an asset, an item of property, plant and equipment shall be carried at its cost less any accumulated depreciation and any accumulated impairment losses."
+ },
+ "val-land-not-depreciated": {
+  "ref": "الفقرة 58",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "58 Land and buildings are separable assets and are accounted for separately, even when they are acquired together. With some exceptions, such as quarries and sites used for landfill, land has an unlimited useful life and therefore is not depreciated. Buildings h"
+ },
+ "FA-002-accdep-over-cost": {
+  "ref": "IAS 16 الممتلكات وال الفقرة 50",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "50 The depreciable amount of an asset shall be allocated on a systematic basis over its useful life. 51 The residual value and the useful life of an asset shall be reviewed at least at each financial year-end and, if expectations differ from previous estimates, the change(s) shall be a",
+  "via": "FA-002"
+ },
+ "FA-003-fully-depreciated-charged": {
+  "ref": "IAS 16 الممتلكات وال الفقرة 50",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "50 The depreciable amount of an asset shall be allocated on a systematic basis over its useful life. 51 The residual value and the useful life of an asset shall be reviewed at least at each financial year-end and, if expectations differ from previous estimates, the change(s) shall be a",
+  "via": "FA-003"
+ },
+ "LA-001-no-ppe-dep": {
+  "ref": "IAS 16 الممتلكات وال الفقرة 55",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "55 Depreciation of an asset begins when it is available for use, ie when it is in the location and condition necessary for it to be capable of operating in the manner intended by management. Depreciation of an asset ceases at the earlier of the date that the asset",
+  "via": "LA-001"
+ },
+ "req-owner-valuation": {
+  "ref": "الفقرة 30",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "30 After recognition as an asset, an item of property, plant and equipment shall be carried at its cost less any accumulated depreciation and any accumulated impairment losses."
+ },
+ "cls-lease-liability": {
+  "ref": "الفقرة 47",
+  "source": "IFRS 16 عقود الإيجار (Leases) — النص الكامل 2026",
+  "quote": "47 A lessee shall either present in the statement of financial position, or disclose in the notes: (a) right-of-use assets separately from other assets. If a lessee does not present right-of-use assets separately in the statement of financial position, the lessee shall: (i) include right-of"
+ },
+ "cls-rou-asset": {
+  "ref": "الفقرة 47",
+  "source": "IFRS 16 عقود الإيجار (Leases) — النص الكامل 2026",
+  "quote": "47 A lessee shall either present in the statement of financial position, or disclose in the notes: (a) right-of-use assets separately from other assets. If a lessee does not present right-of-use assets separately in the statement of financial position, the lessee shall: (i) include right-of"
+ },
+ "LA-003-rou-no-dep": {
+  "ref": "IFRS 16 عقود الإيجار الفقرة 31",
+  "source": "IFRS 16 عقود الإيجار (Leases) — النص الكامل 2026",
+  "quote": "31 A lessee shall apply the depreciation requirements in IAS 16 Property, Plant and Equipment in depreciating the right-of-use asset, subject to the requirements in paragraph 32. A850 © IFRS Foundation 32 If the lease transfers ownership of the underlying asset to the lessee by the",
+  "via": "LA-003"
+ },
+ "cls-retained-earnings": {
+  "ref": "الفقرة 79",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "لكل فئة من فئات رأس المال المساهم به: )0( عدد الأسهم المصرح the 0( عدد الأسهم المصدرة والمدفوعة بالكامل. والمصدرة التي لم تدفع بالكامل؛ ليه القيمة الاسمية للسهمء أوبيان أن الأسهم ليست لبا قيمة اسمية؛ )£( مطابقة عدد الأسهم القائمة في بداية ونهاية"
+ },
+ "cls-share-capital": {
+  "ref": "الفقرة 79",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "لكل فئة من فئات رأس المال المساهم به: )0( عدد الأسهم المصرح the 0( عدد الأسهم المصدرة والمدفوعة بالكامل. والمصدرة التي لم تدفع بالكامل؛ ليه القيمة الاسمية للسهمء أوبيان أن الأسهم ليست لبا قيمة اسمية؛ )£( مطابقة عدد الأسهم القائمة في بداية ونهاية"
+ },
+ "off-doc001-capital-mismatch": {
+  "ref": "IAS 1 عرض القوائم ال الفقرة 79",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "لكل فئة من فئات رأس المال المساهم به: )0( عدد الأسهم المصرح the 0( عدد الأسهم المصدرة والمدفوعة بالكامل. والمصدرة التي لم تدفع بالكامل؛ ليه القيمة الاسمية للسهمء أوبيان أن الأسهم ليست لبا قيمة اس",
+  "via": "DOC-001"
+ },
+ "cls-owner-current": {
+  "ref": "الفقرة 11",
+  "source": "IAS 32 الأدوات المالية: العرض (Financial Instruments Presentation) — النص الكامل 2026",
+  "quote": "equity instrument is any contract that evidences a residual interest in the assets of an entity after deducting all of its liabilities. Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between market participants at"
+ },
+ "cls-owner-current-bilateral": {
+  "ref": "الفقرة 32",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "لايجوزللمنشأة أن تجري مقاصة بين الأصول والالتزامات. أوبين الدخل والمصروفات, مالم تكن مطالبة أومسموحاً لها بذلك بموجب معياردولي للتقرير المالي."
+ },
+ "req-contributions": {
+  "ref": "الفقرة 11",
+  "source": "IAS 32 الأدوات المالية: العرض (Financial Instruments Presentation) — النص الكامل 2026",
+  "quote": "equity instrument is any contract that evidences a residual interest in the assets of an entity after deducting all of its liabilities. Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between market participants at"
+ },
+ "rpt-nav-contributions": {
+  "ref": "الفقرة 11",
+  "source": "IAS 32 الأدوات المالية: العرض (Financial Instruments Presentation) — النص الكامل 2026",
+  "quote": "equity instrument is any contract that evidences a residual interest in the assets of an entity after deducting all of its liabilities. Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between market participants at"
+ },
+ "cls-intangibles": {
+  "ref": "الفقرة 97",
+  "source": "IAS 38 الأصول غير الملموسة (Intangible Assets) — النص الكامل 2026",
+  "quote": "97 The depreciable amount of an intangible asset with a finite useful life shall be allocated on a systematic basis over its useful life. Amortisation shall begin when the asset is available for use, ie when it is in the location and condition necessary for it to be capable of oper"
+ },
+ "kb-ias38": {
+  "ref": "الفقرة 107",
+  "source": "IAS 38 الأصول غير الملموسة (Intangible Assets) — النص الكامل 2026",
+  "quote": "107 An intangible asset with an indefinite useful life shall not be amortised. 108 In accordance with IAS 36, an entity is required to test an intangible asset with an indefinite useful life for impairment by comparing its recoverable amount with its carrying amount (a) ann"
+ },
+ "cls-sales-returns": {
+  "ref": "الفقرة 47",
+  "source": "IFRS 15 الإيراد من العقود مع العملاء (Revenue From Contracts With Customers) — النص الكامل 2026",
+  "quote": "47 An entity shall consider the terms of the contract and its customary business practices to determine the transaction price. The transaction price is the amount of consideration to which an entity expects to be entitled in exchange for transferring promised goods or serv"
+ },
+ "AR-002-opposite-sign": {
+  "ref": "IFRS 9 الأدوات المال الفقرة 5.5.1",
+  "source": "IFRS 9 الأدوات المالية (Financial Instruments) — النص الكامل 2026",
+  "quote": "5.5.1 An entity shall recognise a loss allowance for expected credit losses on a financial asset that is measured in accordance with paragraphs 4.1.2 or 4.1.2A, a lease receivable, a contract asset or a loan commitment and a financial guarantee contract to which the impairment",
+  "via": "AR-002"
+ },
+ "fin-progress-6-steps": {
+  "ref": "الفقرة 31",
+  "source": "IFRS 15 الإيراد من العقود مع العملاء (Revenue From Contracts With Customers) — النص الكامل 2026",
+  "quote": "31 An entity shall recognise revenue when (or as) the entity satisfies a performance obligation by transferring a promised good or service (ie an asset) to a customer. An asset is transferred when (or as) the customer obtains control of that asset. 32 For each"
+ },
+ "fs-cf-indirect-operating": {
+  "ref": "الفقرة 18",
+  "source": "IAS 7 قائمة التدفقات النقدية (Statement Of Cash Flows) — النص الكامل 2026",
+  "quote": "18 An entity shall report cash flows from operating activities using either: (a) the direct method, whereby major classes of gross cash receipts and gross cash payments are disclosed; or (b) the indirect method, whereby operating profit or loss is adjusted for: (i) the effects of t"
+ },
+ "fs-cf-ecl-noncash": {
+  "ref": "الفقرة 18",
+  "source": "IAS 7 قائمة التدفقات النقدية (Statement Of Cash Flows) — النص الكامل 2026",
+  "quote": "18 An entity shall report cash flows from operating activities using either: (a) the direct method, whereby major classes of gross cash receipts and gross cash payments are disclosed; or (b) the indirect method, whereby operating profit or loss is adjusted for: (i) the effects of t"
+ },
+ "fs-cf-investing": {
+  "ref": "الفقرة 21",
+  "source": "IAS 7 قائمة التدفقات النقدية (Statement Of Cash Flows) — النص الكامل 2026",
+  "quote": "21 An entity shall report separately major classes of gross cash receipts and gross cash payments arising from investing and financing activities, except to the extent that cash flows described in paragraphs 22 and 24 are reported on a net basis. Reporting cash flows on a net basis 22 Cash fl"
+ },
+ "TB-021-bank-credit": {
+  "ref": "IAS 7 قائمة التدفقات الفقرة 8",
+  "source": "IAS 7 قائمة التدفقات النقدية (Statement Of Cash Flows) — النص الكامل 2026",
+  "quote": "8 Bank borrowings are generally considered to be financing activities. However, in some countries, bank overdrafts which are repayable on demand form an integral part of an entity's cash management. In these circumstances, bank overdrafts are included",
+  "via": "TB-021"
+ },
+ "prior-period-selection": {
+  "ref": "الفقرة 38",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "معلومات مقارنة تتعلق بالفترة السابقة لجميع المبالغ التي تم التقريرعنها في القوائم المالية للفترة الحالية, إلا عندما تسمح المعايير الدولية للتقرير JUN أوتتطلب خلاف ذلك. ويجب على المنشأة أن تدرج معلومات مقارنة للمعلومات السردية والوصفية إذا كان ذلك ملائماً ل"
+ },
+ "prior-length-mismatch": {
+  "ref": "الفقرة 38",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "معلومات مقارنة تتعلق بالفترة السابقة لجميع المبالغ التي تم التقريرعنها في القوائم المالية للفترة الحالية, إلا عندما تسمح المعايير الدولية للتقرير JUN أوتتطلب خلاف ذلك. ويجب على المنشأة أن تدرج معلومات مقارنة للمعلومات السردية والوصفية إذا كان ذلك ملائماً ل"
+ },
+ "rpt-comparative-prior": {
+  "ref": "الفقرة 38",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "معلومات مقارنة تتعلق بالفترة السابقة لجميع المبالغ التي تم التقريرعنها في القوائم المالية للفترة الحالية, إلا عندما تسمح المعايير الدولية للتقرير JUN أوتتطلب خلاف ذلك. ويجب على المنشأة أن تدرج معلومات مقارنة للمعلومات السردية والوصفية إذا كان ذلك ملائماً ل"
+ },
+ "kb-ias1": {
+  "ref": "الفقرة 25",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "أساس الاستمرارية ما لم تعتزم الإدارة تصفية المنشأة أو إيقاف عملياتهاء أو ما لم يكن لدى الإدارة أي بديل واقعي آخر سوى القيام بذلك. أثناء إجراء التقييم» بحالات عدم تأكد جوهرية تتعلق بأحداث أو ظروف قد تثير شكوكاً كبيرة حول قدرة المنشأة ele وعندما تصبح"
+ },
+ "LA-009-going-concern": {
+  "ref": "معيار المراجعة 570 صفحة 4",
+  "source": "معيار المراجعة 570 (ISA 570): الاستمرارية",
+  "quote": "ت إجراءات تقييم المخاطر والأنشطة المتعلقة بها إذا كانت هناك أحداث أو ظروف قد تثير شكوكاً كبيرة حول قدرة المنشأة على البقاء كمنشأة مستمرة. وعند القيام بذلك. يجب على المراجع أن يحدد ما إذا كانت الإدارة قد أجرت بالفعل تقييماً مبدئياً لقدرة المنشأة على البقاء كمنشأة مستمرة؛ ومن",
+  "via": "LA-009"
+ },
+ "FS-012-net-loss": {
+  "ref": "معيار المراجعة 570 صفحة 8–9",
+  "source": "معيار المراجعة 570 (ISA 570): الاستمرارية",
+  "quote": "ريخية أو المستقبلية. . المعدلات المالية الرئيسية السلبية. . الخسائر التشغيلية الجوهرية أو التدهور الكبير في قيمة الأصول المستخدمة لتوليد التدفقات النقدية. . التأخر في توزيعات الأرباح أو توقفها. . عدم القدرة على السداد للدائنين في تواريخ الاستحقاق. . عدم القدرة على ا",
+  "via": "FS-012"
+ },
+ "FS-014-high-dso": {
+  "ref": "IFRS 9 الأدوات المال الفقرة 5.5.1",
+  "source": "IFRS 9 الأدوات المالية (Financial Instruments) — النص الكامل 2026",
+  "quote": "5.5.1 An entity shall recognise a loss allowance for expected credit losses on a financial asset that is measured in accordance with paragraphs 4.1.2 or 4.1.2A, a lease receivable, a contract asset or a loan commitment and a financial guarantee contract to which the impairment",
+  "via": "FS-014"
+ },
+ "AR-aging-buckets": {
+  "ref": "الفقرة 5.5.15",
+  "source": "IFRS 9 الأدوات المالية (Financial Instruments) — النص الكامل 2026",
+  "quote": "5.5.15 Despite paragraphs 5.5.3 and 5.5.5, an entity shall always measure the loss allowance at an amount equal to lifetime expected credit losses for: (a) trade receivables or contract assets that result from transactions that are within the sc"
+ },
+ "kb-ifrs9": {
+  "ref": "الفقرة 5.5.15",
+  "source": "IFRS 9 الأدوات المالية (Financial Instruments) — النص الكامل 2026",
+  "quote": "5.5.15 Despite paragraphs 5.5.3 and 5.5.5, an entity shall always measure the loss allowance at an amount equal to lifetime expected credit losses for: (a) trade receivables or contract assets that result from transactions that are within the sc"
+ },
+ "rpt-aging-section": {
+  "ref": "الفقرة 5.5.15",
+  "source": "IFRS 9 الأدوات المالية (Financial Instruments) — النص الكامل 2026",
+  "quote": "5.5.15 Despite paragraphs 5.5.3 and 5.5.5, an entity shall always measure the loss allowance at an amount equal to lifetime expected credit losses for: (a) trade receivables or contract assets that result from transactions that are within the sc"
+ },
+ "AR-003-concentration": {
+  "ref": "IFRS 7 الأدوات المال الفقرة 34(ج)",
+  "source": "IFRS 7 الأدوات المالية: الإفصاحات (Financial Instruments Disclosures) — النص الكامل 2026",
+  "quote": "(c) concentrations of risk if not apparent from the disclosures made in accordance with (a) and (b).",
+  "via": "AR-003"
+ },
+ "TB-022-allowance-over-ar": {
+  "ref": "IFRS 9 الأدوات المال الفقرة 5.5.1",
+  "source": "IFRS 9 الأدوات المالية (Financial Instruments) — النص الكامل 2026",
+  "quote": "5.5.1 An entity shall recognise a loss allowance for expected credit losses on a financial asset that is measured in accordance with paragraphs 4.1.2 or 4.1.2A, a lease receivable, a contract asset or a loan commitment and a financial guarantee contract to which the impairment",
+  "via": "TB-022"
+ },
+ "INV-checks": {
+  "ref": "IAS 2 المخزون الفقرة 9",
+  "source": "IAS 2 المخزون (Inventories) — النص الكامل 2026",
+  "quote": "9 Inventories shall be measured at the lower of cost and net realisable value.",
+  "via": "INV-002"
+ },
+ "TB-025-due-from-shareholder": {
+  "ref": "IAS 24 الإفصاحات عن  الفقرة 18",
+  "source": "IAS 24 الإفصاحات عن الأطراف ذات العلاقة (Related Party Disclosures) — النص الكامل 2026",
+  "quote": "18 If an entity has had related party transactions during the periods covered by the financial statements, it shall disclose the nature of the related party relationship as well as information about those transactions and outstanding balances, including commitments, necessary for",
+  "via": "TB-025"
+ },
+ "LA-005-accrued-salaries": {
+  "ref": "IAS 19 منافع الموظفي الفقرة 11",
+  "source": "IAS 19 منافع الموظفين (Employee Benefits) — النص الكامل 2026",
+  "quote": "11 When an employee has rendered service to an entity during an accounting period, the entity shall recognise the undiscounted amount of short-term employee benefits expected to be paid in exchange for that service: (a) as a liability (accrued expense), after deducting",
+  "via": "LA-005"
+ },
+ "kb-ias37": {
+  "ref": "الفقرة 14",
+  "source": "IAS 37 المخصصات والالتزامات المحتملة والأصول المحتملة (Provisions Contingent Liabilities And Contingent Assets) — النص الكامل 2026",
+  "quote": "14 A provision shall be recognised when: (a) an entity has a present obligation (legal or constructive) as a result of a past event; (b) it is probable that an outflow of resources embodying economic benefits will be required to settle the obligation; an"
+ },
+ "kb-ias8": {
+  "ref": "الفقرة 42",
+  "source": "IAS 8 أساس إعداد القوائم المالية (السياسات المحاسبية والتغيرات في التقديرات والأخطاء) (Basis Of Preparation Of Financial Statements) — النص الكامل 2026",
+  "quote": "42 Subject to paragraph 43, an entity shall correct material prior period errors retrospectively in the first set of financial statements authorised for issue after their discovery by: (a) restating the comparative amounts for the prior period(s)"
+ },
+ "ai-partial-period": {
+  "ref": "الفقرة 4",
+  "source": "IAS 34 التقرير المالي الأولي (Interim Financial Reporting) — النص الكامل 2026",
+  "quote": "Interim period is a financial reporting period shorter than a full financial year. Interim financial report means a financial report containing either a complete set of financial statements (as described in IFRS 18 Presentation and Disclosure in Financial Statements) or a s"
+ },
+ "JE-002-out-of-period": {
+  "ref": "صفحة 8",
+  "source": "معيار المراجعة 240 (ISA 240): مسؤوليات المراجع ذات العلاقة بالغش عند مراجعة القوائم المالية — المحدَّث (يسري على الفترات التي تبدأ في 15 ديسمبر 2026 أو بعده)",
+  "quote": "قيود اليومية والتعديلات الأخرى لإجراء الاختبارات"
+ },
+ "JE-004-duplicate-entries": {
+  "ref": "صفحة 8",
+  "source": "معيار المراجعة 240 (ISA 240): مسؤوليات المراجع ذات العلاقة بالغش عند مراجعة القوائم المالية — المحدَّث (يسري على الفترات التي تبدأ في 15 ديسمبر 2026 أو بعده)",
+  "quote": "قيود اليومية والتعديلات الأخرى لإجراء الاختبارات"
+ },
+ "ai-review-checklist": {
+  "ref": "صفحة 8",
+  "source": "معيار المراجعة 240 (ISA 240): مسؤوليات المراجع ذات العلاقة بالغش عند مراجعة القوائم المالية — المحدَّث (يسري على الفترات التي تبدأ في 15 ديسمبر 2026 أو بعده)",
+  "quote": "قيود اليومية والتعديلات الأخرى لإجراء الاختبارات"
+ },
+ "subledger-materiality-default": {
+  "ref": "صفحة 6",
+  "source": "معيار المراجعة 320 (ISA 320): الأهمية النسبية عند تخطيط وتنفيذ المراجعة",
+  "quote": "نسبة مئوية على أساس مرجعي مختارء كنقطة بداية لتحديد الأهمية النسبية للقوائم المالية ككل. وتشمل العوامل التي قد تؤثر في تحديد الأساس المرجعي المناسب ما يلي: . عناصر القوائم المالية (على سبيل SLM الأصولء الالتزامات. حقوق الملكية, الإيرادات. المصرو"
+ },
+ "rpt-tb-checks-display": {
+  "ref": "صفحة 6",
+  "source": "معيار المراجعة 320 (ISA 320): الأهمية النسبية عند تخطيط وتنفيذ المراجعة",
+  "quote": "نسبة مئوية على أساس مرجعي مختارء كنقطة بداية لتحديد الأهمية النسبية للقوائم المالية ككل. وتشمل العوامل التي قد تؤثر في تحديد الأساس المرجعي المناسب ما يلي: . عناصر القوائم المالية (على سبيل SLM الأصولء الالتزامات. حقوق الملكية, الإيرادات. المصرو"
+ },
+ "req-priority-thresholds": {
+  "ref": "صفحة 6",
+  "source": "معيار المراجعة 320 (ISA 320): الأهمية النسبية عند تخطيط وتنفيذ المراجعة",
+  "quote": "نسبة مئوية على أساس مرجعي مختارء كنقطة بداية لتحديد الأهمية النسبية للقوائم المالية ككل. وتشمل العوامل التي قد تؤثر في تحديد الأساس المرجعي المناسب ما يلي: . عناصر القوائم المالية (على سبيل SLM الأصولء الالتزامات. حقوق الملكية, الإيرادات. المصرو"
+ },
+ "TB-015-new-missing": {
+  "ref": "صفحة 3",
+  "source": "معيار المراجعة 520 (ISA 520): الإجراءات التحليلية",
+  "quote": "التقلبات أو العلاقات التي يتم التعرف علها والتي لا تتسق مع المعلومات الأخرى ذات الصلة أو تختلف عن القيم المتوقعة بمبلغ كبير. (راجع: الفقرة أ١1-أ؟) المتطلبات الإجراءات التحليلية الأساس يجب على المراجع: (راجع: الفقرتين <i أه) (i) تحديد مدى من"
+ },
+ "rpt-variance-material": {
+  "ref": "صفحة 3",
+  "source": "معيار المراجعة 520 (ISA 520): الإجراءات التحليلية",
+  "quote": "التقلبات أو العلاقات التي يتم التعرف علها والتي لا تتسق مع المعلومات الأخرى ذات الصلة أو تختلف عن القيم المتوقعة بمبلغ كبير. (راجع: الفقرة أ١1-أ؟) المتطلبات الإجراءات التحليلية الأساس يجب على المراجع: (راجع: الفقرتين <i أه) (i) تحديد مدى من"
+ },
+ "adj-workflow": {
+  "ref": "صفحة 3",
+  "source": "معيار المراجعة 450 (ISA 450): تقويم التحريفات المكتشفة خلال المراجعة",
+  "quote": "تجميع التحريفات المكتشفة مراعاة التحريفات المكتشفة خلال التقدم في المراجعة 4 يجب على المراجع تحديد ما إذا كانت الاستراتيجية العامة للمراجعة وخطة المراجعة بحاجة إلى إعادة نظر في الحالات الآتية: (i) إذا كانت طبيعة التحريفات المكتشفة والظروف المحي"
+ },
+ "rpt-adjustments-not-posted": {
+  "ref": "صفحة 3",
+  "source": "معيار المراجعة 450 (ISA 450): تقويم التحريفات المكتشفة خلال المراجعة",
+  "quote": "تجميع التحريفات المكتشفة مراعاة التحريفات المكتشفة خلال التقدم في المراجعة 4 يجب على المراجع تحديد ما إذا كانت الاستراتيجية العامة للمراجعة وخطة المراجعة بحاجة إلى إعادة نظر في الحالات الآتية: (i) إذا كانت طبيعة التحريفات المكتشفة والظروف المحي"
+ },
+ "cons-sensitivity": {
+  "ref": "الفقرة 59",
+  "source": "IAS 36 الهبوط في قيمة الأصول (Impairment Of Assets) — النص الكامل 2026",
+  "quote": "59 If, and only if, the recoverable amount of an asset is less than its carrying amount, the carrying amount of the asset shall be reduced to its recoverable amount. That reduction is an impairment loss. 60 An impairment loss shall be recognised immediately in p"
+ },
+ "cons-at-cost": {
+  "ref": "الفقرة 10",
+  "source": "IAS 27 القوائم المالية المنفصلة (Separate Financial Statements) — النص الكامل 2026",
+  "quote": "10 When an entity prepares separate financial statements, it shall account for investments in subsidiaries, joint ventures and associates either: (a) at cost; (b) in accordance with IFRS 9; or (c) using the equity method as described in IAS 28."
+ },
+ "rpt-nav-at-cost": {
+  "ref": "الفقرة 10",
+  "source": "IAS 27 القوائم المالية المنفصلة (Separate Financial Statements) — النص الكامل 2026",
+  "quote": "10 When an entity prepares separate financial statements, it shall account for investments in subsidiaries, joint ventures and associates either: (a) at cost; (b) in accordance with IFRS 9; or (c) using the equity method as described in IAS 28."
+ },
+ "grp-investment-cost-fallback": {
+  "ref": "الفقرة 10",
+  "source": "IAS 27 القوائم المالية المنفصلة (Separate Financial Statements) — النص الكامل 2026",
+  "quote": "10 When an entity prepares separate financial statements, it shall account for investments in subsidiaries, joint ventures and associates either: (a) at cost; (b) in accordance with IFRS 9; or (c) using the equity method as described in IAS 28."
+ },
+ "ws-E2-intercompany": {
+  "ref": "الفقرة B86",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B86 Consolidated financial statements: (a) combine like items of assets, liabilities, equity, income, expenses and cash flows of the parent with those of its subsidiaries."
+ },
+ "val-group-attributable-adjustments": {
+  "ref": "الفقرة B86",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B86 Consolidated financial statements: (a) combine like items of assets, liabilities, equity, income, expenses and cash flows of the parent with those of its subsidiaries."
+ },
+ "rpt-consolidation-elim-entries": {
+  "ref": "الفقرة B86",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B86 Consolidated financial statements: (a) combine like items of assets, liabilities, equity, income, expenses and cash flows of the parent with those of its subsidiaries."
+ },
+ "rpt-nav-no-sum-separate": {
+  "ref": "الفقرة B86",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B86 Consolidated financial statements: (a) combine like items of assets, liabilities, equity, income, expenses and cash flows of the parent with those of its subsidiaries."
+ },
+ "rpt-tpl-group-valuation": {
+  "ref": "الفقرة B86",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B86 Consolidated financial statements: (a) combine like items of assets, liabilities, equity, income, expenses and cash flows of the parent with those of its subsidiaries."
+ },
+ "grp-component-inherits": {
+  "ref": "الفقرة B92",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B92 The financial statements of the parent and its subsidiaries used in the preparation of the consolidated financial statements shall have the same reporting date. When the end of the reporting period of the parent is different from that of a subsidiary, the subsidiary prepares, fo"
+ },
+ "rpt-scope-exclusions": {
+  "ref": "صفحة 1",
+  "source": "معيار المراجعة 505 (ISA 505): المصادقات الخارجية",
+  "quote": "طلب المصادقة ب سس سد سد سدس سهد هسدع دهده 0 4A |المصبا د قات Agpludl نسدد ع م م ع د د د د د د ع م ع ممعم ع 0 \\o S| e م a ee ON E-NU FOES المواد التطبيقية والمواد التفسيرية الأخرى Gad) الإدارة السماح للمراجع بإرسال AB Gab) cll سه VIA"
+ },
+ "req-bank-statements": {
+  "ref": "صفحة 1",
+  "source": "معيار المراجعة 505 (ISA 505): المصادقات الخارجية",
+  "quote": "طلب المصادقة ب سس سد سد سدس سهد هسدع دهده 0 4A |المصبا د قات Agpludl نسدد ع م م ع د د د د د د ع م ع ممعم ع 0 \\o S| e م a ee ON E-NU FOES المواد التطبيقية والمواد التفسيرية الأخرى Gad) الإدارة السماح للمراجع بإرسال AB Gab) cll سه VIA"
+ },
+ "rpt-review-segregation": {
+  "ref": "صفحة 5",
+  "source": "معيار المراجعة 220 (ISA 220): إدارة الجودة لمراجعة القوائم المالية — المحدَّث",
+  "quote": "فحص جودة الارتباط - تقويم موضوعي» يقوم بتنفيذه فاحص جودة الارتباط ويتم الانتهاء dis في تاريخ تقرير الارتباط أو Als يتناول الأحكام dell التي اتخذها فريق الارتباط والاستنتاجات التي تم التوصل Ll! بناءً على هذه الأحكام. (z) فاحص جودة الارتباط - ch as أو فر"
+ },
+ "ltr-group-entities-table": {
+  "ref": "صفحة 1",
+  "source": "معيار المراجعة 600 (ISA 600): اعتبارات خاصة: عمليات مراجعة القوائم المالية للمجموعات (بما في ذلك عمل مراجعي المكونات) — المحدَّث",
+  "quote": "مكونات المجموعة) اعتمدت البيئة السعودية للمراجعين والمحاسبين معيار المراجعة )٠٠١0( (المحدث). كما صدر من مجلس المعايير الدولية للمراجعة والتأكيد. البيئة السعودية للمراجعين والمحاسبين SOCPA yy. ا معيار الدولي للمراجعة )+ .1( (المحدّث) اع"
+ },
+ "ltr-template-selection": {
+  "ref": "الفقرة 10",
+  "source": "معيار المراجعة 210 (ISA 210): الاتفاق على شروط ارتباطات المراجعة",
+  "quote": "يجب أن تتضمن: (راجع: الفقرات (YVIRY YT (ب) مسؤوليات المراجع؛ (z) مسؤوليات الإدارة؛ [©6) تحديد إطار التقرير المالي المنطبق لإعداد القوائم المالية؛ (ه) الإشارة إلى الشكل والمحتوى المتوقعين لأي تقارير سيصدرها المراجع؛ (راجع: الفقرة (YE"
+ },
+ "ltr-mgmt-responsibilities": {
+  "ref": "الفقرة 10",
+  "source": "معيار المراجعة 210 (ISA 210): الاتفاق على شروط ارتباطات المراجعة",
+  "quote": "يجب أن تتضمن: (راجع: الفقرات (YVIRY YT (ب) مسؤوليات المراجع؛ (z) مسؤوليات الإدارة؛ [©6) تحديد إطار التقرير المالي المنطبق لإعداد القوائم المالية؛ (ه) الإشارة إلى الشكل والمحتوى المتوقعين لأي تقارير سيصدرها المراجع؛ (راجع: الفقرة (YE"
+ },
+ "ltr-change-orders": {
+  "ref": "الفقرة 10",
+  "source": "معيار المراجعة 210 (ISA 210): الاتفاق على شروط ارتباطات المراجعة",
+  "quote": "يجب أن تتضمن: (راجع: الفقرات (YVIRY YT (ب) مسؤوليات المراجع؛ (z) مسؤوليات الإدارة؛ [©6) تحديد إطار التقرير المالي المنطبق لإعداد القوائم المالية؛ (ه) الإشارة إلى الشكل والمحتوى المتوقعين لأي تقارير سيصدرها المراجع؛ (راجع: الفقرة (YE"
+ },
+ "ltr-acceptance": {
+  "ref": "الفقرة 10",
+  "source": "معيار المراجعة 210 (ISA 210): الاتفاق على شروط ارتباطات المراجعة",
+  "quote": "يجب أن تتضمن: (راجع: الفقرات (YVIRY YT (ب) مسؤوليات المراجع؛ (z) مسؤوليات الإدارة؛ [©6) تحديد إطار التقرير المالي المنطبق لإعداد القوائم المالية؛ (ه) الإشارة إلى الشكل والمحتوى المتوقعين لأي تقارير سيصدرها المراجع؛ (راجع: الفقرة (YE"
+ },
+ "fin-auto-on-signing": {
+  "ref": "الفقرة 10",
+  "source": "معيار المراجعة 210 (ISA 210): الاتفاق على شروط ارتباطات المراجعة",
+  "quote": "يجب أن تتضمن: (راجع: الفقرات (YVIRY YT (ب) مسؤوليات المراجع؛ (z) مسؤوليات الإدارة؛ [©6) تحديد إطار التقرير المالي المنطبق لإعداد القوائم المالية؛ (ه) الإشارة إلى الشكل والمحتوى المتوقعين لأي تقارير سيصدرها المراجع؛ (راجع: الفقرة (YE"
+ },
+ "fy-full-year-definition": {
+  "ref": "المادة السادسة عشرة",
+  "source": "نظام الشركات — النص الموحد من هيئة الخبراء",
+  "quote": "تكون السنة المالية للشركة (اثني عشر) شهرًا تُحدد في عقد تأسيسها أو نظامها الأساس. ومع ذلك، يجوز أن تحدد السنة المالية الأولى بما لا يقلّ عن (ستة) أشهر ولا يزيد على (ثمانية عشر) شهرًا بدءًا من تاريخ قيد الشركة لدى السجل التجاري."
+ },
+ "period-warnings": {
+  "ref": "المادة السادسة عشرة",
+  "source": "نظام الشركات — النص الموحد من هيئة الخبراء",
+  "quote": "تكون السنة المالية للشركة (اثني عشر) شهرًا تُحدد في عقد تأسيسها أو نظامها الأساس. ومع ذلك، يجوز أن تحدد السنة المالية الأولى بما لا يقلّ عن (ستة) أشهر ولا يزيد على (ثمانية عشر) شهرًا بدءًا من تاريخ قيد الشركة لدى السجل التجاري."
+ },
+ "off-doc006-fy-mismatch": {
+  "ref": "المادة السادسة عشرة",
+  "source": "نظام الشركات — النص الموحد من هيئة الخبراء",
+  "quote": "تكون السنة المالية للشركة (اثني عشر) شهرًا تُحدد في عقد تأسيسها أو نظامها الأساس. ومع ذلك، يجوز أن تحدد السنة المالية الأولى بما لا يقلّ عن (ستة) أشهر ولا يزيد على (ثمانية عشر) شهرًا بدءًا من تاريخ قيد الشركة لدى السجل التجاري."
+ },
+ "fy-default-dec31": {
+  "ref": "المادة السادسة عشرة",
+  "source": "نظام الشركات — النص الموحد من هيئة الخبراء",
+  "quote": "تكون السنة المالية للشركة (اثني عشر) شهرًا تُحدد في عقد تأسيسها أو نظامها الأساس. ومع ذلك، يجوز أن تحدد السنة المالية الأولى بما لا يقلّ عن (ستة) أشهر ولا يزيد على (ثمانية عشر) شهرًا بدءًا من تاريخ قيد الشركة لدى السجل التجاري."
+ },
+ "fy-named-by-end-year": {
+  "ref": "المادة السادسة عشرة",
+  "source": "نظام الشركات — النص الموحد من هيئة الخبراء",
+  "quote": "تكون السنة المالية للشركة (اثني عشر) شهرًا تُحدد في عقد تأسيسها أو نظامها الأساس. ومع ذلك، يجوز أن تحدد السنة المالية الأولى بما لا يقلّ عن (ستة) أشهر ولا يزيد على (ثمانية عشر) شهرًا بدءًا من تاريخ قيد الشركة لدى السجل التجاري."
+ },
+ "period-next-year": {
+  "ref": "المادة السادسة عشرة",
+  "source": "نظام الشركات — النص الموحد من هيئة الخبراء",
+  "quote": "تكون السنة المالية للشركة (اثني عشر) شهرًا تُحدد في عقد تأسيسها أو نظامها الأساس. ومع ذلك، يجوز أن تحدد السنة المالية الأولى بما لا يقلّ عن (ستة) أشهر ولا يزيد على (ثمانية عشر) شهرًا بدءًا من تاريخ قيد الشركة لدى السجل التجاري."
+ },
+ "rpt-entity-labels": {
+  "ref": "المادة الرابعة",
+  "source": "نظام الشركات — النص الموحد من هيئة الخبراء",
+  "quote": "تتخذ الشركة التي تؤسس وفقًا لأحكام النظام أحد الأشكال الآتية: أ- شركة التضامن. ب- شركة التوصية البسيطة. ج- شركة المساهمة. د- شركة المساهمة المبسطة. هـ- الشركة ذات المسؤولية المحدودة."
+ },
+ "off-doc007-legal-form": {
+  "ref": "المادة الرابعة",
+  "source": "نظام الشركات — النص الموحد من هيئة الخبراء",
+  "quote": "تتخذ الشركة التي تؤسس وفقًا لأحكام النظام أحد الأشكال الآتية: أ- شركة التضامن. ب- شركة التوصية البسيطة. ج- شركة المساهمة. د- شركة المساهمة المبسطة. هـ- الشركة ذات المسؤولية المحدودة."
+ },
+ "rpt-letterhead-license": {
+  "ref": "المادة الخامسة",
+  "source": "نظام المحاسبين القانونيين — النص الموحد من هيئة الخبراء",
+  "quote": "يمنح المحاسب القانوني- فردًا كان أو شركة- بعد قيده ترخيصًا بمزاولة المهنة موقعًا من رئيس لجنة القيد، موضحًا به رقم القيد وتاريخه، ويعتبر الترخيص نافذًا لمدة خمس سنوات، ويجدد لمدد مماثلة بناء على طلب يقدم قبل انتهائه بتسعين يومًا على الأقل. ا"
+ },
+ "ltr-signature-issued-only": {
+  "ref": "المادة الخامسة",
+  "source": "نظام المحاسبين القانونيين — النص الموحد من هيئة الخبراء",
+  "quote": "يمنح المحاسب القانوني- فردًا كان أو شركة- بعد قيده ترخيصًا بمزاولة المهنة موقعًا من رئيس لجنة القيد، موضحًا به رقم القيد وتاريخه، ويعتبر الترخيص نافذًا لمدة خمس سنوات، ويجدد لمدد مماثلة بناء على طلب يقدم قبل انتهائه بتسعين يومًا على الأقل. ا"
+ },
+ "rpt-framework-labels": {
+  "ref": "صفحة 1",
+  "source": "وثيقة اعتماد المعايير الدولية للتقرير المالي والمعيار الدولي للمنشآت الصغيرة والمتوسطة للتطبيق في المملكة",
+  "quote": "وثيقة اعتماد املعاييرالدولية للتقريراملالي ) للتطبيق في اململكة العربية السعوديةIFRS for SMEs( الصغيرة واملتوسطة وفقا لخطة التحول إلى املعاييرالدولية املعتمدة من الهيئة السعودية للمراجعين واملحاسبين املحدثة بتاريخ م2025/12/24 ه املو"
+ },
+ "rpt-tpl-fs-analysis": {
+  "ref": "الفقرة 106",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة أن تعرض قائمة للتغيرات في حقوق ASU كما هو مطلوب بموجب الفقرة .٠١ وتشتمل قائمة التغيرات في حقوق الملكية على المعلومات الآتية: (i) مجموع الدخل الشامل للفترة, والذي يُظهر مجموع المبالغ الخاصة بملاك المنشاة الأم بشكل منفصل عن الخاصة بالحصص غير المسيطرة؛"
+ },
+ "rpt-summary-key-figures": {
+  "ref": "الفقرة 38",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "معلومات مقارنة تتعلق بالفترة السابقة لجميع المبالغ التي تم التقريرعنها في القوائم المالية للفترة الحالية, إلا عندما تسمح المعايير الدولية للتقرير JUN أوتتطلب خلاف ذلك. ويجب على المنشأة أن تدرج معلومات مقارنة للمعلومات السردية والوصفية إذا كان ذلك ملائماً ل"
+ },
+ "rpt-cover-kv": {
+  "ref": "الفقرة 38",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "معلومات مقارنة تتعلق بالفترة السابقة لجميع المبالغ التي تم التقريرعنها في القوائم المالية للفترة الحالية, إلا عندما تسمح المعايير الدولية للتقرير JUN أوتتطلب خلاف ذلك. ويجب على المنشأة أن تدرج معلومات مقارنة للمعلومات السردية والوصفية إذا كان ذلك ملائماً ل"
+ },
+ "rpt-money-format": {
+  "design": "عرض: فواصل الآلاف والأقواس للسالب عرف محاسبي في العرض"
+ },
+ "period-phrase-reports": {
+  "design": "صياغة عرض للفترة"
+ },
+ "rpt-sfp-unbalanced-note": {
+  "design": "تنبيه عرض مبني على فحص حسابي (FS-001)"
+ },
+ "rpt-official-data-section": {
+  "design": "عرض بيانات مستخرجة من المستندات الرسمية"
+ },
+ "rpt-nav-shareholder-net": {
+  "design": "حساب تقييمي داخلي (صافي حق المساهم)"
+ },
+ "req-official-docs": {
+  "design": "طلب مستندات (DOC-004 أساسه ISA 500)"
+ },
+ "req-partner-debit": {
+  "design": "طلب مستندات (TB-025 أساسه IAS 24.18)"
+ },
+ "req-shareholders-register": {
+  "design": "طلب مستندات لتحديد نسب الملكية"
+ },
+ "req-classification": {
+  "design": "طلب توضيح لملاحظة TB-016 (أساسها IAS 1.66)"
+ },
+ "ltr-group-no-share-value": {
+  "design": "شرط تعاقدي في خطاب التقييم"
+ },
+ "ltr-zakat-tax-scope": {
+  "design": "نطاق خدمة استشارية يحدده المكتب"
+ },
+ "ltr-vat-text": {
+  "design": "صياغة الضريبة في الخطاب (النسبة من جدول النسب)"
+ },
+ "fin-claim-vat": {
+  "design": "حساب حسابي للضريبة على المطالبة"
+ },
+ "fin-claim-not-tax-invoice": {
+  "design": "تنبيه أن الفاتورة الضريبية تصدر من نظام الفوترة الإلكترونية"
+ },
+ "oth-ai-policy": {
+  "design": "سياسة داخلية للمكتب"
+ },
+ "ltr-confidentiality-data": {
+  "design": "بند تعاقدي (نظام حماية البيانات الشخصية غير موجود في المكتبة)"
+ },
+ "kb-zakat": {
+  "design": "إحالة عامة إلى اللائحة التنفيذية لجباية الزكاة (لا رقم ولا نسبة)"
+ },
+ "kb-vat": {
+  "design": "إحالة عامة لنظام ضريبة القيمة المضافة (لا رقم ولا نسبة)"
+ },
+ "ltr-aup-isrs4400": {
+  "design": "نص ISRS 4400 في المكتبة مقروء ضوئيًا بجودة لا تسمح بمقتطف موثوق"
+ },
+ "ltr-aup-no-fraud-judgment": {
+  "design": "كسابقه (ISRS 4400)"
+ },
+ "ltr-independence": {
+  "design": "كسابقه (الميثاق الدولي لسلوك وآداب المهنة)"
+ },
+ "ltr-use-distribution": {
+  "design": "كسابقه (ISRS 4400)"
+ },
+ "ltr-compilation-isrs4410": {
+  "design": "نص ISRS 4410 في المكتبة مقروء ضوئيًا بجودة لا تسمح بمقتطف موثوق"
+ }
+}

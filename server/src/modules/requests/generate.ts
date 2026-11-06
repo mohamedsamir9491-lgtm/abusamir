@@ -1,3 +1,4 @@
+import { DEFAULT_THRESHOLDS } from '../../lib/thresholds.js';
 /** توليد طلبات المعلومات من العميل: كل طلب مرتبط برقم أو ملاحظة يحسمها، ويُستبعد ما لا أثر له
  * الأولوية: أساسي إذا بلغ أثره 5% من أصول الشركة أو كان شرطًا لرقم في التقرير؛ داعم من 1%؛ ويُحذف ما دون ذلك */
 import type { LocalContext } from '../ai/local.js';
@@ -11,11 +12,14 @@ export interface DeriveInput { companies: ReqCompany[]; register: Register | nul
 
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 const N = (s: string) => s.replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
-function prio(amount: number, ta: number, hi = 0.05, lo = 0.01): 'essential' | 'supporting' | null {
+function prioRaw(amount: number, ta: number, hi: number, lo: number): 'essential' | 'supporting' | null {
   if (!ta) return amount ? 'supporting' : null; const r = Math.abs(amount) / ta; return r >= hi ? 'essential' : r >= lo ? 'supporting' : null;
 }
 
 export function deriveRequests(inp: DeriveInput): ReqDraft[] {
+  // أولوية الطلب حسب نسبة أثره إلى إجمالي الأصول — من عتبات المكتب في الإعدادات
+  const T0 = inp.companies.find((c) => c.ctx?.T)?.ctx?.T ?? DEFAULT_THRESHOLDS;
+  const prio = (amount: number, ta: number, hi = T0.request_essential_pct / 100, lo = T0.request_supporting_pct / 100) => prioRaw(amount, ta, hi, lo);
   const out: ReqDraft[] = [];
   const parent = inp.companies.find((c) => c.role === 'parent');
   const parentTA = parent?.ctx?.kf.total_assets ?? 0; const parentName = parent?.name ?? 'الشركة الأم';
@@ -58,7 +62,7 @@ export function deriveRequests(inp: DeriveInput): ReqDraft[] {
     const lz = [...F('LA-003'), ...F('LA-004')]; const rou = sumFs('ROU_ASSETS');
     if (lz.length) add(c, { key: 'lease', category: 'document', title: 'عقد الإيجار وملاحقه: تاريخ البداية والمدة وقيمة الدفعات ومواعيدها وأي دفعة مقدمة', reason: `أصل حق استخدام ${money(rou)} والتزام إيجار ${money(-sumFs('LEASE_LIAB_CURRENT', 'LEASE_LIAB_NON_CURRENT'))} دون استهلاك أو فائدة مسجلة؛ يلزم العقد لاحتسابهما وفق IFRS 16`, amount: rou, priority: prio(rou, ta) ?? 'supporting', links: lz.map((f) => f.ref) });
     // 7) الرواتب والمكافأة
-    for (const f of F('LA-005')) { const amt = Number(f.amount ?? 0); const p = prio(amt, ta, 0.05, 0.01); if (p) add(c, { key: 'payroll', category: 'explanation', title: `كشف بالرواتب المستحقة (${money(amt)}) بأسماء الموظفين، وتوضيح عدم ظهور مصروف رواتب في الفترة`, reason: f.title, amount: amt, priority: p, links: [f.ref] }); }
+    for (const f of F('LA-005')) { const amt = Number(f.amount ?? 0); const p = prio(amt, ta); if (p) add(c, { key: 'payroll', category: 'explanation', title: `كشف بالرواتب المستحقة (${money(amt)}) بأسماء الموظفين، وتوضيح عدم ظهور مصروف رواتب في الفترة`, reason: f.title, amount: amt, priority: p, links: [f.ref] }); }
     for (const f of F('LA-006')) { const amt = Number(f.amount ?? 0); const p = prio(amt, ta); if (p) add(c, { key: 'eosb', category: 'document', title: 'كشف الموظفين بتواريخ التعيين والرواتب الأساسية لتحديث مكافأة نهاية الخدمة', reason: f.title, amount: amt, priority: p, links: [f.ref] }); }
     // 8) مصروفات مبهمة كبيرة (نثرية/متنوعة) أو أي مصروف يتجاوز 10% من الأصول
     for (const f of F('LA-007')) { const a = acc(f.account); const amt = Number(f.amount ?? 0); const vague = /نثري|متنوع|اخري|عمومي|مختلف/.test(N(a?.name ?? f.title)); const p = vague ? prio(amt, ta) : (ta && amt / ta >= 0.1 ? 'supporting' : null);

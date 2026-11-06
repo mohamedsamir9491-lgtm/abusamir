@@ -121,3 +121,18 @@ describe('TB-026 الجرد الدوري (IAS 2.34)', () => {
     expect(validateTrialBalance(tb).findings.some((f) => f.rule_code === 'TB-026')).toBe(true);
   });
 });
+
+import { thresholdsOf, DEFAULT_THRESHOLDS } from '../src/lib/thresholds.js';
+import { analyzeReceivables } from '../src/engine/subledger.js';
+describe('عتبات التحليل من الإعدادات', () => {
+  it('تُدمج قيم المكتب مع الافتراضي وتُهمل القيم غير الصالحة', () => {
+    const t = thresholdsOf({ dso_max_days: 90, variance_pct: 'x', concentration_pct: -5 });
+    expect(t.dso_max_days).toBe(90); expect(t.variance_pct).toBe(DEFAULT_THRESHOLDS.variance_pct); expect(t.concentration_pct).toBe(40);
+  });
+  it('نسبة التركز في الذمم تتبع العتبة الممررة', () => {
+    const r = (p: string, amt: string, ref: string) => ({ record_type: 'receivable', record_date: '2026-01-01', reference: ref, counterparty: p, description: null, amount: amt, debit: null, credit: null, balance: null, quantity: null, data: {}, source_row: 1 });
+    const recs = [r('أ', '600', 'r1'), r('ب', '400', 'r2')];
+    expect(analyzeReceivables(recs, '2026-03-01', 'receivable', '100000', 70).findings.some((f) => f.rule_code === 'AR-003')).toBe(false);
+    expect(analyzeReceivables(recs, '2026-03-01', 'receivable', '100000', 50).findings.some((f) => f.rule_code === 'AR-003')).toBe(true);
+  });
+});

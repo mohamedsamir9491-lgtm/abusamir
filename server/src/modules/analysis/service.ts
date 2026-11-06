@@ -1,4 +1,5 @@
 import { getOfficeSettings } from '../office/routes.js';
+import { thresholdsOf } from '../../lib/thresholds.js';
 import { many, one, query, withTransaction, type Queryable } from '../../db/pool.js';
 import { badRequest } from '../../lib/errors.js';
 import { validateTrialBalance, type TbValidationResult, type MaterialityPolicy } from '../../engine/trialBalance.js';
@@ -97,8 +98,8 @@ export async function runTbValidation(engagementId: string, periodId: string, us
   const priorEntries = prior ? await loadTbEntries(prior.id) : null;
   const runId = await startRun({ clientId: e.client_id, engagementId, periodId, runType: 'tb_validation', userId });
   try {
-    const office = await getOfficeSettings() as { materiality_policy?: MaterialityPolicy | null };
-    const result = validateTrialBalance(entries, { accounts, priorEntries, priorLabel: prior?.label, currentLabel: p.label, materiality: opts.materiality ?? null, materialityPolicy: office.materiality_policy ?? null, tolerance: opts.tolerance, materialChangePct: opts.materialChangePct });
+    const office = await getOfficeSettings() as { materiality_policy?: MaterialityPolicy | null; analysis_thresholds?: unknown };
+    const result = validateTrialBalance(entries, { accounts, priorEntries, priorLabel: prior?.label, currentLabel: p.label, materiality: opts.materiality ?? null, materialityPolicy: office.materiality_policy ?? null, tolerance: opts.tolerance, materialChangePct: opts.materialChangePct ?? thresholdsOf(office.analysis_thresholds).material_change_pct });
     const doc = await one<{ document_id: string }>(`SELECT j.document_id FROM import_jobs j WHERE j.period_id = $1 AND j.data_type = 'trial_balance' AND j.status = 'committed' ORDER BY j.committed_at DESC LIMIT 1`, [periodId]);
     const saved = await withTransaction(async (tx) => {
       const s = await upsertFindings({ clientId: e.client_id, engagementId, periodId, runId, rulePrefix: ['TB-'], findings: result.findings, userId, documentId: doc?.document_id ?? null }, tx);
@@ -127,12 +128,13 @@ export async function runStatements(engagementId: string, periodId: string, user
       const priorRatios = computeRatios(priorKf, { periodDays: days });
       for (const r of ratios) r.prior_value = priorRatios.find((x) => x.code === r.code)?.value ?? null;
     }
+    const T = thresholdsOf((await getOfficeSettings() as { analysis_thresholds?: unknown }).analysis_thresholds); // عتبات المكتب
     let variance: ReturnType<typeof computeVariance> | null = null;
     if (priorEntries) {
       const items = [...statements.pl.lines, ...statements.sfp.lines].map((l) => ({ key: l.code, label_ar: l.label_ar, label_en: l.label_en, current: l.value, comparative: l.prior_value ?? '0' }))
         .concat([...statements.pl.totals, ...statements.sfp.totals].map((t) => ({ key: `total:${t.key}`, label_ar: t.label_ar, label_en: t.label_en, current: t.value, comparative: t.prior_value ?? '0' })));
       const lastTb = await one<{ summary: { materiality?: string } }>(`SELECT summary FROM analysis_runs WHERE period_id = $1 AND run_type = 'tb_validation' AND status = 'completed' ORDER BY started_at DESC LIMIT 1`, [periodId]);
-      variance = computeVariance(items, { materiality: lastTb?.summary?.materiality, pctThreshold: 10 });
+      variance = computeVariance(items, { materiality: lastTb?.summary?.materiality, pctThreshold: T.variance_pct });
     }
     const inputsHash = sha256(JSON.stringify(entries) + JSON.stringify(priorEntries ?? null));
     await withTransaction(async (tx) => {
@@ -145,11 +147,11 @@ export async function runStatements(engagementId: string, periodId: string, user
       const cfDiff = statements.cf.totals.find((t) => t.key === 'cf_difference');
       if (statements.cf.status === 'ok' && cfDiff && D(cfDiff.value).abs().gt('0.05')) /* نفس حد التسامح المستخدم في القوائم */ fs.push({ rule_code: 'FS-002', category: 'data_quality', severity: 'medium', title: 'قائمة التدفقات النقدية لا تتطابق مع رصيد النقد', description: `فرق المطابقة ${cfDiff.value}؛ غالبًا بسبب حسابات غير مصنفة أو بنود غير نقدية.`, amount: toStr(D(cfDiff.value).abs()), evidence: { totals: statements.cf.totals }, recommendation: 'مراجعة تصنيف الحسابات والبنود غير النقدية.', dedupe_key: 'FS-002' });
       const by = Object.fromEntries(ratios.map((r) => [r.code, r]));
-      if (by.current_ratio.status === 'ok' && D(by.current_ratio.value!).lt(1)) fs.push({ rule_code: 'FS-010', category: 'judgment', severity: 'high', title: `نسبة التداول أقل من 1 (${by.current_ratio.value})`, description: `الأصول المتداولة ${by.current_ratio.inputs.current_assets} أقل من الالتزامات المتداولة ${by.current_ratio.inputs.current_liabilities}؛ مؤشر على ضغط سيولة قد يؤثر على قدرة المنشأة على الوفاء بالتزاماتها قصيرة الأجل.`, evidence: { ratio: by.current_ratio }, calculation: `${by.current_ratio.inputs.current_assets} ÷ ${by.current_ratio.inputs.current_liabilities} = ${by.current_ratio.value}`, recommendation: 'تقييم خطة السيولة والتمويل والاستمرارية.', dedupe_key: 'FS-010' });
+      if (by.current_ratio.status === 'ok' && D(by.current_ratio.value!).lt(T.current_ratio_min)) fs.push({ rule_code: 'FS-010', category: 'judgment', severity: 'high', title: `نسبة التداول أقل من ${T.current_ratio_min} (${by.current_ratio.value})`, description: `الأصول المتداولة ${by.current_ratio.inputs.current_assets} أقل من الالتزامات المتداولة ${by.current_ratio.inputs.current_liabilities}؛ مؤشر على ضغط سيولة قد يؤثر على قدرة المنشأة على الوفاء بالتزاماتها قصيرة الأجل.`, evidence: { ratio: by.current_ratio }, calculation: `${by.current_ratio.inputs.current_assets} ÷ ${by.current_ratio.inputs.current_liabilities} = ${by.current_ratio.value}`, recommendation: 'تقييم خطة السيولة والتمويل والاستمرارية.', dedupe_key: 'FS-010' });
       if (D(statements.key_figures.total_equity ?? 0).lt(0)) fs.push({ rule_code: 'FS-011', category: 'judgment', severity: 'critical', title: 'حقوق الملكية سالبة', description: `إجمالي حقوق الملكية ${statements.key_figures.total_equity}؛ الخسائر المتراكمة تجاوزت رأس المال والاحتياطيات، ما يستدعي تقييم الاستمرارية (ISA 570) والمتطلبات النظامية لبلوغ الخسائر نصف رأس المال (نظام الشركات: المادة 132 للمساهمة، والمادة 182 لذات المسؤولية المحدودة).`, amount: toStr(D(statements.key_figures.total_equity ?? 0).abs()), evidence: { total_equity: statements.key_figures.total_equity }, recommendation: 'مناقشة الإدارة حول خطط معالجة الخسائر والالتزامات النظامية (نظام الشركات بشأن الخسائر المتراكمة - يلزم التحقق من النص النافذ).', dedupe_key: 'FS-011' });
       if (D(statements.key_figures.net_income ?? 0).lt(0)) fs.push({ rule_code: 'FS-012', category: 'judgment', severity: 'medium', title: `صافي خسارة للفترة ${toStr(D(statements.key_figures.net_income ?? 0).abs())}`, description: 'الفترة أسفرت عن صافي خسارة؛ يلزم تحليل أسبابها وأثرها على الاستمرارية.', amount: toStr(D(statements.key_figures.net_income ?? 0).abs()), evidence: { pl_totals: statements.pl.totals }, dedupe_key: 'FS-012' });
-      if (by.ocf_to_net_income.status === 'ok' && D(statements.key_figures.net_income ?? 0).gt(0) && D(by.ocf_to_net_income.value!).lt('0.5')) fs.push({ rule_code: 'FS-013', category: 'judgment', severity: 'medium', title: 'التدفق النقدي التشغيلي أقل بكثير من الربح المحاسبي', description: `نسبة التدفق النقدي التشغيلي إلى صافي الربح ${by.ocf_to_net_income.value}؛ الربح المحاسبي لا يترجم إلى نقد بنفس القدر، غالبًا بسبب نمو الذمم أو المخزون.`, evidence: { ratio: by.ocf_to_net_income }, recommendation: 'تحليل جودة الأرباح وتحصيل الذمم.', dedupe_key: 'FS-013' });
-      if (by.dso.status === 'ok' && Number(by.dso.value) > 120) fs.push({ rule_code: 'FS-014', category: 'judgment', severity: 'medium', title: `فترة تحصيل الذمم مرتفعة (${by.dso.value} يومًا)`, description: 'متوسط فترة التحصيل يتجاوز 120 يومًا؛ يستدعي مراجعة سياسة الائتمان وكفاية المخصص.', evidence: { ratio: by.dso }, dedupe_key: 'FS-014' });
+      if (by.ocf_to_net_income.status === 'ok' && D(statements.key_figures.net_income ?? 0).gt(0) && D(by.ocf_to_net_income.value!).lt(T.ocf_to_profit_min)) fs.push({ rule_code: 'FS-013', category: 'judgment', severity: 'medium', title: 'التدفق النقدي التشغيلي أقل بكثير من الربح المحاسبي', description: `نسبة التدفق النقدي التشغيلي إلى صافي الربح ${by.ocf_to_net_income.value}؛ الربح المحاسبي لا يترجم إلى نقد بنفس القدر، غالبًا بسبب نمو الذمم أو المخزون.`, evidence: { ratio: by.ocf_to_net_income }, recommendation: 'تحليل جودة الأرباح وتحصيل الذمم.', dedupe_key: 'FS-013' });
+      if (by.dso.status === 'ok' && Number(by.dso.value) > T.dso_max_days) fs.push({ rule_code: 'FS-014', category: 'judgment', severity: 'medium', title: `فترة تحصيل الذمم مرتفعة (${by.dso.value} يومًا)`, description: 'متوسط فترة التحصيل يتجاوز 120 يومًا؛ يستدعي مراجعة سياسة الائتمان وكفاية المخصص.', evidence: { ratio: by.dso }, dedupe_key: 'FS-014' });
       if (variance) for (const v of variance.rows.filter((r) => r.material && r.key.startsWith('total:'))) fs.push({ rule_code: 'VAR-001', category: 'judgment', severity: 'medium', title: `تغير جوهري في ${v.label_ar}: ${v.change}${v.change_pct ? ` (${v.change_pct}%)` : ''}`, description: `${v.label_ar} تغير من ${v.comparative} (${prior!.label}) إلى ${v.current} (${p.label}).`, amount: toStr(D(v.change).abs()), evidence: { variance: v }, calculation: `${v.current} - ${v.comparative} = ${v.change}`, recommendation: 'الحصول على تفسير الإدارة والمستندات المؤيدة.', dedupe_key: `VAR-001:${v.key}` });
       await upsertFindings({ clientId: e.client_id, engagementId, periodId, runId, rulePrefix: ['FS-', 'VAR-'], findings: fs, userId }, tx);
       await finishRun(runId, { key_figures: statements.key_figures, balanced: statements.sfp.balanced, ratios: ratios.length, variance_material: variance?.material_count ?? null, prior }, null, tx);
@@ -221,7 +223,7 @@ export async function runSubledgerAnalysis(engagementId: string, periodId: strin
     } else {
       recon = reconcileSubledgerToGl({ type: recordType, records, glEntries, expectedSide: SUB_FS[recordType].side });
       findings = [...recon.findings];
-      if (recordType === 'receivable' || recordType === 'payable') { const a = analyzeReceivables(records, p.end_date, recordType, materiality); findings.push(...a.findings); detail = { aging: a.aging, reconciliation: recon }; }
+      if (recordType === 'receivable' || recordType === 'payable') { const a = analyzeReceivables(records, p.end_date, recordType, materiality, thresholdsOf((await getOfficeSettings() as { analysis_thresholds?: unknown }).analysis_thresholds).concentration_pct); findings.push(...a.findings); detail = { aging: a.aging, reconciliation: recon }; }
       else if (recordType === 'fixed_asset') { const a = analyzeFixedAssets(records, materiality); findings.push(...a.findings); detail = { summary: a.summary, reconciliation: recon }; }
       else if (recordType === 'inventory') { const a = analyzeInventory(records, materiality); findings.push(...a.findings); detail = { summary: a.summary, reconciliation: recon }; }
     }

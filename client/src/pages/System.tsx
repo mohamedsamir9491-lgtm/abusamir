@@ -18,6 +18,7 @@ export function System() {
   return <Page title="إعدادات النظام" sub="سياسات الذكاء الاصطناعي والاحتفاظ بالبيانات، النسخ الاحتياطي، وطلبات الحذف">
     <FiscalYearCard />
     <OfficePoliciesCard />
+    <ThresholdsCard />
     <div className="grid c2">
       <div className="card"><h2>بيئة الخادم</h2><dl className="kv"><dt>مزوّد الذكاء الاصطناعي</dt><dd className="mono">{String(data.env.ai_provider)}</dd><dt>السماح بالإرسال الخارجي (خادم)</dt><dd>{data.env.ai_allow_external ? 'نعم' : 'لا'}</dd><dt>تشفير الملفات المخزنة</dt><dd>{data.env.file_encryption ? 'مفعّل (AES-256-GCM)' : 'غير مفعّل — اضبط FILE_ENCRYPTION_KEY'}</dd><dt>الحد الأقصى للرفع</dt><dd>{String(data.env.max_upload_mb)} MB</dd><dt>البيئة</dt><dd className="mono">{String(data.env.node_env)}</dd></dl></div>
       <div className="card"><h2>سياسة الذكاء الاصطناعي</h2><fieldset disabled={!manage} style={{ border: 0, padding: 0 }}><label className="row"><input type="checkbox" checked={ai.allow_external} onChange={(e) => setAi({ ...ai, allow_external: e.target.checked })} /> السماح بإرسال بيانات العملاء المهيكلة لمزوّد خارجي (يتطلب تفويضًا تعاقديًا)</label><label className="row"><input type="checkbox" checked={ai.share_client_names} onChange={(e) => setAi({ ...ai, share_client_names: e.target.checked })} /> إرسال أسماء العملاء (الافتراضي: إخفاؤها)</label><label className="row"><input type="checkbox" checked disabled /> عدم استخدام البيانات للتدريب (ثابت)</label>{manage && <button className="btn sm" style={{ marginTop: 8 }} disabled={busy} onClick={() => run(() => put('/system/settings/ai_policy', ai), 'تم الحفظ').then(reload)}>حفظ</button>}</fieldset>
@@ -83,5 +84,34 @@ function OfficePoliciesCard() {
         <Field label="الحد الأدنى (بعملة العرض)"><input type="number" step={100} min={0} value={mp.min_amount} onChange={(e) => num('min_amount', e.target.value)} dir="ltr" /></Field>
       </div>
       <button className="btn" onClick={save} disabled={busy || !ok}>حفظ السياسات</button>
+    </fieldset></div>;
+}
+
+/** عتبات التحليل: اجتهاد المكتب (ليست نصوصًا في المعايير) وتُذكر كذلك في كل ملاحظة تستخدمها */
+const TH: [string, string, string, number][] = [
+  ['variance_pct', 'تغير مجاميع القوائم عن الفترة السابقة', '%', 10], ['material_change_pct', 'تغير رصيد الحساب عن الفترة السابقة', '%', 25],
+  ['current_ratio_min', 'الحد الأدنى لنسبة التداول', 'مرة', 1], ['ocf_to_profit_min', 'الحد الأدنى للتدفق التشغيلي ÷ صافي الربح', 'مرة', 0.5],
+  ['dso_max_days', 'الحد الأعلى لفترة تحصيل الذمم', 'يوم', 120], ['concentration_pct', 'تركّز طرف واحد في الذمم المدينة أو الدائنة', '%', 40],
+  ['expense_concentration_pct', 'تركّز بند واحد في المصروفات', '%', 40], ['related_party_pct', 'أرصدة الأطراف ذات العلاقة إلى الأصول (متوسطة)', '%', 20],
+  ['related_party_high_pct', 'أرصدة الأطراف ذات العلاقة إلى الأصول (مرتفعة)', '%', 40], ['deferred_revenue_pct', 'الإيراد المؤجل إلى إيراد الفترة', '%', 30],
+  ['lease_interest_min_pct', 'الحد الأدنى لفائدة التزام الإيجار', '%', 0.2],
+  ['risk_cr_high', 'مخاطر السيولة: مرتفعة إذا نسبة التداول أقل من', 'مرة', 1], ['risk_cr_medium', 'مخاطر السيولة: متوسطة إذا أقل من', 'مرة', 1.5],
+  ['risk_margin_medium_pct', 'مخاطر الربحية: متوسطة إذا هامش الربح أقل من', '%', 5], ['risk_de_high', 'مخاطر المديونية: مرتفعة إذا الالتزامات ÷ حقوق الملكية أكبر من', 'مرة', 2],
+  ['risk_de_medium', 'مخاطر المديونية: متوسطة إذا أكبر من', 'مرة', 1], ['risk_wc_medium_pct', 'رأس المال العامل: متوسطة إذا أقل من (من الأصول المتداولة)', '%', 10],
+  ['request_essential_pct', 'طلب المستندات «أساسي» إذا بلغ أثره من الأصول', '%', 5], ['request_supporting_pct', 'طلب المستندات «داعم» إذا بلغ أثره من الأصول', '%', 1],
+];
+function ThresholdsCard() {
+  const { can } = useAuth(); const { run, busy } = useAction();
+  const { data, reload } = useLoad(() => get<{ settings: { analysis_thresholds?: Record<string, number> } }>('/office'), []);
+  const [v, setV] = useState<Record<string, number>>({});
+  useEffect(() => { if (data) setV(Object.fromEntries(TH.map(([k, , , d]) => [k, Number(data.settings.analysis_thresholds?.[k] ?? d)]))); }, [data]);
+  if (!data) return null;
+  const changed = TH.filter(([k, , , d]) => v[k] !== d).length;
+  const save = async () => { await run(() => put('/office', { analysis_thresholds: v }), 'حُفظت عتبات التحليل'); reload(); };
+  return <div className="card"><h2>عتبات التحليل</h2>
+    <p className="muted" style={{ marginTop: 0 }}>هذه العتبات اجتهاد المكتب وليست نصوصًا في المعايير؛ تحدد متى تُصدر الملاحظة ودرجتها، ويُذكر في كل ملاحظة أنها اجتهاد. تسري على التحليل القادم. {changed ? <b>({changed} معدّلة عن الافتراضي)</b> : null}</p>
+    <fieldset disabled={!can('office.manage')} style={{ border: 0, padding: 0 }}>
+      <div className="grid c3">{TH.map(([k, label, unit, d]) => <Field key={k} label={`${label} (${unit})`}><input type="number" step="any" min={0} value={v[k] ?? d} onChange={(e) => setV({ ...v, [k]: Number(e.target.value) })} dir="ltr" title={`الافتراضي ${d}`} /></Field>)}</div>
+      <div className="row"><button className="btn" onClick={save} disabled={busy}>حفظ العتبات</button><button className="btn sec" onClick={() => setV(Object.fromEntries(TH.map(([k, , , d]) => [k, d])))} disabled={busy}>استعادة الافتراضي</button></div>
     </fieldset></div>;
 }

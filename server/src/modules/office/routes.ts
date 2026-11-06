@@ -63,6 +63,7 @@ const settingsSchema = z.object({
   primary_color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   current_fiscal_year: z.number().int().min(2000).max(2100).nullable().optional(),
   report_approval_policy: z.enum(['single', 'managers', 'separate']).optional(),
+  analysis_thresholds: z.record(z.string(), z.number().min(0).max(100000)).optional(),
   materiality_policy: z.object({ benchmark: z.enum(['auto', 'pbt', 'revenue', 'total_assets', 'largest']), pbt_pct: z.number().min(0.1).max(20), revenue_pct: z.number().min(0.05).max(10), assets_pct: z.number().min(0.05).max(10), min_amount: z.number().min(0).max(100000000) }).optional(),
 });
 

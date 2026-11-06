@@ -63,7 +63,7 @@ export function ageReceivables(records: SubRecord[], asOf: string, buckets = [30
   };
 }
 
-export function analyzeReceivables(records: SubRecord[], asOf: string, type: 'receivable' | 'payable', materiality: string) {
+export function analyzeReceivables(records: SubRecord[], asOf: string, type: 'receivable' | 'payable', materiality: string, concentrationPct = 40) {
   const aging = ageReceivables(records, asOf);
   const findings: EngineFinding[] = [];
   const label = type === 'receivable' ? 'الذمم المدينة' : 'الذمم الدائنة';
@@ -85,7 +85,7 @@ export function analyzeReceivables(records: SubRecord[], asOf: string, type: 're
       recommendation: 'إعادة تصنيف الأرصدة الدائنة للعملاء (أو المدينة للموردين) إلى البند المناسب.', dedupe_key: `${type}-negative` });
   }
   const top = aging.concentration[0];
-  if (top && top.pct && Number(top.pct) >= 40) {
+  if (top && top.pct && Number(top.pct) >= concentrationPct) {
     findings.push({ rule_code: type === 'receivable' ? 'AR-003' : 'AP-003', category: 'judgment', severity: 'medium', title: `تركّز ${label}: ${top.party} يمثل ${top.pct}%`,
       description: `الطرف "${top.party}" يمثل ${top.pct}% من إجمالي ${label} (${top.total} من ${aging.total}).`, amount: top.total,
       evidence: { concentration: aging.concentration }, recommendation: type === 'receivable' ? 'تقييم مخاطر الائتمان والتركّز والإفصاح عنها.' : 'تقييم الاعتماد على مورد واحد.', dedupe_key: `${type}-concentration` });
