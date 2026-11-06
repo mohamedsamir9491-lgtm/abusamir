@@ -28,8 +28,8 @@ function useOffice() {
 }
 /** حالة الاتصال بالخادم (تُفحص كل دقيقة) */
 function useOnline() {
-  const [s, setS] = useState<{ ok: boolean; build: string } | null>(null);
-  useEffect(() => { const f = () => fetch('/api/health').then((r) => r.json()).then((j) => setS({ ok: !!j.ok, build: String(j.build ?? '') })).catch(() => setS({ ok: false, build: '' })); f(); const id = window.setInterval(f, 60000); return () => window.clearInterval(id); }, []);
+  const [s, setS] = useState<{ ok: boolean; build: string; commit?: string } | null>(null);
+  useEffect(() => { const f = () => fetch('/api/health').then((r) => r.json()).then((j) => setS({ ok: !!j.ok, build: String(j.build ?? ''), commit: String(j.commit ?? '') })).catch(() => setS({ ok: false, build: '' })); f(); const id = window.setInterval(f, 60000); return () => window.clearInterval(id); }, []);
   return s;
 }
 
@@ -62,7 +62,7 @@ export function Layout() {
             : <button className="group" onClick={() => setExpanded(o ? { [g.key]: false } : Object.fromEntries(NAV.map((x) => [x.key, x.key === g.key])))} aria-expanded={o}><span>{g.title}</span>{o ? <ChevronDown size={14} className="chev" /> : <ChevronLeft size={14} className="chev" />}<GIcon n={GROUP_ICON[g.key] ?? 'box'} /></button>}
           {o && !single && <div className="items">{items.map(([to, label, , ic]) => <NavLink key={to} to={to} end={to === '/'} title={label}><Icon n={ic} size={16} /><span>{label}</span></NavLink>)}</div>}</div>; })}</nav>
       {glass && <div className="globe-box"><Globe /></div>}
-      <div className="side-status"><div><span>{online == null ? 'جارٍ الفحص…' : online.ok ? 'النظام متصل' : 'تعذر الاتصال بالخادم'}</span><i className={online?.ok === false ? 'off' : ''} /></div><small dir="ltr">SAHM ERP{online?.build ? ` · ${online.build}` : ''}</small></div>
+      <div className="side-status"><div><span>{online == null ? 'جارٍ الفحص…' : online.ok ? 'النظام متصل' : 'تعذر الاتصال بالخادم'}</span><i className={online?.ok === false ? 'off' : ''} /></div><small dir="ltr" title={online?.build ?? ''}>SAHM ERP{online?.commit ? ` · v${online.commit}` : online?.build ? ` · ${online.build.split(' ')[0].slice(0, 10)}` : ''}</small></div>
     </aside>
     <div className="scrim" onClick={() => setOpen(false)} />
     <div className="shell">

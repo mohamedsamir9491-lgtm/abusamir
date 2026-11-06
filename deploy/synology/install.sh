@@ -13,7 +13,11 @@ if docker compose version >/dev/null 2>&1; then DC="docker compose"; elif comman
 mkdir -p "$DIR/data/postgres" "$DIR/data/storage" && cd "$DIR"
 echo "== [2/5] تنزيل الكود ($BRANCH)"
 rm -rf src.new && mkdir src.new
+# رقم آخر تعديل على الفرع: يُنزَّل الكود به تحديدًا (لا نسخة مخزنة مؤقتًا) ويظهر أسفل القائمة الجانبية في البرنامج
+SHA=$(curl -fsSL "https://api.github.com/repos/mohamedsamir9491-lgtm/abusamir/commits/${BRANCH}" 2>/dev/null | grep -m1 '"sha"' | sed 's/.*"sha": *"\([0-9a-f]*\)".*/\1/' || true)
+if [ -n "$SHA" ]; then TARBALL="https://codeload.github.com/mohamedsamir9491-lgtm/abusamir/tar.gz/${SHA}"; echo "   الإصدار: ${SHA:0:7}"; fi
 curl -fsSL "$TARBALL" | tar xz -C src.new --strip-components=1
+[ -n "$SHA" ] && echo "$SHA" > src.new/COMMIT
 rm -rf src && mv src.new src
 cp src/deploy/synology/docker-compose.yml docker-compose.yml
 echo "== [3/5] إعداد .env"

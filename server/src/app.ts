@@ -46,7 +46,8 @@ export function createApp() {
 
   app.get('/api/health', async (_req, res) => {
     let build = 'dev'; try { const fs = await import('node:fs'); if (fs.existsSync('/app/BUILD_TIME')) build = fs.readFileSync('/app/BUILD_TIME', 'utf8').trim().replace(/\n/g, ' '); } catch { /* ignore */ }
-    res.json({ ok: true, time: new Date().toISOString(), build, features: ['letterhead-design-mode', 'cleanup', 'consolidation-ui', 'engagement-letters'] });
+    let commit = ''; try { const fs = await import('node:fs'); if (fs.existsSync('/app/COMMIT')) commit = fs.readFileSync('/app/COMMIT', 'utf8').trim().slice(0, 7); } catch { /* ignore */ }
+    res.json({ ok: true, time: new Date().toISOString(), build, commit, features: ['letterhead-design-mode', 'cleanup', 'consolidation-ui', 'engagement-letters'] });
   });
   app.use('/api/auth', authRouter);
   app.use('/api/users', usersRouter);
