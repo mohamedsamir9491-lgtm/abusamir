@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, BriefcaseBusiness, Upload, FileCheck2, ScrollText, ClipboardList, Table2, ChartColumn, ChartLine, Network, Scale, Flag, Bot, FileText, LayoutTemplate,
   Building2, UserCog, History, Settings, Trash2, Sun, Moon, LogOut, CalendarDays, Stamp, File, FilePenLine, Gauge, CalendarCheck, Contact, Wallet, ReceiptText, HandCoins, Hourglass, TrendingUp,
-  FolderOpen, Files, ShieldCheck, Library, type LucideIcon,
+  FolderOpen, Files, ShieldCheck, Library, Calculator, type LucideIcon,
 } from 'lucide-react';
 
 /** مكتبة أيقونات موحدة (Lucide): نفس السمك والحجم في كل الشاشات */
@@ -9,7 +9,7 @@ const ICONS: Record<string, LucideIcon> = {
   home: Gauge, dashboard: LayoutDashboard, users: Users, contact: Contact, briefcase: BriefcaseBusiness, upload: Upload, import: FileCheck2, official: ScrollText, requests: ClipboardList, table: Table2, chart: ChartColumn, chartline: ChartLine,
   layers: Network, valuation: Scale, flag: Flag, sparkles: Bot, file: FileText, files: Files, template: LayoutTemplate, office: Building2, usercog: UserCog, list: History, settings: Settings,
   trash: Trash2, sun: Sun, moon: Moon, logout: LogOut, stamp: Stamp, calendar: CalendarDays, letter: FilePenLine, tasks: CalendarCheck, wallet: Wallet, claims: ReceiptText, payments: HandCoins, aging: Hourglass, revenue: TrendingUp,
-  folder: FolderOpen, shield: ShieldCheck, library: Library,
+  folder: FolderOpen, shield: ShieldCheck, library: Library, calc: Calculator,
 };
 export const Icon = ({ n, size = 18 }: { n: string; size?: number }) => { const C = ICONS[n] ?? File; return <C size={size} strokeWidth={1.8} aria-hidden="true" />; };
 
@@ -22,7 +22,7 @@ export const NAV: NavGroup[] = [
   { key: 'finance', title: 'المالية والأتعاب', icon: 'wallet', items: [['/finance/claims', 'المطالبات', 'finance.view', 'claims'], ['/finance/payments', 'التحصيلات', 'finance.view', 'payments'], ['/finance/receivables', 'أعمار المستحقات', 'finance.view', 'aging'], ['/finance/revenue', 'إيرادات المكتب', 'finance.view', 'revenue']] },
   { key: 'data', title: 'بيانات العميل', icon: 'folder', items: [['/upload', 'رفع المستندات', 'documents.upload', 'upload'], ['/imports', 'الاستيراد والتحقق', 'clients.view', 'import'], ['/official', 'البيانات النظامية', 'clients.view', 'official'], ['/requests', 'طلبات العميل', 'clients.view', 'requests']] },
   { key: 'analysis', title: 'التحليل والتقييم', icon: 'chart', items: [['/trial-balance', 'ميزان المراجعة', 'clients.view', 'table'], ['/analysis', 'التحليل المالي', 'clients.view', 'chartline'], ['/consolidation', 'التوحيد الدفتري', 'clients.view', 'layers'], ['/valuation', 'التقييم والمساهمون', 'clients.view', 'valuation'], ['/findings', 'الملاحظات والتسويات', 'clients.view', 'flag'], ['/ai', 'المحاسب الذكي', 'clients.view', 'sparkles']] },
-  { key: 'legal', title: 'المرجع النظامي', icon: 'library', items: [['/library', 'المكتبة النظامية', 'clients.view', 'library']] },
+  { key: 'legal', title: 'المرجع النظامي', icon: 'library', items: [['/library', 'المكتبة النظامية', 'clients.view', 'library'], ['/rates', 'النسب والحاسبات', 'clients.view', 'calc']] },
   { key: 'outputs', title: 'المخرجات', icon: 'file', items: [['/reports', 'التقارير', 'clients.view', 'files'], ['/templates', 'قوالب التقارير', 'clients.view', 'template']] },
   { key: 'settings', title: 'الإعدادات', icon: 'settings', items: [['/office', 'هوية المكتب والترويسة', 'clients.view', 'office'], ['/users', 'المستخدمون والصلاحيات', 'users.manage', 'usercog'], ['/audit', 'سجل التدقيق', 'audit.view', 'list'], ['/system', 'إعدادات النظام', 'audit.view', 'shield'], ['/cleanup', 'تنظيف البيانات', 'data.delete', 'trash']] },
 ];

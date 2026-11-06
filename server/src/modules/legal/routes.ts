@@ -3,7 +3,11 @@ import { Router } from 'express';
 import { many, one } from '../../db/pool.js';
 import { notFound } from '../../lib/errors.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
+import { z } from 'zod';
+import { parse } from '../../lib/validate.js';
 import { searchLegal, snippet, legalStats, queryTerms } from './library.js';
+import { listRates, approveRate, revokeRate, getRates, calculate } from './rates.js';
+import { audit } from '../../middleware/audit.js';
 
 export const legalRouter = Router();
 legalRouter.use(authenticate, requirePermission('clients.view'));
@@ -42,4 +46,24 @@ legalRouter.get('/search', async (req, res, next) => {
     const r = await searchLegal(q, { limit: Number(req.query.limit ?? 20), category: String(req.query.category ?? '') || undefined, status: String(req.query.status ?? '') || undefined, type: String(req.query.type ?? '') || undefined, source: String(req.query.source ?? '') || undefined });
     res.json({ terms: r.terms, hits: r.hits.map((h) => ({ ...h, body: undefined, snippet: snippet(h.body, r.terms) })) });
   } catch (e) { next(e); }
+});
+
+// ---------- النسب النظامية والحاسبات ----------
+legalRouter.get('/rates', async (_req, res, next) => { try { res.json({ rates: await listRates() }); } catch (e) { next(e); } });
+
+legalRouter.post('/rates/:id/approve', requirePermission('legal.approve'), async (req, res, next) => {
+  try {
+    const d = parse(z.object({ value: z.number().finite().nonnegative(), note: z.string().max(500).nullable().optional() }), req.body);
+    const r = await approveRate(String(req.params.id), d.value, d.note ?? null, req.user!.id);
+    await audit(req, { action: 'legal.rate_approved', entityType: 'legal_rate', entityId: r.id, details: { value: d.value, extracted: r.extracted, status: r.status, note: d.note ?? null } });
+    res.json({ rate: r });
+  } catch (e) { next(e); }
+});
+
+legalRouter.post('/rates/:id/revoke', requirePermission('legal.approve'), async (req, res, next) => {
+  try { await revokeRate(String(req.params.id)); await audit(req, { action: 'legal.rate_revoked', entityType: 'legal_rate', entityId: String(req.params.id) }); res.json({ ok: true }); } catch (e) { next(e); }
+});
+
+legalRouter.post('/calc/:kind', async (req, res, next) => {
+  try { res.json(calculate(String(req.params.kind), (req.body ?? {}) as Record<string, unknown>, await getRates())); } catch (e) { next(e); }
 });

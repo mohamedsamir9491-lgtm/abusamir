@@ -8,6 +8,7 @@ import { ClientsHub, ClientProfile } from './pages/ClientsHub';
 import { FinanceClaims, FinancePayments, FinanceReceivables, FinanceRevenue, Letters } from './pages/Finance';
 import { Tasks } from './pages/Tasks';
 import { Library } from './pages/Library';
+import { Rates } from './pages/Rates';
 import { Engagements, EngagementDetail } from './pages/Engagements';
 import { EngagementLetter } from './pages/EngagementLetter';
 import { Consolidation } from './pages/Consolidation';
@@ -47,7 +48,7 @@ export default function App() {
       <Route path="/analysis" element={<Analysis />} />
       <Route path="/consolidation" element={<Consolidation />} />
       <Route path="/ai" element={<AIPage />} />
-      <Route path="/library" element={<Library />} />
+      <Route path="/library" element={<Library />} /><Route path="/rates" element={<Rates />} />
       <Route path="/findings" element={<Findings />} />
       <Route path="/reports" element={<Reports />} /><Route path="/reports/:id" element={<ReportEditor />} />
       <Route path="/templates" element={<Templates />} />
