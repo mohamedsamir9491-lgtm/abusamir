@@ -6,6 +6,8 @@ import { parse } from '../../lib/validate.js';
 import { badRequest, notFound } from '../../lib/errors.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
 import { audit } from '../../middleware/audit.js';
+import { getOfficeSettings } from '../office/routes.js';
+import { effectiveFiscalYear } from '../../lib/periods.js';
 import { engagementFinance, officeFinance, loadClaims, letterFee, triggerOf, nextNo, r2, num, LIFECYCLE } from './service.js';
 import { searchKey } from '../../lib/arabic.js';
 
@@ -21,7 +23,7 @@ async function rootEngagement(id: string) {
 }
 
 financeRouter.get('/overview', async (req, res, next) => {
-  try { const year = Number(req.query.year ?? new Date().getFullYear()); res.json(await officeFinance(year)); } catch (e) { next(e); }
+  try { const st = await getOfficeSettings() as { current_fiscal_year: number | null }; const year = Number(req.query.year ?? effectiveFiscalYear(st.current_fiscal_year)); res.json(await officeFinance(year)); } catch (e) { next(e); } // السنة الافتراضية من إعدادات المكتب
 });
 
 financeRouter.get('/engagement/:id', async (req, res, next) => {

@@ -41,7 +41,7 @@ def std_title(sd):
   pref = [t for t in hits if 'المعتمد في المملكة' in t or t.startswith('معيار')] or hits
   return min(pref, key=len) if pref else None
 STATUS = OrderedDict([
- ('fix', '⚠️ تحتاج تصحيح (تحقّقتُ منها)'), ('bug', '🐞 خلل برمجي (تحقّقتُ منه)'), ('link', '🔗 القيمة صحيحة وتحتاج ربطًا بجدول النسب'),
+ ('fixed', '✔️ صُحّحت واختُبرت'), ('fix', '⚠️ تحتاج تصحيح (تحقّقتُ منها)'), ('bug', '🐞 خلل برمجي (تحقّقتُ منه)'), ('link', '🔗 القيمة صحيحة وتحتاج ربطًا بجدول النسب'),
  ('decide', '🟡 تحتاج قرارك'), ('ok', '✅ موثّقة بنص (تحقّقتُ منها)'), ('cand', '🔎 سند مرشح من المعيار (لم يُراجَع فقرةً فقرة)'),
  ('suspect', '❓ ملاحظة مراجِع آلي — لم أتحقق منها بعد'), ('practice', '📝 اجتهاد مهني بلا نص — يحتاج اعتماد المكتب'),
  ('absent', '📚 المعيار غير موجود في المكتبة'), ('none', '❔ لم يُعثر على سند بعد'), ('tech', '⚙️ تقني — لا يحتاج سندًا')])
@@ -73,7 +73,7 @@ wb = Workbook(); NAVY = '1F2A44'; GOLD = 'B8962E'
 hdr = Font(bold=True, color='FFFFFF', name='Arial'); hfill = PatternFill('solid', fgColor=NAVY)
 thin = Side(style='thin', color='CCCCCC'); B = Border(top=thin, bottom=thin, left=thin, right=thin)
 wrap = Alignment(wrap_text=True, vertical='top', horizontal='right', readingOrder=2)
-FILL = {'fix': 'FDE2E1', 'bug': 'FDE2E1', 'link': 'FFF4D6', 'decide': 'FFF4D6', 'ok': 'E3F4E8', 'cand': 'EEF3FB', 'suspect': 'F3E8FF', 'practice': 'FFF9EB', 'absent': 'F1F1F1', 'none': 'F1F1F1', 'tech': 'FFFFFF'}
+FILL = {'fixed': 'D9F2E3', 'fix': 'FDE2E1', 'bug': 'FDE2E1', 'link': 'FFF4D6', 'decide': 'FFF4D6', 'ok': 'E3F4E8', 'cand': 'EEF3FB', 'suspect': 'F3E8FF', 'practice': 'FFF9EB', 'absent': 'F1F1F1', 'none': 'F1F1F1', 'tech': 'FFFFFF'}
 def sheet(ws, cols, data, widths):
   ws.sheet_view.rightToLeft = True
   for i, c in enumerate(cols, 1):
@@ -86,13 +86,13 @@ def sheet(ws, cols, data, widths):
   ws.freeze_panes = 'A2'; ws.auto_filter.ref = ws.dimensions; ws.row_dimensions[1].height = 30
 
 ws = wb.active; ws.title = 'الملخص'; ws.sheet_view.rightToLeft = True
-ws['A1'] = 'سجل القواعد — معاينة'; ws['A1'].font = Font(bold=True, size=14, color=NAVY, name='Arial')
+ws['A1'] = 'سجل القواعد'; ws['A1'].font = Font(bold=True, size=14, color=NAVY, name='Arial')
 ws['A2'] = f'كل قاعدة يطبقها البرنامج مع موضعها في الكود والسند الرسمي من المكتبة النظامية. عدد القواعد: {len(rows)}'
 ws['A2'].alignment = Alignment(wrap_text=True, horizontal='right', readingOrder=2); ws.merge_cells('A2:D2'); ws.row_dimensions[2].height = 32
 r0 = 4
 for i, c in enumerate(['الحالة', 'العدد', 'المعنى'], 1):
   x = ws.cell(row=r0, column=i, value=c); x.font = hdr; x.fill = hfill; x.border = B; x.alignment = Alignment(horizontal='center')
-MEAN = {'fix': 'خطأ مؤكد في المعالجة أو الصياغة مقارنة بالنص؛ الإصلاح مقترح', 'bug': 'خلل في البرنامج نفسه', 'link': 'رقم صحيح مكتوب ثابتًا في الكود', 'decide': 'قيمة أو سياسة لا يحددها نص؛ القرار لك', 'ok': 'طابقتُ القاعدة مع نص المادة/المعيار', 'cand': 'وُجد المعيار والصفحة المرشحة آليًا؛ المطابقة الدقيقة في المرحلة التالية', 'suspect': 'شك من المراجعة الآلية للكود، أتحقق منه قبل أي تعديل', 'practice': 'حدود وعتبات من اجتهاد البرنامج (مثل 10% و120 يومًا)', 'absent': 'المعيار غير متوفر في ملفات المكتبة (IVS للتقييم، ISQM 1 لإدارة الجودة)', 'none': 'لم يظهر سند في البحث الآلي', 'tech': 'إجراء تقني (حفظ، ترقيم، قراءة ملفات)'}
+MEAN = {'fixed': 'خطأ مؤكد صُحّح في البرنامج وله اختبار آلي', 'fix': 'خطأ مؤكد في المعالجة أو الصياغة مقارنة بالنص؛ الإصلاح مقترح', 'bug': 'خلل في البرنامج نفسه', 'link': 'رقم صحيح مكتوب ثابتًا في الكود', 'decide': 'قيمة أو سياسة لا يحددها نص؛ القرار لك', 'ok': 'طابقتُ القاعدة مع نص المادة/المعيار', 'cand': 'وُجد المعيار والصفحة المرشحة آليًا؛ المطابقة الدقيقة في المرحلة التالية', 'suspect': 'شك من المراجعة الآلية للكود، أتحقق منه قبل أي تعديل', 'practice': 'حدود وعتبات من اجتهاد البرنامج (مثل 10% و120 يومًا)', 'absent': 'المعيار غير متوفر في ملفات المكتبة (IVS للتقييم، ISQM 1 لإدارة الجودة)', 'none': 'لم يظهر سند في البحث الآلي', 'tech': 'إجراء تقني (حفظ، ترقيم، قراءة ملفات)'}
 for i, (k, lab) in enumerate(STATUS.items(), r0 + 1):
   for ci, v in enumerate([lab, cnt.get(k, 0), MEAN[k]], 1):
     x = ws.cell(row=i, column=ci, value=v); x.border = B; x.fill = PatternFill('solid', fgColor=FILL[k]); x.alignment = wrap
@@ -106,8 +106,8 @@ for c, w in zip('ABCD', [42, 10, 70, 10]): ws.column_dimensions[c].width = w
 
 order = {k: i for i, k in enumerate(STATUS)}
 P = {'عالية': 0, 'متوسطة': 1, 'منخفضة': 2, '': 3}
-dec = sorted([x for x in rows if x['st'] in ('fix', 'bug', 'link', 'decide')], key=lambda x: (P[x['prio']], order[x['st']]))
-sheet(wb.create_sheet('يحتاج قرارك'), ['#', 'الأولوية', 'الحالة', 'المجال', 'القاعدة الحالية في البرنامج', 'السند الرسمي', 'المشكلة والإصلاح المقترح', 'الموضع في البرنامج'],
+dec = sorted([x for x in rows if x['st'] in ('fixed', 'fix', 'bug', 'link', 'decide')], key=lambda x: (order[x['st']] != 0, P[x['prio']], order[x['st']]))
+sheet(wb.create_sheet('التصحيحات والقرارات'), ['#', 'الأولوية', 'الحالة', 'المجال', 'القاعدة الحالية في البرنامج', 'السند الرسمي', 'المشكلة والإصلاح المقترح', 'الموضع في البرنامج'],
       [([i, x['prio'], STATUS[x['st']], x['area'], x['rule_ar'], x['src'], x['note'], x['file']], x['st']) for i, x in enumerate(dec, 1)], [5, 9, 22, 13, 48, 42, 60, 30])
 oks = [x for x in rows if x['st'] == 'ok']
 sheet(wb.create_sheet('موثّقة'), ['#', 'المجال', 'القاعدة', 'السند الرسمي', 'ملاحظة', 'الموضع'], [([i, x['area'], x['rule_ar'], x['src'], x['note'], x['file']], 'ok') for i, x in enumerate(oks, 1)], [5, 13, 55, 55, 40, 30])
@@ -117,5 +117,5 @@ full = sorted(rows, key=lambda x: (order[x['st']], x['area']))
 sheet(wb.create_sheet('السجل الكامل'), ['#', 'المجال', 'الحالة', 'القاعدة', 'القيم المستخدمة', 'النوع', 'السند (من المكتبة)', 'مقتطف من النص', 'ملاحظة', 'قابلة للتعديل', 'الموضع في البرنامج'],
       [([i, x['area'], STATUS[x['st']], x['rule_ar'], x['params'], x['kind'], x['src'] or (x.get('code_cites') or ''), x['snip'], x['note'], 'نعم' if x.get('user_editable') else 'لا', x['file']], x['st']) for i, x in enumerate(full, 1)],
       [5, 13, 24, 50, 32, 14, 40, 50, 35, 9, 30])
-out = '/workspace/سجل-القواعد-معاينة.xlsx'
+out = '/workspace/سجل-القواعد.xlsx'
 wb.save(out); print(out)

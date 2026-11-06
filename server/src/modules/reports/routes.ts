@@ -7,7 +7,7 @@ import { authenticate, requirePermission } from '../../middleware/auth.js';
 import { audit } from '../../middleware/audit.js';
 import { loadEngagement, loadPeriod } from '../../middleware/scope.js';
 import { collectSnapshot, type Snapshot } from './snapshot.js';
-import { buildReportContent, buildSection, type ReportContent, type ReportSectionContent } from './builder.js';
+import { buildReportContent, buildSection, signatureStatusNote, SIGNATURE_LABELS, SIGNATURE_PENDING, STATUS_NOTE_PREFIX, type ReportContent, type ReportSectionContent } from './builder.js';
 import { renderReportHtml, loadLetterhead } from './render.js';
 import { htmlToPdf } from './pdf.js';
 import { reportToExcel } from './excel.js';
@@ -188,7 +188,15 @@ reportsRouter.post('/:id/status', async (req, res, next) => {
       const v = await loadVersion(r.id);
       const names = await one<{ reviewer: string | null; approver: string | null }>(`SELECT (SELECT full_name FROM users WHERE id = r.reviewed_by) AS reviewer, (SELECT full_name FROM users WHERE id = r.approved_by) AS approver FROM generated_reports r WHERE r.id = $1`, [r.id], tx);
       const content: ReportContent = { ...v.content, meta: { ...v.content.meta, status: d.status, reviewer: names?.reviewer ?? null, approver: names?.approver ?? null } };
-      for (const s of content.sections) if (s.type === 'signatures') { const kv = s.blocks.find((b) => b.type === 'kv'); if (kv && kv.type === 'kv') { for (const it of kv.items) { if (it.label === 'راجعه') it.value = names?.reviewer ?? '______________'; if (it.label === 'اعتمده') it.value = names?.approver ?? '______________'; } } }
+      for (const s of content.sections) if (s.type === 'signatures') {
+        const kv = s.blocks.find((b) => b.type === 'kv');
+        if (kv && kv.type === 'kv') for (const it of kv.items) {
+          if (it.label === SIGNATURE_LABELS.reviewer) it.value = names?.reviewer ?? SIGNATURE_PENDING.reviewer;
+          if (it.label === SIGNATURE_LABELS.approver) it.value = names?.approver ?? SIGNATURE_PENDING.approver;
+        }
+        // نص الحالة يتبع حالة التقرير (كان يبقى «مسودة» بعد الاعتماد)
+        s.blocks = s.blocks.map((b) => (b.type === 'note' && b.text.startsWith(STATUS_NOTE_PREFIX) ? signatureStatusNote(d.status) : b));
+      }
       await query('UPDATE report_versions SET content = $3 WHERE report_id = $1 AND version_no = $2', [r.id, v.version_no, JSON.stringify(content)], tx);
     });
     await audit(req, { action: `report.${d.status}`, entityType: 'report', entityId: r.id, clientId: r.client_id, details: { from: r.status, to: d.status, note: d.note } });

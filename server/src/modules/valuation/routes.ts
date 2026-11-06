@@ -7,19 +7,19 @@ import { badRequest } from '../../lib/errors.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
 import { audit } from '../../middleware/audit.js';
 import { loadPeriod } from '../../middleware/scope.js';
-import { ASSET_CATEGORIES } from './nav.js';
+import { ASSET_CATEGORIES, TAX_DEP_NOTE } from './nav.js';
 import { companyNav, groupNav, resolveRoot } from './service.js';
 
 export const valuationRouter = Router();
 valuationRouter.use(authenticate, requirePermission('clients.view'));
 const scopeQ = z.object({ engagement_id: z.string().uuid(), period_id: z.string().uuid() });
-const categories = ASSET_CATEGORIES.map((c) => ({ code: c.code, label: c.label, rate: c.rate }));
+const categories = ASSET_CATEGORIES.map((c) => ({ code: c.code, label: c.label, rate: c.rate, tax_rate: c.tax_rate, tax_note: c.tax_note }));
 
 valuationRouter.get('/company', async (req, res, next) => {
   try {
     const q = parse(scopeQ, req.query); await loadPeriod(q.period_id, q.engagement_id);
     const r = await companyNav(q.engagement_id, q.period_id);
-    res.json({ company: r.ctx.company, period: r.ctx.period, currency: r.ctx.currency, nav: r.nav, status: r.status, approved_at: r.approved_at, approved_by: r.approved_by, categories });
+    res.json({ tax_note: TAX_DEP_NOTE, company: r.ctx.company, period: r.ctx.period, currency: r.ctx.currency, nav: r.nav, status: r.status, approved_at: r.approved_at, approved_by: r.approved_by, categories });
   } catch (e) { next(e); }
 });
 

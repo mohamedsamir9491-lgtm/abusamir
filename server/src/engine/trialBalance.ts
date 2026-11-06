@@ -322,10 +322,11 @@ export function validateTrialBalance(entries: TbEntry[], opts: TbValidationOptio
       amount: toStr(arAllow.abs().minus(ar)), fs_line_code: 'AR_ALLOWANCE', evidence: { receivables: toStr(ar), allowance: toStr(arAllow.abs()) },
       recommendation: 'مراجعة احتساب المخصص وأرصدة العملاء.', dedupe_key: 'TB-022' });
   }
-  const ppe = lineNet('PPE'); const accDep = lineNet('ACC_DEP');
+  // مجمع الاستهلاك يشمل إطفاء الأصول غير الملموسة، فتُقارن بتكلفة الثابتة وغير الملموسة معًا (IAS 16 / IAS 38)
+  const ppe = lineNet('PPE').plus(lineNet('INTANGIBLES')); const accDep = lineNet('ACC_DEP');
   if (ppe.gt(0) && accDep.neg().gt(ppe)) {
-    findings.push({ rule_code: 'TB-023', category: 'accounting_issue', severity: 'high', title: 'مجمع الاستهلاك يتجاوز تكلفة الأصول الثابتة',
-      description: `مجمع الاستهلاك ${toStr(accDep.abs())} أكبر من تكلفة الأصول ${toStr(ppe)}؛ لا يمكن أن يتجاوز الاستهلاك التكلفة.`,
+    findings.push({ rule_code: 'TB-023', category: 'accounting_issue', severity: 'high', title: 'مجمع الاستهلاك والإطفاء يتجاوز تكلفة الأصول الثابتة وغير الملموسة',
+      description: `مجمع الاستهلاك ${toStr(accDep.abs())} أكبر من تكلفة الأصول الثابتة وغير الملموسة ${toStr(ppe)}؛ لا يمكن أن يتجاوز الاستهلاك التكلفة.`,
       amount: toStr(accDep.abs().minus(ppe)), fs_line_code: 'ACC_DEP', evidence: { ppe_cost: toStr(ppe), accumulated_depreciation: toStr(accDep.abs()) },
       recommendation: 'مراجعة سجل الأصول الثابتة وجدول الاستهلاك.', dedupe_key: 'TB-023' });
   }
@@ -334,7 +335,7 @@ export function validateTrialBalance(entries: TbEntry[], opts: TbValidationOptio
   const accumulated = retained.plus(plNet);
   if (capital.gt(0) && accumulated.lt(0) && accumulated.abs().gte(capital.mul('0.5'))) {
     findings.push({ rule_code: 'TB-024', category: 'judgment', severity: accumulated.abs().gte(capital) ? 'critical' : 'high', title: `الخسائر المتراكمة (${toStr(accumulated.abs())}) بلغت ${accumulated.abs().div(capital).mul(100).toFixed(0)}% من رأس المال`,
-      description: `الخسائر المتراكمة شاملة نتيجة الفترة ${toStr(accumulated.abs())} مقابل رأس مال ${toStr(capital)}. بلوغ الخسائر نصف رأس المال يستوجب إجراءات بموجب نظام الشركات (يلزم التحقق من النص النافذ وإجراءاته)، ويثير مسألة الاستمرارية.`,
+      description: `الخسائر المتراكمة شاملة نتيجة الفترة ${toStr(accumulated.abs())} مقابل رأس مال ${toStr(capital)}. بلوغ الخسائر نصف رأس المال يستوجب إجراءات نظامية — نظام الشركات: في شركة المساهمة إذا بلغت الخسائر نصف رأس المال المصدر يفصح مجلس الإدارة عن ذلك خلال 60 يومًا من علمه ويدعو الجمعية العامة غير العادية خلال 180 يومًا (المادة 132)، وفي الشركة ذات المسؤولية المحدودة يدعو المدير الجمعية العامة للشركاء خلال 60 يومًا (المادة 182)، للنظر في استمرار الشركة مع معالجة الخسائر أو حلها — ويثير مسألة الاستمرارية (ISA 570).`,
       amount: toStr(accumulated.abs()), fs_line_code: 'RETAINED_EARNINGS', evidence: { capital: toStr(capital), retained_earnings: toStr(retained), period_result: toStr(plNet), accumulated: toStr(accumulated) },
       calculation: `${toStr(retained)} + (${toStr(plNet)}) = ${toStr(accumulated)}`, recommendation: 'عرض الأمر على الشركاء/الجمعية العامة واتخاذ القرار النظامي (زيادة رأس المال، تخفيضه، أو الاستمرار بشروط).', dedupe_key: 'TB-024' });
   }

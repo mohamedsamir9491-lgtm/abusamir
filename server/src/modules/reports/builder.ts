@@ -7,6 +7,7 @@ import { D } from '../../engine/money.js';
 /** أسماء أنواع المستندات بالعربية (أنواع البيانات القابلة للاستيراد + المستندات الداعمة) */
 const DOC_TYPE_LABELS: Record<string, string> = { ...(DATA_TYPE_LABELS as Record<string, string>), invoice: 'فاتورة', contract: 'عقد', articles_of_association: 'عقد التأسيس / النظام الأساس', commercial_registration: 'السجل التجاري', other: 'أخرى', unknown: 'غير محدد' };
 import { periodPhrase } from '../../lib/periods.js';
+import { TAX_DEP_NOTE } from '../valuation/nav.js';
 import { FS_LINE_MAP } from '../../engine/fsLines.js';
 import { fmtAmounts } from '../../lib/textfmt.js';
 import { DATA_TYPE_LABELS } from '../imports/fields.js';
@@ -24,12 +25,20 @@ export type ReportBlock =
 export interface FindingBlockItem { ref: string; title: string; category: string; severity: string; account: string | null; amount: string | null; source: string | null; calculation: string | null; description: string; impact: string | null; recommendation: string | null; status: string; origin: string }
 export interface ReportSectionContent { key: string; type: string; title: string; enabled: boolean; order: number; blocks: ReportBlock[]; options?: Record<string, unknown> }
 export interface ReportContent {
-  meta: { title: string; reference_no: string; language: string; client_name: string; client_name_en: string | null; period_label: string; period_range: string; period_phrase: string; period_end: string; prepared_date: string; confidentiality: string; engagement_type: string; framework: string; currency: string; is_demo: boolean; preparer: string | null; reviewer: string | null; approver: string | null; status: string };
+  meta: { title: string; reference_no: string; language: string; client_name: string; client_name_en: string | null; period_label: string; period_range: string; period_phrase: string; period_end: string; prepared_date: string; confidentiality: string; engagement_type: string; engagement_type_code?: string; framework: string; currency: string; is_demo: boolean; preparer: string | null; reviewer: string | null; approver: string | null; status: string };
   sections: ReportSectionContent[];
 }
 
 const p = (text: string): ReportBlock => ({ type: 'paragraph', text });
 const note = (text: string, tone: 'info' | 'warning' | 'danger' = 'info'): ReportBlock => ({ type: 'note', text, tone });
+/** تسميات خانات الاعتماد في قسم التوقيعات وقيمها قبل الاعتماد (تُحدَّث عند تغيير حالة التقرير) */
+export const SIGNATURE_LABELS = { reviewer: 'المراجعة المهنية', approver: 'الاعتماد' } as const;
+export const SIGNATURE_PENDING = { reviewer: 'لم تتم مراجعة مهنية مستقلة بعد', approver: 'غير معتمد' } as const;
+const STATUS_NOTE: Record<string, string> = { draft: 'مسودة - غير مراجعة وغير معتمدة', reviewed: 'تمت مراجعته مهنيًا من مستخدم مختلف عن المُعد - غير معتمد للإصدار', approved: 'معتمد للإصدار', issued: 'صادر' };
+export const STATUS_NOTE_PREFIX = 'حالة هذا الإصدار:';
+export function signatureStatusNote(status: string): ReportBlock {
+  return note(`${STATUS_NOTE_PREFIX} ${STATUS_NOTE[status] ?? status}. النتائج غير مدققة ولا تمثل رأي مراجع مستقل.`, status === 'draft' ? 'warning' : 'info');
+}
 
 function findingsToItems(snap: Snapshot, opts: Record<string, unknown> | undefined): FindingBlockItem[] {
   const prefixes = (opts?.rule_prefixes as string[] | undefined) ?? null; const cats = (opts?.categories as string[] | undefined) ?? null;
@@ -70,7 +79,9 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       break;
     case 'intro':
       blocks.push(p(`يتناول هذا التقرير نتائج الفحص والتحليل المالي لـ${meta.client_name} ${meta.period_phrase ?? `عن الفترة المالية ${cur} (${meta.period_range})`}، بناءً على البيانات المحاسبية التي زوّدنا بها العميل والمدرجة في قسم مصادر البيانات. أُجريت الحسابات والمطابقات بواسطة محرك حسابي حتمي، وجرت مراجعتها من قبل المحاسب المسؤول.`));
-      blocks.push(p(`يُعد هذا التقرير ${meta.engagement_type}، ولا يمثل رأي مراجع حسابات مستقل أو تأكيدًا مهنيًا على القوائم المالية ما لم يُنص على ذلك صراحة في خطاب الارتباط.`));
+      blocks.push(p(meta.engagement_type_code === 'assurance_audit'
+        ? 'يُعد هذا التقرير تقريرًا تحليليًا مرافقًا لارتباط مراجعة القوائم المالية، ولا يحل محل تقرير المراجع المستقل الذي يصدر منفصلًا وفق معيار المراجعة 700.'
+        : `يُعد هذا التقرير ${meta.engagement_type}، ولا يمثل رأي مراجع حسابات مستقل أو تأكيدًا مهنيًا على القوائم المالية ما لم يُنص على ذلك صراحة في خطاب الارتباط.`));
       break;
     case 'scope':
       blocks.push({ type: 'list', items: [
@@ -284,8 +295,8 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
       blocks.push(p(snap.office.disclaimer_ar || 'أُعد هذا التقرير لأغراض الاستخدام الداخلي للعميل والمكتب بناءً على البيانات المقدمة من الإدارة، ولا يُعد تقرير مراجع حسابات مستقل ولا يتضمن رأيًا تأكيديًا على القوائم المالية. لا يتحمل المكتب مسؤولية أي قرار يُتخذ اعتمادًا عليه دون الرجوع إلى المستندات الأصلية والجهات المختصة.'));
       break;
     case 'signatures':
-      blocks.push({ type: 'kv', items: [{ label: 'التحقق الحسابي', value: 'آلي بمحرك البرنامج الحتمي (توازن الموازين، المعادلة المحاسبية، النسب)' }, { label: 'أعدّه', value: meta.preparer ?? '______________' }, { label: 'المراجعة المهنية', value: meta.reviewer ?? 'لم تتم مراجعة مهنية مستقلة بعد' }, { label: 'الاعتماد', value: meta.approver ?? 'غير معتمد' }, { label: 'المفوض بالتوقيع', value: [snap.office.signatory_name, snap.office.signatory_title].filter(Boolean).join(' - ') || '______________' }] });
-      blocks.push(note(`حالة هذا الإصدار: ${({ draft: 'مسودة - غير مراجعة وغير معتمدة', reviewed: 'تمت مراجعته مهنيًا من مستخدم مختلف عن المُعد - غير معتمد للإصدار', approved: 'معتمد للإصدار', issued: 'صادر' } as Record<string, string>)[meta.status] ?? meta.status}. النتائج غير مدققة ولا تمثل رأي مراجع مستقل.`, meta.status === 'draft' ? 'warning' : 'info'));
+      blocks.push({ type: 'kv', items: [{ label: 'التحقق الحسابي', value: 'آلي بمحرك البرنامج الحتمي (توازن الموازين، المعادلة المحاسبية، النسب)' }, { label: 'أعدّه', value: meta.preparer ?? '______________' }, { label: SIGNATURE_LABELS.reviewer, value: meta.reviewer ?? SIGNATURE_PENDING.reviewer }, { label: SIGNATURE_LABELS.approver, value: meta.approver ?? SIGNATURE_PENDING.approver }, { label: 'المفوض بالتوقيع', value: [snap.office.signatory_name, snap.office.signatory_title].filter(Boolean).join(' - ') || '______________' }] });
+      blocks.push(signatureStatusNote(meta.status));
       break;
     case 'checklist':
       blocks.push({ type: 'list', items: (snap.ai?.review_checklist as string[] | undefined) ?? ['التحقق من توازن ميزان المراجعة.', 'مراجعة تصنيف الحسابات ذات الثقة المنخفضة.', 'تسوية الحسابات المعلقة.', 'مطابقة الذمم والبنوك مع السجلات الفرعية.', 'الحصول على تفسيرات الإدارة للتغيرات الجوهرية.', 'مراجعة التسويات المقترحة واعتمادها أو رفضها.'] });
@@ -325,7 +336,7 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
         const items: { label: string; value: string }[] = [];
         const add = (label: string, val: unknown) => { if (val != null && val !== '') items.push({ label, value: String(val) }); };
         add('الشكل القانوني', v('legal_form') ? `${FORM[v('legal_form')] ?? v('legal_form')}${v('single_person') ? ' (شخص واحد)' : ''}${v('closed_jsc') ? ' (مقفلة)' : ''}` : null);
-        add('الرقم الموحد', v('unified_no')); add('رقم السجل التجاري', v('cr_no')); add('تاريخ إصدار السجل', v('cr_issue_hijri') ? `${v('cr_issue_hijri')} هـ` : null); add('تاريخ انتهاء السجل', v('cr_expiry_hijri') ? `${v('cr_expiry_hijri')} هـ${v('cr_expiry') ? ` (${fmtDate(v('cr_expiry'), false)})` : ''}` : null);
+        add('الرقم الموحد', v('unified_no')); add('رقم السجل التجاري', v('cr_no')); add('تاريخ إصدار السجل', v('cr_issue_hijri') ? `${v('cr_issue_hijri')} هـ` : null); add('تاريخ الانتهاء / التأكيد السنوي للسجل', v('cr_expiry_hijri') ? `${v('cr_expiry_hijri')} هـ${v('cr_expiry') ? ` (${fmtDate(v('cr_expiry'), false)})` : ''}` : null);
         add('تاريخ العقد', v('contract_date_hijri') ? `${v('contract_date_hijri')} هـ${v('contract_date') ? ` (${fmtDate(v('contract_date'), false)})` : ''}` : null);
         add('رأس المال المصدر', m(v('capital'))); add('رأس المال المدفوع', m(v('paid_capital')));
         add('عدد الحصص/الأسهم × القيمة', v('shares_count') != null ? `${Number(v('shares_count')).toLocaleString('en-US')} × ${m(v('share_value')) ?? '—'}` : null);
@@ -469,9 +480,10 @@ export function buildSection(sec: TemplateSection, snap: Snapshot, meta: ReportC
         if (N.unmatched_accounts.length) blocks.push(note(`حسابات جارية لشركاء لم تُربط بأي مساهم مسجل: ${N.unmatched_accounts.map((u: any) => `${u.name} (${m(u.closing)})`).join('، ')}؛ يلزم تأكيد صفة أصحابها.`, 'warning')); // eslint-disable-line @typescript-eslint/no-explicit-any
       } else {
         blocks.push({ type: 'list', items: ['الطريقة: صافي الأصول المعدّل = حقوق الملكية الدفترية ± تعديلات التقييم، وعلى مستوى المجموعة يُبدأ من حقوق الملكية الموحدة (بعد استبعاد الاستثمارات والأرصدة بين الشركات).', `الاستهلاك غير المسجل: قسط ثابت بنسب سنوية شائعة يعتمدها المحاسب، على التكلفة، عن مدة الفترة (${snap.period.label})؛ والإضافات خلال الفترة بنصف المدة؛ ولا يتجاوز الاستهلاك صافي القيمة الدفترية.`, 'تقييم المالك: إن قُدّم تقرير تقييم لأصل يحل محل صافي قيمته الدفترية.', 'عقود الإيجار: يُستهلك أصل حق الاستخدام على مدة العقد من تاريخ بدايته، وتُقدَّر فائدة الالتزام بمعدل الخصم إن أُدخل.', 'الشركات بلا قوائم: تبقى بتكلفة الاستثمار إلى حين توافر قوائمها.'] });
-        const used = new Map<string, { label: string; rate: number; accs: string[] }>(); // فئات النسب المستخدمة
-        for (const c of N.companies) for (const a of c.nav?.assets ?? []) if (a.method === 'rate') { const k = `${a.category}|${a.rate}`; const u = used.get(k) ?? { label: a.category_label, rate: a.rate, accs: [] as string[] }; u.accs.push(`${a.name} - ${c.name}`); used.set(k, u); }
-        if (used.size) blocks.push({ type: 'table', caption: 'نسب الاستهلاك السنوية المستخدمة', columns: [{ key: 'c', label: 'فئة الأصل', width: '30%' }, { key: 'r', label: 'النسبة السنوية', width: '15%' }, { key: 'a', label: 'الحسابات', width: '55%' }], rows: [...used.values()].map((u) => ({ c: u.label, r: `${u.rate}%`, a: u.accs.join('؛ ') })) });
+        const used = new Map<string, { label: string; rate: number; tax: number | null; tnote: string; accs: string[] }>(); // فئات النسب المستخدمة
+        for (const c of N.companies) for (const a of c.nav?.assets ?? []) if (a.method === 'rate') { const k = `${a.category}|${a.rate}`; const u = used.get(k) ?? { label: a.category_label, rate: a.rate, tax: a.tax_rate ?? null, tnote: a.tax_note ?? '', accs: [] as string[] }; u.accs.push(`${a.name} - ${c.name}`); used.set(k, u); }
+        if (used.size) blocks.push({ type: 'table', caption: 'نسب الاستهلاك السنوية المستخدمة', columns: [{ key: 'c', label: 'فئة الأصل', width: '22%' }, { key: 'r', label: 'النسبة المستخدمة', width: '11%' }, { key: 't', label: 'نسبة نظام ضريبة الدخل (للمقارنة)', width: '27%' }, { key: 'a', label: 'الحسابات', width: '40%' }], rows: [...used.values()].map((u) => ({ c: u.label, r: `${u.rate}%`, t: `${u.tax != null ? `${u.tax}% — ` : ''}${u.tnote}`, a: u.accs.join('؛ ') })) });
+        if (used.size) blocks.push(note(TAX_DEP_NOTE));
         if (N.warnings.length) { blocks.push({ type: 'heading', text: 'تنبيهات وافتراضات قائمة' } as ReportBlock); blocks.push({ type: 'list', items: N.warnings.map((w: string) => fmtAmounts(w)) }); }
       }
       break;
@@ -487,7 +499,7 @@ export function buildReportContent(params: { title: string; referenceNo: string;
   const meta: ReportContent['meta'] = {
     title: params.title, reference_no: params.referenceNo, language: 'ar', client_name: s.engagement.client_name ?? '', client_name_en: s.engagement.client_name_en ?? null, period_label: s.period.label,
     period_range: `${fmtDate(s.period.start_date, false)} - ${fmtDate(s.period.end_date, false)}`, period_phrase: periodPhrase(String(s.period.start_date).slice(0, 10), String(s.period.end_date).slice(0, 10)), period_end: fmtDate(s.period.end_date, false), prepared_date: todayIso(), confidentiality: s.office.confidentiality_ar as string,
-    engagement_type: ENGAGEMENT_TYPE_LABELS[s.engagement.engagement_type ?? ''] ?? String(s.engagement.engagement_type), framework: FRAMEWORK_LABELS[s.engagement.framework ?? ''] ?? String(s.engagement.framework),
+    engagement_type: ENGAGEMENT_TYPE_LABELS[s.engagement.engagement_type ?? ''] ?? String(s.engagement.engagement_type), engagement_type_code: String(s.engagement.engagement_type ?? ''), framework: FRAMEWORK_LABELS[s.engagement.framework ?? ''] ?? String(s.engagement.framework),
     currency: s.engagement.currency ?? 'SAR', is_demo: s.engagement.is_demo === 'true', preparer: params.preparer, reviewer: params.reviewer ?? null, approver: params.approver ?? null, status: params.status,
   };
   const sections = [...params.sections].sort((a, b) => a.order - b.order).map((sec) => buildSection(sec, s, meta));

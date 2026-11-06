@@ -2,20 +2,22 @@
  * الأساس: حقوق الملكية الدفترية ± تعديلات التقييم (استهلاك غير مسجل بنسب معتمدة، تقييم المالك، عقد الإيجار، تعديلات أخرى) */
 import type { Acc } from '../ai/local.js';
 
-export interface AssetCategory { code: string; label: string; rate: number; re: RegExp }
+export interface AssetCategory { code: string; label: string; rate: number; re: RegExp; tax_rate: number | null; tax_note: string }
+/** نسب نظام ضريبة الدخل (المادة 17/ب) للمقارنة فقط: تُطبق ضريبيًا بالقسط المتناقص على باقي قيمة كل مجموعة، ولا تحل محل تقدير العمر الإنتاجي محاسبيًا (IAS 16) */
+export const TAX_DEP_NOTE = 'النسب الضريبية من نظام ضريبة الدخل (المادة 17/ب) للمقارنة فقط: تُطبق ضريبيًا بطريقة القسط المتناقص على باقي قيمة كل مجموعة من الأصول، ولا تحل محل تقدير العمر الإنتاجي للأغراض المحاسبية (IAS 16).';
 /** نسب استهلاك سنوية شائعة مقترحة (قسط ثابت) - قابلة للتعديل ويعتمدها المحاسب؛ ليست نسبًا نظامية ملزمة */
 export const ASSET_CATEGORIES: AssetCategory[] = [
-  { code: 'land', label: 'أراضٍ (لا تُستهلك)', rate: 0, re: /(^|\s)(ارض|اراضي|الارض|الاراضي)(\s|$)/ },
-  { code: 'buildings', label: 'مبانٍ وإنشاءات', rate: 4, re: /مبان|مبني|انشاءات|عقارات/ },
-  { code: 'leasehold', label: 'تحسينات وديكورات على مبانٍ مستأجرة', rate: 20, re: /ديكور|تحسينات|تشطيبات/ },
-  { code: 'computers', label: 'حاسبات وأجهزة إلكترونية', rate: 25, re: /حاسب|كمبيوتر|لابتوب|حواسيب|الكترون|طابعات|سيرفر/ },
-  { code: 'vehicles', label: 'سيارات ووسائل نقل', rate: 25, re: /سيار|مركبات|وسائل نقل|شاحن/ },
-  { code: 'machinery', label: 'آلات ومعدات تشغيل', rate: 10, re: /الات|ماكين|مكائن|معدات تشغيل|معدات ثقيله|خطوط انتاج/ },
-  { code: 'furniture', label: 'أثاث ومفروشات', rate: 10, re: /اثاث|مفروشات|موبيليا/ },
-  { code: 'office_equipment', label: 'أجهزة ومعدات مكتبية', rate: 15, re: /اجهز|معدات|مكتبي|تكييف|مكيفات/ },
-  { code: 'tools', label: 'عدد وأدوات', rate: 20, re: /عدد وادوات|ادوات/ },
-  { code: 'software', label: 'برامج وأصول غير ملموسة', rate: 20, re: /برامج|برنامج|غير ملموس|علامه|تراخيص|رخص|موقع الكتروني|تطبيق/ },
-  { code: 'other', label: 'أصول أخرى', rate: 10, re: /.^/ },
+  { code: 'land', label: 'أراضٍ (لا تُستهلك)', rate: 0, re: /(^|\s)(ارض|اراضي|الارض|الاراضي)(\s|$)/, tax_rate: null, tax_note: 'الأرض لا تُستهلك (المادة 17/أ)' },
+  { code: 'buildings', label: 'مبانٍ وإنشاءات', rate: 4, re: /مبان|مبني|انشاءات|عقارات/, tax_rate: 5, tax_note: 'المباني الثابتة — المادة 17/ب/1 (المباني الصناعية والزراعية المتنقلة 10%)' },
+  { code: 'leasehold', label: 'تحسينات وديكورات على مبانٍ مستأجرة', rate: 20, re: /ديكور|تحسينات|تشطيبات/, tax_rate: null, tax_note: 'لا نسبة صريحة لها في النظام' },
+  { code: 'computers', label: 'حاسبات وأجهزة إلكترونية', rate: 25, re: /حاسب|كمبيوتر|لابتوب|حواسيب|الكترون|طابعات|سيرفر/, tax_rate: 25, tax_note: 'الأجهزة والبرمجيات — المادة 17/ب/3' },
+  { code: 'vehicles', label: 'سيارات ووسائل نقل', rate: 25, re: /سيار|مركبات|وسائل نقل|شاحن/, tax_rate: 25, tax_note: 'سيارات الركوب والشحن — المادة 17/ب/3' },
+  { code: 'machinery', label: 'آلات ومعدات تشغيل', rate: 10, re: /الات|ماكين|مكائن|معدات تشغيل|معدات ثقيله|خطوط انتاج/, tax_rate: 25, tax_note: 'المصانع والآلات والمكائن — المادة 17/ب/3' },
+  { code: 'furniture', label: 'أثاث ومفروشات', rate: 10, re: /اثاث|مفروشات|موبيليا/, tax_rate: 10, tax_note: 'الأثاث — المادة 17/ب/5' },
+  { code: 'office_equipment', label: 'أجهزة ومعدات مكتبية', rate: 15, re: /اجهز|معدات|مكتبي|تكييف|مكيفات/, tax_rate: 25, tax_note: 'الأجهزة والمعدات — المادة 17/ب/3' },
+  { code: 'tools', label: 'عدد وأدوات', rate: 20, re: /عدد وادوات|ادوات/, tax_rate: null, tax_note: 'حسب طبيعة الأداة: معدات 25% (17/ب/3) أو أصول أخرى 10% (17/ب/5)' },
+  { code: 'software', label: 'برامج وأصول غير ملموسة', rate: 20, re: /برامج|برنامج|غير ملموس|علامه|تراخيص|رخص|موقع الكتروني|تطبيق/, tax_rate: 25, tax_note: 'البرمجيات 25% (17/ب/3)؛ وغير الملموسة الأخرى كالشهرة 10% (17/ب/5)' },
+  { code: 'other', label: 'أصول أخرى', rate: 10, re: /.^/, tax_rate: 10, tax_note: 'الأصول الأخرى — المادة 17/ب/5' },
 ];
 export const CATEGORY_BY_CODE = Object.fromEntries(ASSET_CATEGORIES.map((c) => [c.code, c]));
 
@@ -37,7 +39,7 @@ export interface OtherInput { id: string; title: string; amount: number; note?: 
 export interface NavInputs { assets?: Record<string, AssetInput>; lease?: LeaseInput; others?: OtherInput[] }
 export interface PeriodInfo { start: string; end: string; days: number }
 
-export interface AssetRow { code: string; name: string; kind: 'ppe' | 'intangible'; category: string; category_label: string; suggested_rate: number; rate: number; method: 'rate' | 'owner' | 'none'
+export interface AssetRow { code: string; name: string; kind: 'ppe' | 'intangible'; category: string; category_label: string; suggested_rate: number; tax_rate: number | null; tax_note: string; rate: number; method: 'rate' | 'owner' | 'none'
   cost_open: number; cost_close: number; additions: number; accum_codes: string[]; accum_close: number; booked_period: number; nbv: number
   expected: number; additional: number; owner_value: number | null; owner_ref: string | null; adjustment: number; adjusted_nbv: number; note: string | null; basis: string }
 export interface LeaseCalc { rou_codes: string[]; rou_cost: number; rou_accum: number; liability: number; finance_cost_booked: number; term_months: number | null; start_date: string | null; discount_rate: number | null
@@ -80,7 +82,7 @@ export function computeCompanyNav(accounts: Acc[], kf: Record<string, number>, i
     const adjustment = method === 'owner' ? (ov == null ? 0 : r2(ov - nbv)) : -additional;
     if (method === 'owner' && ov == null) warnings.push(`«${c.name}»: اخترت تقييم المالك دون إدخال القيمة`);
     const basis = method === 'owner' ? `تقييم المالك${inp.owner_ref ? ` (${inp.owner_ref})` : ''}` : method === 'none' ? 'بلا تعديل' : `قسط ثابت ${rate}% سنويًا على التكلفة × ${period.days}/365${additions > 0 ? '، والإضافات بنصف المدة' : ''}${booked > 0 ? `، مطروحًا منه المسجل ${r2(booked)}` : ''}`;
-    return { code: c.code, name: c.name, kind, category, category_label: cat.label, suggested_rate: cat.rate, rate, method, cost_open: r2(costOpen), cost_close: r2(costClose), additions: r2(additions), accum_codes: ms.map((m) => m.code), accum_close: r2(accumClose), booked_period: r2(booked), nbv: r2(nbv), expected, additional, owner_value: ov, owner_ref: inp.owner_ref ?? null, adjustment, adjusted_nbv: r2(nbv + adjustment), note: inp.note ?? null, basis };
+    return { code: c.code, name: c.name, kind, category, category_label: cat.label, suggested_rate: cat.rate, tax_rate: cat.tax_rate, tax_note: cat.tax_note, rate, method, cost_open: r2(costOpen), cost_close: r2(costClose), additions: r2(additions), accum_codes: ms.map((m) => m.code), accum_close: r2(accumClose), booked_period: r2(booked), nbv: r2(nbv), expected, additional, owner_value: ov, owner_ref: inp.owner_ref ?? null, adjustment, adjusted_nbv: r2(nbv + adjustment), note: inp.note ?? null, basis };
   });
   // عقد الإيجار (IFRS 16)
   const rou = accounts.filter((a) => a.fs === 'ROU_ASSETS' && !rouAccum.includes(a) && a.closing > 0);

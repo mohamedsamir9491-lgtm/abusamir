@@ -18,7 +18,8 @@ describe('fees from the engagement letter', () => {
     expect(letterFee({ fees_amount: '46,000', options: { vat_mode: 'exclusive', vat_rate: '15' } })).toMatchObject({ net: 46000, vatRate: 15 });
     expect(letterFee({ fees_amount: '٥٧٫٥٠٠', options: { vat_mode: 'exclusive', vat_rate: '15' } }).net).toBe(57.5);
     expect(letterFee({ fees_amount: '57500', options: { vat_mode: 'inclusive', vat_rate: '15' } }).net).toBe(50000);
-    expect(letterFee({ fees_amount: '10000', options: { vat_mode: 'hidden', vat_rate: '15' } })).toMatchObject({ net: 10000, vatRate: 0 });
+    expect(letterFee({ fees_amount: '10000', options: { vat_mode: 'hidden', vat_rate: '15' } })).toMatchObject({ net: 10000, vatRate: 15 }); // الإخفاء عرض فقط
+    expect(letterFee({ fees_amount: '10000', options: { vat_mode: 'hidden', vat_rate: '0' } })).toMatchObject({ net: 10000, vatRate: 0 });
   });
   it('detects when each installment falls due from the schedule wording', () => {
     expect(triggerOf('عند توقيع الخطاب')).toBe('signing'); expect(triggerOf('عند تسليم التقرير النهائي')).toBe('delivery'); expect(triggerOf('في ٢٠٢٦-١٢-٠١')).toBe('date'); expect(triggerOf('حسب الاتفاق')).toBe('manual');

@@ -24,3 +24,12 @@ V = {
  'rpt-approval-segregation': ('decide', 'ISA 220 / ISQM 1 (فصل المهام في الاعتماد)', 'يمنع المُعد من اعتماد تقريره، لكن يستثني «المدير العام» و«مدير المكتب». القرار: الإبقاء (مكتب صغير) أو المنع للجميع.', 'منخفضة'),
  'fin-office-year-calendar': ('fix', 'إعداد السنة المالية للمكتب في البرنامج', 'لوحة إيرادات المكتب تفترض يناير–ديسمبر وتتجاهل السنة المالية المضبوطة للمكتب.', 'منخفضة'),
 }
+
+# بعد موافقة أبو سمير (تمت التصحيحات واختُبرت)
+FIXED = {'cls-cash-bank','cls-loans','fs-net-income-into-equity','rpt-signatures-block','ltr-assurance-maps-to-compilation','rpt-engagement-type-labels','off-doc005-cr-expiry','ltr-vat-default-15','fin-letter-fee-net','TB-023-accdep-over-ppe','FS-002-cf-mismatch','fin-office-year-calendar','val-dep-rates'}
+for k in FIXED:
+  st, src, note, prio = V[k]; V[k] = ('fixed', src, 'صُحّحت واختُبرت — ' + note, prio)
+for k in ('TB-024-losses-half-capital','req-losses-half-capital','kb-losses','FS-011-negative-equity','ltr-records-retention-10y'):
+  st, src, note, prio = V[k]; V[k] = (st, src, note.replace('التحسين:', 'تم:'), prio)
+V['cls-accruals'] = ('fixed', 'IAS 1 (الذمم المدينة الأخرى)', 'صُحّحت واختُبرت — «مستحق من الموظفين» كانت تُصنَّف مصروفًا مستحقًا (التزامًا)؛ أصبحت ذممًا مدينة أخرى.', 'متوسطة')
+V['rpt-intro-not-audit-opinion'] = ('fixed', 'ISA 700', 'صُحّحت — تقرير ارتباط المراجعة يذكر أنه تحليلي مرافق ولا يحل محل تقرير المراجع وفق ISA 700.', 'متوسطة')

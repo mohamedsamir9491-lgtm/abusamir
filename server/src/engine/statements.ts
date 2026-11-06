@@ -118,11 +118,12 @@ export function buildStatements(params: {
     const totalLiab = currentLiab.plus(nonCurrentLiab);
     return { currentAssets, nonCurrentAssets, totalAssets, currentLiab, nonCurrentLiab, totalLiab, equityExcl, equity, totalLiabEquity: totalLiab.plus(equity), unclassified };
   };
-  const sC = sfpCalc(false, plC.netIncome); const sP = pri && plP ? sfpCalc(true, plP.netIncome) : null;
+  // IAS 1.106: حقوق الملكية في نهاية الفترة تشمل إجمالي الدخل الشامل (صافي الربح + الدخل الشامل الآخر)
+  const sC = sfpCalc(false, plC.total); const sP = pri && plP ? sfpCalc(true, plP.total) : null;
   const diff = sC.totalAssets.minus(sC.totalLiabEquity);
   if (!sC.unclassified.isZero()) notes.push(`يوجد صافي رصيد ${toStr(sC.unclassified)} في حسابات غير مصنفة/معلقة أُدرج ضمن الأصول مؤقتًا حتى يكتمل الربط.`);
   if (diff.abs().gt('0.05')) notes.push(`قائمة المركز المالي غير متوازنة بفرق ${toStr(diff)}؛ راجع توازن ميزان المراجعة وتصنيف الحسابات.`);
-  notes.push('صافي ربح الفترة أُضيف إلى حقوق الملكية باعتبار ميزان المراجعة قبل الإقفال.');
+  notes.push(plC.oci.isZero() ? 'صافي ربح الفترة أُضيف إلى حقوق الملكية باعتبار ميزان المراجعة قبل الإقفال.' : 'صافي ربح الفترة والدخل الشامل الآخر أُضيفا إلى حقوق الملكية باعتبار ميزان المراجعة قبل الإقفال (IAS 1.106).');
   const sfpTotals: SectionTotal[] = [
     { key: 'current_assets', label_ar: 'إجمالي الأصول المتداولة', label_en: 'Total current assets', value: toStr(sC.currentAssets), prior_value: sP ? toStr(sP.currentAssets) : null },
     { key: 'non_current_assets', label_ar: 'إجمالي الأصول غير المتداولة', label_en: 'Total non-current assets', value: toStr(sC.nonCurrentAssets), prior_value: sP ? toStr(sP.nonCurrentAssets) : null },
@@ -131,6 +132,7 @@ export function buildStatements(params: {
     { key: 'non_current_liabilities', label_ar: 'إجمالي الالتزامات غير المتداولة', label_en: 'Total non-current liabilities', value: toStr(sC.nonCurrentLiab), prior_value: sP ? toStr(sP.nonCurrentLiab) : null },
     { key: 'total_liabilities', label_ar: 'إجمالي الالتزامات', label_en: 'Total liabilities', value: toStr(sC.totalLiab), prior_value: sP ? toStr(sP.totalLiab) : null },
     { key: 'net_income_in_equity', label_ar: 'صافي ربح / (خسارة) الفترة', label_en: 'Profit / (loss) for the period', value: toStr(plC.netIncome), prior_value: plP ? toStr(plP.netIncome) : null },
+    ...(!plC.oci.isZero() || (plP && !plP.oci.isZero()) ? [{ key: 'oci_in_equity', label_ar: 'الدخل الشامل الآخر للفترة', label_en: 'Other comprehensive income for the period', value: toStr(plC.oci), prior_value: plP ? toStr(plP.oci) : null }] : []),
     { key: 'total_equity', label_ar: 'إجمالي حقوق الملكية', label_en: 'Total equity', value: toStr(sC.equity), prior_value: sP ? toStr(sP.equity) : null },
     { key: 'total_liabilities_equity', label_ar: 'إجمالي الالتزامات وحقوق الملكية', label_en: 'Total liabilities and equity', value: toStr(sC.totalLiabEquity), prior_value: sP ? toStr(sP.totalLiabEquity) : null },
   ];
@@ -147,6 +149,7 @@ export function buildStatements(params: {
     rows: [
       { label_ar: 'الرصيد في بداية الفترة', label_en: 'Balance at beginning of period', value: toStr(equityOpen) },
       { label_ar: 'التغير في رأس المال', label_en: 'Change in share capital', value: toStr(capitalMov('SHARE_CAPITAL')) },
+      ...(capitalMov('ADDITIONAL_CAPITAL').isZero() ? [] : [{ label_ar: 'التغير في رأس المال الإضافي / علاوة الإصدار', label_en: 'Change in additional capital / share premium', value: toStr(capitalMov('ADDITIONAL_CAPITAL')) }]),
       { label_ar: 'التغير في الاحتياطيات', label_en: 'Change in reserves', value: toStr(capitalMov('STATUTORY_RESERVE').plus(capitalMov('OTHER_RESERVES'))) },
       { label_ar: 'التغير في جاري الشركاء / الأرباح المبقاة (حركات مباشرة)', label_en: 'Movements in current accounts / retained earnings', value: toStr(capitalMov('OWNER_CURRENT').plus(capitalMov('RETAINED_EARNINGS'))) },
       { label_ar: 'صافي ربح / (خسارة) الفترة', label_en: 'Profit / (loss) for the period', value: toStr(plC.netIncome) },
@@ -172,7 +175,8 @@ export function buildStatements(params: {
     // الخسائر الائتمانية غير النقدية = الزيادة في المخصص (الشطب المباشر ينعكس في تغير الذمم)
     const allowDeltaCr = delta('AR_ALLOWANCE').neg();
     if (!allowDeltaCr.isZero()) cfRows.push({ section: 'operating', label_ar: 'تعديلات: التغير في مخصص الخسائر الائتمانية', label_en: 'Adjustments: change in ECL allowance', value: toStr(allowDeltaCr) });
-    let op = plC.netIncome.plus(plC.depreciation).plus(allowDeltaCr);
+    if (!plC.oci.isZero()) cfRows.push({ section: 'operating', label_ar: 'تعديلات: الدخل الشامل الآخر (غير نقدي)', label_en: 'Adjustments: other comprehensive income (non-cash)', value: toStr(plC.oci) });
+    let op = plC.netIncome.plus(plC.depreciation).plus(allowDeltaCr).plus(plC.oci);
     for (const c of wcAssets) { const d = delta(c); if (!d.isZero()) { cfRows.push({ section: 'operating', label_ar: `التغير في ${FS_LINE_MAP[c].label_ar}`, label_en: `Change in ${FS_LINE_MAP[c].label_en}`, value: toStr(d.neg()) }); op = op.minus(d); } }
     for (const c of wcLiabs) { const d = delta(c).neg(); if (!d.isZero()) { cfRows.push({ section: 'operating', label_ar: `التغير في ${FS_LINE_MAP[c].label_ar}`, label_en: `Change in ${FS_LINE_MAP[c].label_en}`, value: toStr(d) }); op = op.plus(d); } }
     cfTotals.push({ key: 'operating', label_ar: 'صافي النقد من الأنشطة التشغيلية', label_en: 'Net cash from operating activities', value: toStr(op) });

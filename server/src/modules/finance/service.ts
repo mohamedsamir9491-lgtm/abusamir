@@ -28,7 +28,7 @@ export async function engagementProgress(engagementId: string, db?: Queryable): 
 
 /** صافي الأتعاب من الخطاب (دون الضريبة) ونسبة الضريبة */
 export function letterFee(fields: Record<string, any>): { net: number; vatRate: number; schedule: { stage: string; pct: string; due: string }[] } { // eslint-disable-line @typescript-eslint/no-explicit-any
-  const o = fields?.options ?? {}; const rate = o.vat_mode === 'hidden' ? 0 : num(o.vat_rate ?? 15); const amt = num(fields?.fees_amount);
+  const o = fields?.options ?? {}; /* «إخفاء نص الضريبة» خيار عرض فقط ولا يُلغي استحقاقها؛ عدم احتساب الضريبة يكون بجعل النسبة 0 */ const rate = num(o.vat_rate ?? 15); const amt = num(fields?.fees_amount);
   const net = o.vat_mode === 'inclusive' && rate ? r2(amt / (1 + rate / 100)) : amt;
   return { net, vatRate: rate, schedule: (fields?.fees_schedule ?? []) as { stage: string; pct: string; due: string }[] };
 }

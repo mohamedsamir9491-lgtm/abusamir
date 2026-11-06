@@ -12,6 +12,7 @@ import { htmlToPdf } from '../reports/pdf.js';
 import { saveFile, getFile, readFileData } from '../files/storage.js';
 import { fmtDate, ENGAGEMENT_TYPE_LABELS, ENTITY_LABELS } from '../reports/format.js';
 import { listComponents } from './group.js';
+import { getRates } from '../legal/rates.js';
 import { LETTER_TEMPLATES, templateFor, ORDINALS, DEFAULT_OPTIONS, defaultValuation, BASIS_LABELS, valuationTermsRows, type LetterFields, type LetterSection, type LetterOptions, type ValuationTerms } from './letterTemplates.js';
 
 /**
@@ -30,6 +31,8 @@ async function defaults(engagementId: string, templateCode?: string | null, subj
   // فترة الخطاب = الفترة الحالية للارتباط (لا تُدمج معها الفترة السابقة المخصصة للمقارنة)
   const periods = await one<{ s: string | null; e: string | null }>(`SELECT start_date::text AS s, end_date::text AS e FROM financial_periods WHERE engagement_id = $1 ORDER BY (role = 'current') DESC, end_date DESC LIMIT 1`, [engagementId]);
   const office = await getOfficeSettings();
+  // نسبة ضريبة القيمة المضافة الافتراضية من «جدول النسب» (المعتمدة أو المطابقة من مصدرين)، لا من رقم ثابت في الكود
+  const vatEff = (await getRates()).get('vat.rate')?.effective;
   const typeLabel = ENGAGEMENT_TYPE_LABELS[e.engagement_type ?? ''] ?? e.engagement_type ?? '';
   const period = periods?.s ? `${fmtDate(periods.s, false)} إلى ${fmtDate(periods.e ?? periods.s, false)}` : '    /    /        م إلى    /    /        م';
   const entity = e.client_name ?? '';
@@ -38,7 +41,7 @@ async function defaults(engagementId: string, templateCode?: string | null, subj
   const endDate = periods?.e ?? null;
   return {
     template_code: tpl.code, template_name: tpl.name,
-    options: { ...DEFAULT_OPTIONS, fee_currency: String(e.currency ?? 'SAR'), include_valuation: tpl.code === 'VALUATION' || tpl.code === 'GROUP_VALUATION' },
+    options: { ...DEFAULT_OPTIONS, ...(vatEff != null ? { vat_rate: String(vatEff) } : {}), fee_currency: String(e.currency ?? 'SAR'), include_valuation: tpl.code === 'VALUATION' || tpl.code === 'GROUP_VALUATION' },
     valuation: { ...defaultValuation({ entity, period, valuation_date: endDate ?? '' }), ...(tpl.code === 'GROUP_VALUATION' ? { basis: 'book' as const, approaches: ['asset' as const], subject: `100% من حقوق ملكية ${entity} على أساس موحد` } : {}) },
     entity_name: entity, legal_form: ENTITY_LABELS[e.entity_type ?? ''] ?? '', client_attention: `السادة / ${entity}`, client_cr: e.cr_number ?? '', greeting: 'السلام عليكم ورحمة الله وبركاته،،',
     subject: t.subject, intro: t.intro,

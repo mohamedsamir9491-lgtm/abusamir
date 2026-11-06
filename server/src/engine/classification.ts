@@ -38,6 +38,10 @@ const RULES: Rule[] = [
   { re: /^(?!.*(مستحق|مؤجل|مقدم|accru|deferr|prepaid))(مصروف|مصاريف|مصروفات|م\.|تكلفة|تكاليف|نفقات|expense|expenses|cost of)/i, type: 'expense', sub: 'operating_expense', nb: 'debit', fs: 'ADMIN_EXP', conf: 0.8 },
   // حسابات معلقة ووسيطة (أولوية عالية)
   { re: /(معلق|وسيط|مؤقت|تسوية|suspense|clearing|temporary|unallocated|غير موزع)/i, type: 'other', sub: 'suspense', nb: 'debit', fs: 'SUSPENSE', conf: 0.9, suspense: true },
+  // القروض قبل النقد: «قرض بنكي» و«تسهيلات بنكية» التزام وليست نقدًا (IAS 7 / IAS 1)
+  // المتداول منها: الجزء المتداول وقصيرة الأجل والسحب على المكشوف (IAS 1.69: واجب التسوية خلال 12 شهرًا)
+  { re: /^(?!.*(غير متداول|غير المتداول|طويل|non.?current|long.?term)).*((قرض|قروض|تسهيلات|تمويل|مرابحة|loan|borrowing|facilit|murabaha).*(قصير|متداول|الجزء الجاري|current|short)|(قصير|متداول|current|short).*(قرض|قروض|تسهيلات|تمويل|مرابحة|loan|borrowing|facilit|murabaha)|سحب على المكشوف|جاري مدين|حساب مكشوف|overdraft)/i, type: 'liability', sub: 'current_liability', nb: 'credit', fs: 'SHORT_TERM_LOANS', conf: 0.8 },
+  { re: /(قرض|قروض|تسهيلات|تمويل|مرابحة|loan|borrowing|facilit|murabaha)/i, type: 'liability', sub: 'non_current_liability', nb: 'credit', fs: 'LONG_TERM_LOANS', conf: 0.7 },
   // النقد والبنوك
   { re: /(بنك|مصرف|صندوق|نقد|نقدية|عهدة نقدية|bank|cash|petty)/i, type: 'asset', sub: 'current_asset', nb: 'debit', fs: 'CASH', conf: 0.85, bank: true },
   // مخصصات مقابل الذمم
@@ -52,7 +56,7 @@ const RULES: Rule[] = [
   { re: /(مستحق إلى|مستحق الى|due to).*(أطراف|شركات شقيقة|related|affiliate)|(أطراف ذات علاقة|related part).*(دائن|payable)/i, type: 'liability', sub: 'current_liability', nb: 'credit', fs: 'RELATED_PARTY_CR', conf: 0.8 },
   // الذمم
   { re: /(ذمم.*مدين|مدينون|عملاء|عميل|receivable|customers?|debtors|a\/r|\bar\b)/i, type: 'asset', sub: 'current_asset', nb: 'debit', fs: 'AR', conf: 0.85 },
-  { re: /(مقدم|مدفوع مقدم|prepaid|advance to|سلف|عهد|deposits? paid|تأمينات مدفوعة)/i, type: 'asset', sub: 'current_asset', nb: 'debit', fs: 'OTHER_RECEIVABLES', conf: 0.75 },
+  { re: /(مقدم|مدفوع مقدم|prepaid|advance to|سلف|عهد|deposits? paid|تأمينات مدفوعة|مستحق من|مستحقات من|مبالغ مستحقة من|due from)/i, type: 'asset', sub: 'current_asset', nb: 'debit', fs: 'OTHER_RECEIVABLES', conf: 0.75 },
   { re: /(ذمم.*دائن|دائنون|موردون|مورد|payable|suppliers?|vendors?|creditors|a\/p|\bap\b)/i, type: 'liability', sub: 'current_liability', nb: 'credit', fs: 'AP', conf: 0.85 },
   { re: /(مستحق|مستحقة|accrued|accrual|رواتب مستحقة|إجازات|تذاكر)/i, type: 'liability', sub: 'current_liability', nb: 'credit', fs: 'ACCRUALS', conf: 0.75 },
   { re: /(نهاية الخدمة|مكافأة نهاية|end of service|eosb|gratuity)/i, type: 'liability', sub: 'non_current_liability', nb: 'credit', fs: 'EOSB', conf: 0.9 },
@@ -67,7 +71,6 @@ const RULES: Rule[] = [
   { re: /(استثمار|investment|صكوك|sukuk|أسهم)/i, type: 'asset', sub: 'non_current_asset', nb: 'debit', fs: 'INVESTMENTS', conf: 0.7 },
   // القروض والإيجار
   { re: /(التزامات.*إيجار|lease liabilit)/i, type: 'liability', sub: 'non_current_liability', nb: 'credit', fs: 'LEASE_LIAB_NON_CURRENT', conf: 0.8 },
-  { re: /(قرض|قروض|تسهيلات|تمويل|مرابحة|loan|borrowing|facility|murabaha|overdraft|جاري مدين)/i, type: 'liability', sub: 'non_current_liability', nb: 'credit', fs: 'LONG_TERM_LOANS', conf: 0.7 },
   // حقوق الملكية
   { re: /(رأس المال|رأسمال|share capital|capital stock|paid.?in capital)/i, type: 'equity', sub: 'equity', nb: 'credit', fs: 'SHARE_CAPITAL', conf: 0.95 },
   { re: /(احتياطي نظامي|statutory reserve|legal reserve)/i, type: 'equity', sub: 'equity', nb: 'credit', fs: 'STATUTORY_RESERVE', conf: 0.95 },

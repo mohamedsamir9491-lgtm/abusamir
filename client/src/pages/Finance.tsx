@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { get, put } from '../api';
@@ -54,6 +54,8 @@ type Overview = { year: number; billed: number; collected: number; collection_ra
   engagements: { id: string; client_id: string; client_name: string; engagement_type: string; title: string; lifecycle: string | null; fee: number; billed: number; collected_net: number; remaining: number; progress: { done: number; total: number } }[] };
 export function FinanceRevenue() {
   const { can } = useAuth(); const { run } = useAction(); const [year, setYear] = useState(new Date().getFullYear());
+  // السنة الافتراضية = السنة المالية الحالية للمكتب من إعداداته
+  useEffect(() => { get<{ year: number }>('/office/fiscal-year').then((r) => setYear(r.year)).catch(() => undefined); }, []);
   const { data, loading, reload } = useLoad(() => get<Overview>(`/finance/overview?year=${year}`), [year]);
   const [target, setTarget] = useState('');
   return <Page title="إيرادات المكتب" sub="الإيراد على أساسين معًا: المحصّل نقدًا، والمكتسب حسب مرحلة تنفيذ كل ارتباط. كل المبالغ بدون ضريبة القيمة المضافة."
