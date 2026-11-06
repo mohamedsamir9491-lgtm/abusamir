@@ -62,8 +62,12 @@ const RATE_RULES: [string, (k: string) => boolean][] = [
   ['pen.vat.latepay', (k) => /غرام/.test(k) && /قيمه مضافه|قيمه المضافه/.test(k) && /سداد/.test(k)],
   ['pen.vat.latefile', (k) => /غرام/.test(k) && /قيمه مضافه|قيمه المضافه/.test(k) && /اقرار|تقديم/.test(k)], ['pen.vat.latefile.max', (k) => /غرام/.test(k) && /قيمه مضافه|قيمه المضافه/.test(k) && /اقرار|تقديم/.test(k)],
   ['pen.vat.reg', (k) => /غرام/.test(k) && /قيمه مضافه|قيمه المضافه/.test(k) && /تسجيل/.test(k)], ['pen.vat.error', (k) => /غرام/.test(k) && /قيمه مضافه|قيمه المضافه/.test(k) && /خطا/.test(k)],
-  ['ex.tobacco', (k) => /انتقاي/.test(k) && /تبغ|سجاير|دخان/.test(k)], ['ex.energy', (k) => /انتقاي/.test(k) && /طاقه/.test(k)], ['ex.soft', (k) => /انتقاي/.test(k) && /غازي/.test(k)],
-  ['ex.ecig', (k) => /انتقاي/.test(k) && /الكترون|تدخين/.test(k)], ['ex.sweet', (k) => /انتقاي/.test(k) && /محلا/.test(k)],
+  ['ex.tobacco', (k) => /انتقاي/.test(k) && /تبغ|سجاير|دخان/.test(k)], ['ex.energy', (k) => /انتقاي/.test(k) && /طاقه/.test(k)],
+  ['ex.ecig', (k) => /انتقاي/.test(k) && /الكترون|تدخين/.test(k)],
+  ['ex.sweet.t1', (k) => /انتقاي|ضريبه/.test(k) && /محلا|مشروبات غازيه|المشروبات الغازيه|غازيه|سكر/.test(k)],
+  ['ex.sweet.t2', (k) => /انتقاي|ضريبه/.test(k) && /محلا|مشروبات غازيه|المشروبات الغازيه|غازيه|سكر/.test(k)],
+  ['ex.sweet.t3', (k) => /انتقاي|ضريبه/.test(k) && /محلا|مشروبات غازيه|المشروبات الغازيه|غازيه|سكر/.test(k)],
+  ['ex.sweet.t4', (k) => /انتقاي|ضريبه/.test(k) && /محلا|مشروبات غازيه|المشروبات الغازيه|غازيه|سكر/.test(k)],
 ];
 // سؤال عام عن مجموعة (مثل «نسب الاستقطاع») ← كل نسبها
 const GROUP_RULES: [string, (k: string) => boolean][] = [
@@ -73,7 +77,7 @@ const GROUP_RULES: [string, (k: string) => boolean][] = [
 const STATUS_TEXT = (r: Rate) => r.approved_value != null && !r.changed ? `معتمدة في المكتب${r.approved_by_name ? ` (${r.approved_by_name})` : ''}`
   : r.status === 'match' || r.status === 'match_note' ? `مطابقة في ${r.evidence.length} مصادر رسمية (لم تُعتمد يدويًا بعد)`
   : r.status === 'single' ? 'من مصدر واحد ولم تُعتمد بعد — تحقق منها قبل الاستخدام' : r.status === 'conflict' ? 'المصادر مختلفة ولم تُعتمد بعد — لا تُستخدم قبل الاعتماد' : 'غير متوفرة';
-const fmt = (v: number | null, unit: string) => (v == null ? '—' : `${Number(v.toFixed(4))}${unit === '%' ? '%' : ` ${unit}`}`);
+const fmt = (v: number | null, unit: string) => (v == null ? '—' : unit === 'ريال/لتر' ? `${Number(v.toFixed(4))} ريال لكل لتر` : `${Number(v.toFixed(4))}${unit === '%' ? '%' : ` ${unit}`}`);
 
 export async function rateAnswer(q: string): Promise<{ text: string[]; sources: string[]; links: { label: string; href: string }[] } | null> {
   const k = K(q); if (!ASK_RATE.test(k)) return null;

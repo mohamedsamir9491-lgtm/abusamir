@@ -11,7 +11,7 @@ type Ev = { source: string; ref: string; heading: string; page: number; value: n
 type Rate = { id: string; grp: string; label: string; unit: string; extracted: number | null; status: string; evidence: Ev[]; approved_value: number | null; approved_by_name: string | null; approved_at: string | null; note: string | null; changed: boolean; effective: number | null; usable: boolean };
 type Calc = { ok: boolean; lines: { label: string; value: number; unit?: string; strong?: boolean }[]; refs: string[]; notes: string[]; missing: { id: string; label: string }[] };
 
-const fmt = (v: number | null, u: string) => v == null ? '—' : u === '%' ? `${Number(v).toLocaleString('en-US', { maximumFractionDigits: 4 })}%` : `${Number(v).toLocaleString('en-US')} ريال`;
+const fmt = (v: number | null, u: string) => v == null ? '—' : u === '%' ? `${Number(v).toLocaleString('en-US', { maximumFractionDigits: 4 })}%` : u === 'ريال/لتر' ? `${Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 })} ريال/لتر` : u === 'لتر' ? `${Number(v).toLocaleString('en-US', { maximumFractionDigits: 3 })} لتر` : `${Number(v).toLocaleString('en-US')} ريال`;
 const money = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 type Tone = 'ok' | 'warn' | 'danger' | 'info';
 function stateOf(r: Rate): [string, Tone] {
@@ -87,14 +87,14 @@ function EditRate({ r, onClose, onSave }: { r: Rate; onClose: () => void; onSave
 const WHT = ['wht.mgmt', 'wht.royalty', 'wht.technical', 'wht.rent', 'wht.tickets', 'wht.telecom', 'wht.dividends', 'wht.interest', 'wht.insurance', 'wht.other'];
 const CALCS: { k: string; t: string; d: string }[] = [
   { k: 'wht', t: 'ضريبة الاستقطاع', d: 'دفعة لغير مقيم' }, { k: 'it_penalty', t: 'غرامات ضريبة الدخل', d: 'تأخير الإقرار والسداد' }, { k: 'vat', t: 'القيمة المضافة', d: 'الضريبة وغرامات التأخير' },
-  { k: 'zakat', t: 'الزكاة', d: 'النسبة حسب أيام السنة' }, { k: 'rett', t: 'التصرفات العقارية', d: 'ضريبة قيمة التصرف' },
+  { k: 'zakat', t: 'الزكاة', d: 'النسبة حسب أيام السنة' }, { k: 'rett', t: 'التصرفات العقارية', d: 'ضريبة قيمة التصرف' }, { k: 'sweet', t: 'المشروبات المحلاة', d: 'الانتقائية حسب السكر لكل لتر' },
 ];
 
 function Calculators({ rates, onRates }: { rates: Rate[]; onRates: () => void }) {
   const [k, setK] = useState('wht');
   const [f, setF] = useState<Record<string, Record<string, string | boolean>>>({
     wht: { type: 'wht.mgmt', amount: '100000', basis: 'gross' }, it_penalty: { unpaid: '80000', revenue: '3500000', file_days: '45', pay_days: '75', partial: 'full' },
-    vat: { amount: '10000', basis: 'exclusive', late_months: '0', late_filing: false }, zakat: { base: '1000000', year: 'gregorian', days: '365', hijri_days: '354' }, rett: { value: '2000000' },
+    vat: { amount: '10000', basis: 'exclusive', late_months: '0', late_filing: false }, zakat: { base: '1000000', year: 'gregorian', days: '365', hijri_days: '354' }, rett: { value: '2000000' }, sweet: { sugar: '11', ml: '330', units: '1', no_sugar: false },
   });
   const [res, setRes] = useState<Calc | null>(null);
   const cur = f[k]; const set = (key: string, v: string | boolean) => setF({ ...f, [k]: { ...cur, [key]: v } });
@@ -114,6 +114,8 @@ function Calculators({ rates, onRates }: { rates: Rate[]; onRates: () => void })
         {k === 'zakat' && <><div className="grid c2">{inp('base', 'الوعاء الزكوي (ريال)')}{sel('year', 'السنة المالية', [['hijri', 'هجرية'], ['gregorian', 'تختلف عن الهجرية']])}</div>
           {cur.year !== 'hijri' && <div className="grid c2">{inp('days', 'أيام السنة المالية للمكلف')}{inp('hijri_days', 'أيام السنة الهجرية المقابلة')}</div>}</>}
         {k === 'rett' && inp('value', 'إجمالي قيمة التصرف (ريال)')}
+        {k === 'sweet' && <><label className="row" style={{ gap: 8, marginBottom: 8 }}><input type="checkbox" checked={Boolean(cur.no_sugar)} onChange={(e) => set('no_sugar', e.target.checked)} style={{ width: 'auto' }} /> خالٍ من السكر (محليات صناعية فقط)</label>
+          <div className="grid c3">{!cur.no_sugar && inp('sugar', 'السكر الإجمالي (جرام لكل 100 مل)')}{inp('ml', 'حجم العبوة (مل)')}{inp('units', 'عدد العبوات')}</div></>}
         <p className="muted" style={{ fontSize: 12 }}>الأرقام الافتراضية مثال توضيحي وليست بيانات عميل.</p>
       </div>
       <div className="card"><div className="ch"><span>النتيجة</span></div>

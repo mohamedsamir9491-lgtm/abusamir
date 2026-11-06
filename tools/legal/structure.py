@@ -58,6 +58,18 @@ def join_split(toks):
         out.append(toks[i]); i += 1
     return out
 
+def fix_display(numtxt):
+    """اسم المادة للعرض بعد تصحيح أخطاء القراءة الضوئية: «الثالتة» ← «الثالثة»، «التامنة» ← «الثامنة»"""
+    out = []
+    for t in numtxt.split():
+        pre = re.match(r'^(و?ال)?', t).group(0); core = t[len(pre):]
+        b = norm(core).strip(':،.')
+        if b not in ORD_WORDS:
+            for v in (core.replace('ت', 'ث'), core.replace('ث', 'ت')):
+                if norm(v).strip(':،.') in ORD_WORDS: core = v; break
+        out.append(pre + core)
+    return ' '.join(out)
+
 HEAD = re.compile(r'^\s*[\(\[]?\s*(?:ال)?ماد[ةه]\s*[:\-–]?\s*(.*)$')
 ORD_WORDS = set(UNITS) | set(TENS) | {'عشر', 'عشره', 'مائه', 'مئه', 'مايه', 'بعد', 'مايتان', 'مايتين', 'ماءتين', 'ماءتان', 'مئتين', 'مئتان'}
 
@@ -101,7 +113,7 @@ def split_articles(pages):
                 if mid and num not in (last + 1, last + 2): ok = False
             if ok:
                 if cur: arts.append(cur)
-                cur = {'num': num, 'ref': 'المادة ' + numtxt, 'heading': head, 'lines': [], 'p1': pi, 'p2': pi}
+                cur = {'num': num, 'ref': 'المادة ' + fix_display(numtxt), 'heading': head, 'lines': [], 'p1': pi, 'p2': pi}
                 last = num
             else:
                 if cur:

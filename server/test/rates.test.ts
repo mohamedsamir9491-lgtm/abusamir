@@ -40,3 +40,18 @@ describe('النسب النظامية والحاسبات', () => {
     expect(line(calculate('rett', { value: 2000000 }, rates), 'ضريبة التصرفات')).toBe(100000);
   });
 });
+
+describe('المشروبات المحلاة: النهج الحجمي المتدرج (المادتان 3 و4 من اللائحة التنفيذية للضريبة الانتقائية)', () => {
+  const S = new Map([R('ex.sweet.t1', 0, 'single', 0), R('ex.sweet.t2', 0), R('ex.sweet.t3', 0.79, 'single', 0.79), R('ex.sweet.t4', 1.09, 'single', 1.09)]);
+  it('الشريحة حسب السكر لكل 100 مل، والضريبة = معدل الشريحة × اللترات', () => {
+    const r = calculate('sweet', { sugar: 11, ml: 330, units: 1 }, S);
+    expect(r.ok).toBe(true); expect(line(r, 'الشريحة الرابعة')).toBe(1.09); expect(line(r, 'الضريبة الانتقائية')).toBe(0.36); // مثال دليل رحلة المتعامل: (330 ÷ 1000) × 1.09
+    expect(line(calculate('sweet', { sugar: 6, ml: 1000, units: 24 }, S), 'الضريبة الانتقائية')).toBe(18.96);
+    expect(line(calculate('sweet', { sugar: 4.9, ml: 500, units: 10 }, S), 'الضريبة الانتقائية')).toBe(0);
+    expect(line(calculate('sweet', { no_sugar: true, ml: 330, units: 6 }, S), 'الشريحة الأولى')).toBe(0);
+  });
+  it('الشريحة غير المعتمدة لا تُستخدم', () => {
+    const r = calculate('sweet', { sugar: 9, ml: 330, units: 1 }, new Map([R('ex.sweet.t4', 1.09, 'single')]));
+    expect(r.ok).toBe(false); expect(r.missing[0].id).toBe('ex.sweet.t4');
+  });
+});

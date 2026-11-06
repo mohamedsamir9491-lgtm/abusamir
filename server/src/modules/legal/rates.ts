@@ -31,6 +31,8 @@ export async function loadLegalRates(version: string | null, file = RATES_FILE):
           extracted = EXCLUDED.extracted`,
         [it.id, it.group, it.label, it.unit, it.value, it.status, JSON.stringify(it.evidence), version]);
     }
+    // بند أُلغي في المصدر (مثل نسبة المشروبات المحلاة القديمة) لا يبقى في الجدول ولا تستخدمه الحاسبات
+    await c.query('DELETE FROM legal_rates WHERE NOT (id = ANY($1::text[]))', [items.map((i) => i.id)]);
     await c.query('COMMIT');
   } catch (e) { await c.query('ROLLBACK'); throw e; } finally { c.release(); }
   logger.info({ rates: items.length }, 'legal rates loaded');
@@ -114,6 +116,17 @@ export function calculate(kind: string, input: Record<string, unknown>, rates: M
       const v = num('value'); const rate = need('rett.rate');
       lines.push({ label: 'النسبة', value: rate, unit: '%' }, { label: 'قيمة التصرف', value: r2(v) }, { label: 'ضريبة التصرفات العقارية', value: r2(v * rate / 100), strong: true });
       notes.push('تحتسب الضريبة على إجمالي قيمة التصرف المتفق عليها (المادة 2 من النظام). راجع حالات الاستثناء من الضريبة في النظام ولائحته قبل الحساب.');
+      break;
+    }
+    case 'sweet': {
+      // المادة الثالثة من اللائحة التنفيذية للضريبة الانتقائية: معدل لكل لتر حسب السكر الإجمالي لكل 100 مل؛ والمادة الرابعة: المعدل × عدد اللترات
+      const sugar = num('sugar'); const noSugar = Boolean(input.no_sugar); const ml = num('ml', 330); const units = num('units', 1);
+      const tier = noSugar ? 1 : sugar < 5 ? 2 : sugar < 8 ? 3 : 4;
+      const rate = need(`ex.sweet.t${tier}`); const litres = ml * units / 1000;
+      const names = ['', 'الأولى (خالية من السكر)', 'الثانية (أقل من 5 جرام)', 'الثالثة (من 5 إلى 7.99 جرام)', 'الرابعة (8 جرام فأكثر)'];
+      lines.push({ label: `الشريحة ${names[tier]}`, value: rate, unit: 'ريال/لتر' }, { label: 'الكمية باللتر', value: Math.round(litres * 1000) / 1000, unit: 'لتر' }, { label: 'الضريبة الانتقائية', value: r2(rate * litres), strong: true });
+      notes.push('الشريحة حسب السكر الإجمالي لكل 100 مل من المشروب الجاهز للشرب (المادة 2/1/ج والمادة 3/3 من اللائحة التنفيذية للضريبة الانتقائية)؛ والضريبة = معدل الشريحة × عدد اللترات (المادة 4/2).');
+      notes.push('المركزات والمساحيق تُحسب على المشروب النهائي بعد التخفيف حسب نسبة التخفيف المدونة على العبوة. والمشروبات الغازية المحلاة تخضع لهذه الشرائح.');
       break;
     }
     default: throw badRequest('حاسبة غير معروفة');
