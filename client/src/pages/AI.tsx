@@ -1,3 +1,4 @@
+import { Feedback } from '../components/Feedback';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { get, post } from '../api';
@@ -11,7 +12,7 @@ interface Analysis { executive_summary_ar: string; financial_commentary_ar: stri
 const LV: Record<string, string> = { low: 'منخفض', medium: 'متوسط', high: 'مرتفع', unknown: 'غير محدد' };
 const RISK: Record<string, string> = { liquidity: 'السيولة', profitability: 'الربحية', leverage: 'المديونية', working_capital: 'رأس المال العامل' };
 
-interface ChatMsg { role: 'user' | 'assistant'; text: string[]; table?: { columns: string[]; rows: (string | number)[][] }; sources?: string[]; suggestions?: string[]; company?: string; engine?: string; unverified?: string[]; links?: { label: string; href: string }[] }
+interface ChatMsg { role: 'user' | 'assistant'; text: string[]; table?: { columns: string[]; rows: (string | number)[][] }; sources?: string[]; suggestions?: string[]; company?: string; engine?: string; unverified?: string[]; links?: { label: string; href: string }[]; logId?: string | null }
 const STARTERS = ['ملخص وضع الشركة', 'كم إجمالي الأصول؟', 'لماذا الخسارة؟', 'أكبر 5 مصروفات', 'ما الملاحظات الحرجة؟', 'كم نسبة التداول؟', 'ما المستندات المطلوبة؟', 'حقوق الملكية الموحدة للمجموعة', 'اشرح IFRS 16 عقود الإيجار'];
 
 export function AIPage() {
@@ -27,8 +28,8 @@ export function AIPage() {
   const send = async (text?: string, external = useExternal) => {
     const m = (text ?? input).trim(); if (!m || sending) return; if (external && confirm !== 'chat') { setConfirm('chat'); return; }
     setConfirm(null); setInput(''); setMsgs((x) => [...x, { role: 'user', text: [m] }]); setSending(true);
-    try { const r = await post<{ engine: string; text?: string[]; answer?: string; table?: ChatMsg['table']; sources?: string[]; suggestions?: string[]; company?: string; unverified_numbers?: string[]; links?: { label: string; href: string }[] }>('/ai/chat', { engagement_id: eng, period_id: period, message: m, engine: external ? 'external' : 'local', confirm_external_transfer: external ? true : undefined });
-      setMsgs((x) => [...x, { role: 'assistant', text: r.text ?? (r.answer ? r.answer.split('\n') : []), table: r.table, sources: r.sources, suggestions: r.suggestions, company: r.company, engine: r.engine, unverified: r.unverified_numbers, links: r.links }]);
+    try { const r = await post<{ engine: string; text?: string[]; answer?: string; table?: ChatMsg['table']; sources?: string[]; suggestions?: string[]; company?: string; unverified_numbers?: string[]; links?: { label: string; href: string }[]; log_id?: string | null }>('/ai/chat', { engagement_id: eng, period_id: period, message: m, engine: external ? 'external' : 'local', confirm_external_transfer: external ? true : undefined });
+      setMsgs((x) => [...x, { role: 'assistant', text: r.text ?? (r.answer ? r.answer.split('\n') : []), table: r.table, sources: r.sources, suggestions: r.suggestions, company: r.company, engine: r.engine, unverified: r.unverified_numbers, links: r.links, logId: r.log_id }]);
     } catch (e) { setMsgs((x) => [...x, { role: 'assistant', text: [`تعذر الرد: ${(e as Error).message}`] }]); } finally { setSending(false); }
   };
   const a = data?.analysis?.result; const local = a?._verification?.engine === 'local';
@@ -46,7 +47,7 @@ export function AIPage() {
             {m.table && <div className="tscroll" style={{ maxHeight: 'none', margin: '6px 0' }}><table className="t ruled compact"><thead><tr>{m.table.columns.map((c) => <th key={c}>{c}</th>)}</tr></thead><tbody>{m.table.rows.map((r, j) => <tr key={j}>{r.map((v, k) => <td key={k} className={/^[\d(),.\-−%×]+$/.test(String(v)) && k > 0 ? 'num' : 'wrap'}>{v}</td>)}</tr>)}</tbody></table></div>}
             {m.unverified && m.unverified.length > 0 && <div className="alert danger">أرقام في الرد غير موجودة في البيانات: {m.unverified.join('، ')}</div>}
             {m.sources && m.sources.length > 0 && <div className="muted" style={{ fontSize: 11.5 }}>المصدر: {m.sources.join('؛ ')}</div>}
-            {m.links?.length ? <div className="ai-links">{m.links.map((l) => <Link key={l.href} to={l.href}>{l.label}</Link>)}</div> : null}
+            {m.links?.length ? <div className="ai-links">{m.links.map((l) => <Link key={l.href} to={l.href}>{l.label}</Link>)}</div> : null}{m.role === 'assistant' && <Feedback logId={m.logId} />}
             {m.suggestions && m.suggestions.length > 0 && <div className="row" style={{ flexWrap: 'wrap', gap: 6, marginTop: 6 }}>{m.suggestions.map((q) => <button key={q} className="chip-btn" onClick={() => send(q, false)}>{q}</button>)}</div>}</div>)}
           {sending && <div className="msg assistant"><Spinner /></div>}<div id="chat-end" /></div>
         <form className="row" onSubmit={(e) => { e.preventDefault(); send(); }} style={{ marginTop: 8 }}><input value={input} onChange={(e) => setInput(e.target.value)} placeholder="اكتب سؤالك… مثال: كم رصيد بنك ساب؟ أو قارن جراند بيونيسكوب" style={{ flex: 1 }} /><button className="btn" disabled={sending || !input.trim()}>إرسال</button>

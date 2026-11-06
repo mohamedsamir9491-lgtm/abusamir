@@ -19,6 +19,7 @@ export function System() {
     <FiscalYearCard />
     <OfficePoliciesCard />
     <ThresholdsCard />
+    <AssistantLogCard />
     <div className="grid c2">
       <div className="card"><h2>بيئة الخادم</h2><dl className="kv"><dt>مزوّد الذكاء الاصطناعي</dt><dd className="mono">{String(data.env.ai_provider)}</dd><dt>السماح بالإرسال الخارجي (خادم)</dt><dd>{data.env.ai_allow_external ? 'نعم' : 'لا'}</dd><dt>تشفير الملفات المخزنة</dt><dd>{data.env.file_encryption ? 'مفعّل (AES-256-GCM)' : 'غير مفعّل — اضبط FILE_ENCRYPTION_KEY'}</dd><dt>الحد الأقصى للرفع</dt><dd>{String(data.env.max_upload_mb)} MB</dd><dt>البيئة</dt><dd className="mono">{String(data.env.node_env)}</dd></dl></div>
       <div className="card"><h2>سياسة الذكاء الاصطناعي</h2><fieldset disabled={!manage} style={{ border: 0, padding: 0 }}><label className="row"><input type="checkbox" checked={ai.allow_external} onChange={(e) => setAi({ ...ai, allow_external: e.target.checked })} /> السماح بإرسال بيانات العملاء المهيكلة لمزوّد خارجي (يتطلب تفويضًا تعاقديًا)</label><label className="row"><input type="checkbox" checked={ai.share_client_names} onChange={(e) => setAi({ ...ai, share_client_names: e.target.checked })} /> إرسال أسماء العملاء (الافتراضي: إخفاؤها)</label><label className="row"><input type="checkbox" checked disabled /> عدم استخدام البيانات للتدريب (ثابت)</label>{manage && <button className="btn sm" style={{ marginTop: 8 }} disabled={busy} onClick={() => run(() => put('/system/settings/ai_policy', ai), 'تم الحفظ').then(reload)}>حفظ</button>}</fieldset>
@@ -114,4 +115,31 @@ function ThresholdsCard() {
       <div className="grid c3">{TH.map(([k, label, unit, d]) => <Field key={k} label={`${label} (${unit})`}><input type="number" step="any" min={0} value={v[k] ?? d} onChange={(e) => setV({ ...v, [k]: Number(e.target.value) })} dir="ltr" title={`الافتراضي ${d}`} /></Field>)}</div>
       <div className="row"><button className="btn" onClick={save} disabled={busy}>حفظ العتبات</button><button className="btn sec" onClick={() => setV(Object.fromEntries(TH.map(([k, , , d]) => [k, d])))} disabled={busy}>استعادة الافتراضي</button></div>
     </fieldset></div>;
+}
+
+/** حلقة التعلم: أسئلة المساعد التي لم يُجب عنها أو كانت مطابقتها ضعيفة أو قيّمها المستخدم سلبًا — تُراجع وتتحول إلى تحسينات */
+type LogRow = { id: string; created_at: string; full_name: string | null; channel: string; scope: string | null; intent: string | null; question: string; answered: boolean; weak: boolean; answer_head: string | null; rating: number | null; note: string | null; reviewed: boolean };
+type LogStats = { total: number; answered: number; weak: number; unanswered: number; up: number; down: number; to_review: number };
+function AssistantLogCard() {
+  const { can } = useAuth(); const [f, setF] = useState('review');
+  const { data, reload } = useLoad(() => can('office.manage') ? get<{ rows: LogRow[]; stats: LogStats }>(`/ai/log?filter=${f}`) : Promise.resolve({ rows: [], stats: null as unknown as LogStats }), [f]);
+  if (!can('office.manage') || !data?.stats) return null;
+  const st = data.stats; const pct = (n: number) => (st.total ? `${Math.round((n / st.total) * 100)}%` : '—');
+  const result = (r: LogRow) => (!r.answered ? <span className="badge danger">لم يُجب</span> : r.weak ? <span className="badge warn">مطابقة ضعيفة</span> : <span className="badge ok">أُجيب</span>);
+  const toggle = async (id: string) => { await post(`/ai/log/${id}/reviewed`, {}); reload(); };
+  const csv = () => {
+    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [['التاريخ', 'المستخدم', 'السؤال', 'النتيجة', 'التقييم', 'الملاحظة', 'بداية الرد'].map(esc).join(','), ...data.rows.map((r) => [r.created_at, r.full_name, r.question, !r.answered ? 'لم يُجب' : r.weak ? 'ضعيفة' : 'أُجيب', r.rating === 1 ? 'مفيد' : r.rating === -1 ? 'غير مفيد' : '', r.note, r.answer_head].map(esc).join(','))];
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv' })); a.download = 'assistant-questions.csv'; a.click();
+  };
+  return <div className="card"><div className="row between"><h2>أسئلة المساعد للمراجعة</h2><button className="btn sec sm" onClick={csv} disabled={!data.rows.length}>تنزيل CSV</button></div>
+    <p className="muted" style={{ marginTop: 0 }}>كل سؤال يُسأل للمساعد يُحفظ مع نتيجته وتقييمك. ما لم يُجب عنه أو قُيّم «غير مفيد» يُراجع ويتحول إلى تحسين (مرادف، أو إجابة منظمة، أو مصدر ناقص)، فلا يتكرر الخطأ.</p>
+    <div className="row" style={{ flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+      <span className="chip">الأسئلة: {st.total}</span><span className="chip">أُجيب: {st.answered} ({pct(st.answered)})</span><span className="chip">ضعيفة: {st.weak}</span><span className="chip">لم يُجب: {st.unanswered}</span><span className="chip">👍 {st.up}</span><span className="chip">👎 {st.down}</span><span className="chip"><b>للمراجعة: {st.to_review}</b></span>
+    </div>
+    <div className="row" style={{ gap: 6, marginBottom: 8 }}>{[['review', 'للمراجعة'], ['negative', 'غير مفيد'], ['positive', 'مفيد'], ['all', 'الكل']].map(([k, l]) => <button key={k} className={`btn sm ${f === k ? '' : 'sec'}`} onClick={() => setF(k)}>{l}</button>)}</div>
+    {!data.rows.length ? <p className="muted">لا توجد أسئلة في هذا التصنيف.</p> : <div className="tscroll"><table className="t compact"><thead><tr><th>التاريخ</th><th>المستخدم</th><th>السؤال</th><th>النتيجة</th><th>التقييم</th><th>ملاحظة المستخدم</th><th></th></tr></thead>
+      <tbody>{data.rows.map((r) => <tr key={r.id} style={r.reviewed ? { opacity: 0.55 } : undefined}><td className="mono">{fmtDate(r.created_at, { time: true })}</td><td>{r.full_name ?? '—'}</td><td className="wrap" title={r.answer_head ?? ''}>{r.question}</td><td>{result(r)}</td><td>{r.rating === 1 ? '👍' : r.rating === -1 ? '👎' : ''}</td><td className="wrap">{r.note ?? ''}</td>
+        <td><button className="btn sec sm" onClick={() => toggle(r.id)}>{r.reviewed ? 'إعادة للمراجعة' : 'تمت المراجعة'}</button></td></tr>)}</tbody></table></div>}
+  </div>;
 }
