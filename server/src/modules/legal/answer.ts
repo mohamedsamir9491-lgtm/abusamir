@@ -4,6 +4,8 @@ import type { ChatAnswer } from '../ai/chat.js';
 import { searchLegal, snippet, type LegalHit } from './library.js';
 import { findTopics } from '../ai/knowledge.js';
 import { guideAnswer } from './guides.js';
+import { rateAnswer, foreignCountries, saudiPart, splitQuestions, outOfScope } from './router.js';
+const SAUDI_RE = /سعوديه|السعوديه|المملكه(?! المتحده)/;
 
 const N = (s: string) => searchKey(s).replace(/[؟?!.,،:؛()]/g, ' ').replace(/\s+/g, ' ').trim();
 // مفردات تدل على سؤال نظامي (زكاة، ضرائب، جمارك، أنظمة)
@@ -25,14 +27,19 @@ const LINK = (h: LegalHit, q: string) => `/library?a=${h.id}&q=${encodeURICompon
 const cite = (h: LegalHit) => `${h.title} | ${h.ref}${h.heading ? ` (${h.heading})` : ''}${h.status !== 'active' ? ' [إصدار سابق]' : ''}`;
 
 /** يعيد إجابة مقتبسة من المكتبة، أو null إن لم يوجد نص مطابق كفاية */
-export async function legalAnswer(question: string): Promise<(ChatAnswer & { links: { label: string; href: string }[] }) | null> {
-  // أسئلة «كيف تُحسب؟» لها إجابة منظمة خطوة بخطوة من مواد النظام
-  const g = await guideAnswer(question); if (g) return g;
+type Ans = ChatAnswer & { links: { label: string; href: string }[] };
+async function searchAnswer(question: string, weak = false): Promise<Ans | null> {
   const r = await searchLegal(question, { limit: 8 });
   if (!r.hits.length) return null;
   const need = Math.max(1, Math.ceil(r.groups * 0.5));
   const good = r.hits.filter((h) => h.matched >= need);
-  if (!good.length) return null;
+  if (!good.length) {
+    if (!weak) return null;
+    // 4) بدل «لم أجد»: أقرب النتائج مع تنبيه صريح بضعف المطابقة
+    const near = r.hits.slice(0, 3);
+    return { intent: 'legal.near', company: 'المكتبة النظامية', period: '', text: ['لم أجد نصًا يطابق السؤال بدرجة كافية. أقرب ما وجدته في المكتبة (مطابقة ضعيفة، قد لا يكون ما تقصده):', ...near.map((h) => `• ${h.ref}${h.heading ? ` «${h.heading}»` : ''} — ${h.title}`), 'جرّب صياغة أدق (اسم النظام أو رقم المادة)، ولن أذكر نسبة أو حكمًا دون نص.'],
+      sources: near.map(cite), links: near.map((h) => ({ label: `${h.ref} | ${h.title.slice(0, 50)}`, href: LINK(h, question) })), suggestions: [] };
+  }
   // السارية أولًا ما لم يكن السابق أعلى مطابقة بفارق واضح
   const active = good.filter((h) => h.status === 'active');
   const top = active.length && active[0].score >= good[0].score - 8 ? active[0] : good[0];
@@ -47,6 +54,31 @@ export async function legalAnswer(question: string): Promise<(ChatAnswer & { lin
     links: [top, ...rest].map((h) => ({ label: `${h.ref} | ${h.title.slice(0, 50)}`, href: LINK(h, question) })),
     suggestions: [],
   };
+}
+
+/** إجابة سؤال واحد: إجابة منظمة ← جدول النسب ← النصوص ← أقرب النتائج */
+async function answerOne(q: string): Promise<Ans | null> {
+  const g = await guideAnswer(q); if (g) return g;
+  const rt = await rateAnswer(q);
+  if (rt) return { intent: 'legal.rate', company: 'جدول النسب', period: '', text: [...rt.text, 'القيم من «جدول النسب» المستخرج من النصوص الرسمية؛ النسبة غير المعتمدة لا تستخدمها الحاسبات حتى تعتمدها.'], sources: rt.sources, links: rt.links, suggestions: [] };
+  return (await searchAnswer(q)) ?? (await searchAnswer(q, true));
+}
+
+/** الإجابة النظامية بطبقاتها: تفكيك السؤال (دول/أسئلة متعددة) ثم إجابة كل جزء، وحدود المكتبة للدول الأخرى */
+export async function legalAnswer(question: string): Promise<Ans | null> {
+  const countries = foreignCountries(question);
+  const base = countries.length ? saudiPart(question) : question;
+  const askSaudi = !countries.length || SAUDI_RE.test(searchKey(question)) || base.split(/\s+/).length >= 3 && SAUDI_RE.test(searchKey(question));
+  const parts = askSaudi ? splitQuestions(base) : [];
+  const answers: Ans[] = [];
+  for (const p of parts) { const a = await answerOne(p); if (a) answers.push(a); }
+  const scope = []; for (const c of countries) scope.push(await outOfScope(c, question));
+  if (!scope.length && answers.length === 1) return answers[0];
+  if (!scope.length && !answers.length) return null;
+  const text: string[] = []; const sources: string[] = []; const links: { label: string; href: string }[] = [];
+  answers.forEach((a, i) => { if (countries.length || answers.length > 1) text.push(countries.length ? 'المملكة العربية السعودية:' : `الجزء ${i + 1} (${parts[i]}):`); text.push(...a.text); sources.push(...a.sources); links.push(...a.links); });
+  for (const s of scope) { text.push(s.text); links.push(...s.links); }
+  return { intent: 'legal.multi', company: 'المكتبة النظامية', period: '', text, sources: [...new Set(sources)], links, suggestions: answers.flatMap((a) => a.suggestions).slice(0, 3) };
 }
 
 /** أسئلة المعايير الدولية: الشرح العربي من قاعدة المعرفة + الملخص الرسمي من المكتبة */

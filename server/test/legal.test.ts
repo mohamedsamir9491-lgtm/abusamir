@@ -35,3 +35,18 @@ describe('إجابة «كيف تُحسب الزكاة؟» المنظمة', () =>
     for (const q of ['ما نسبة ضريبة القيمة المضافة', 'زكاة مكلفي التقديري كيف تحسب', 'ما سعر ضريبة الدخل']) expect(findGuide(q)).toBeNull();
   });
 });
+
+import { foreignCountries, saudiPart, splitQuestions } from '../src/modules/legal/router.js';
+describe('طبقات الإجابة: الدول وتفكيك الأسئلة', () => {
+  it('تتعرف على الدول الأخرى وتفصل جزء المملكة', () => {
+    const q = 'ماهي نسبة ضريبة القيمة المضافة في المملكة العربية السعودية وفي مصر؟';
+    expect(foreignCountries(q)).toEqual(['مصر']);
+    expect(saudiPart(q)).not.toContain('مصر');
+    expect(foreignCountries('ما نسبة الزكاة')).toEqual([]);
+    expect(foreignCountries('الاستقطاع على المدفوعات لغير المقيم في الإمارات')).toEqual(['الإمارات']);
+  });
+  it('تفصل الأسئلة المتعددة في رسالة واحدة', () => {
+    expect(splitQuestions('ما نسبة الزكاة؟ وما غرامة تأخير الإقرار؟')).toHaveLength(2);
+    expect(splitQuestions('ما نسبة الزكاة')).toEqual(['ما نسبة الزكاة']);
+  });
+});
