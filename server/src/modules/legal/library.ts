@@ -119,12 +119,12 @@ export async function searchLegal(q: string, opts: { limit?: number; category?: 
   params.push(Math.min(50, opts.limit ?? 10));
   const rows = await many<LegalHit>(`SELECT * FROM (SELECT c.id::text, c.source_code, c.ref, c.heading, c.body, c.kind, c.num, c.page_from, c.page_to, s.title, s.category, s.doc_type, s.status, s.source_url,
       (${matchedExpr}) AS matched,
-      ((${wMatched}) * 4 + (${headExpr}) * 6 + (${titleExpr}) * 1 + (${domExpr}) + ts_rank_cd(c.tsv, to_tsquery('simple', $1), 1) * 12
+      ((${wMatched}) * 4 + (${headExpr}) * 6 + (${titleExpr}) * 2 + (${domExpr}) + ts_rank_cd(c.tsv, to_tsquery('simple', $1), 1) * 12
         - CASE WHEN length(c.body) > 2500 THEN ln(length(c.body) / 2500.0) * 4 ELSE 0 END
         + CASE WHEN ${artNo ? `c.kind = 'article' AND c.num = ${artNo}` : 'false'} THEN 8 ELSE 0 END
         + CASE WHEN ${std ? `c.ref = '${std}'` : 'false'} THEN 20 ELSE 0 END
         + CASE WHEN s.status = 'active' THEN 3 ELSE 0 END
-        + CASE s.doc_type WHEN 'law' THEN 1.2 WHEN 'regulation' THEN 1.2 WHEN 'standard' THEN 1 WHEN 'rules' THEN .6 WHEN 'decision' THEN .5 WHEN 'guide' THEN .4 ELSE 0 END
+        + CASE s.doc_type WHEN 'law' THEN 1.2 WHEN 'regulation' THEN 1.2 WHEN 'standard' THEN 1 WHEN 'rules' THEN .6 WHEN 'decision' THEN .5 WHEN 'ruling' THEN .5 WHEN 'guide' THEN .4 ELSE 0 END
         + CASE WHEN c.kind = 'article' THEN .8 WHEN c.kind = 'intro' THEN -1.5 ELSE 0 END) AS score
     FROM legal_chunks c JOIN legal_sources s ON s.code = c.source_code
     WHERE ${cond.join(' AND ')}) x ORDER BY score DESC LIMIT $${params.length}`, params);

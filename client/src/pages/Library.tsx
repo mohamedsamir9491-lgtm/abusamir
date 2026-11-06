@@ -11,7 +11,7 @@ type Hit = { id: string; source_code: string; ref: string; heading: string | nul
 type Chunk = { id: string; source_code: string; ord: number; kind: string; ref: string; heading: string | null; body: string; page_from: number; page_to: number; title: string; category: string; status: string; source_url: string | null; doc_type: string };
 type Toc = { id: string; ref: string; heading: string | null; kind: string; page_from: number };
 
-export const DOC_TYPE: Record<string, string> = { law: 'نظام', regulation: 'لائحة تنفيذية', rules: 'قواعد وإجراءات', decision: 'قرار / تعميم', guide: 'دليل إرشادي', agreement: 'اتفاقية', standard: 'معيار', other: 'وثيقة' };
+export const DOC_TYPE: Record<string, string> = { law: 'نظام', regulation: 'لائحة تنفيذية', rules: 'قواعد وإجراءات', decision: 'قرار / تعميم', guide: 'دليل إرشادي', agreement: 'اتفاقية', standard: 'معيار', ruling: 'مبادئ وقرارات اللجان', other: 'وثيقة' };
 const STATUS: Record<string, [string, string]> = { active: ['سارٍ', 'ok'], superseded: ['سابق / ملغى', 'warn'] };
 const stem = (w: string) => norm(w).replace(/[^\u0621-\u064A0-9a-z%]/gi, '').replace(/^(وبال|وكال|فبال|ولل|فلل|وال|بال|فال|كال|لل|ال|و)(?=[\u0621-\u064A]{3,})/, '');
 const norm = (s: string) => s.replace(/[ً-ْـ]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
