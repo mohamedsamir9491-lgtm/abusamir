@@ -30,16 +30,16 @@ def percents(text):
         v = words_value(m.group(1))
         if v: out.append((v, m.start(), 'كتابة'))
     for m in re.finditer(r'%', t):
-        aft = re.match(r'\s?\(?\s?(\d{1,3}(?:[.,]\d{1,4})?)', t[m.end():m.end() + 10])
-        bef = re.search(r'(?<![\d.])(\d{1,3}(?:[.,]\d{1,4})?)\s?\)?\s?$', t[max(0, m.start() - 10):m.start()])
-        g = aft or bef
+        aft = re.match(r'[ \t]?\(?[ \t]?(\d{1,3}(?:[.,]\d{1,4})?)', t[m.end():m.end() + 10])  # «%20» (لا يتجاوز السطر)
+        bef = re.search(r'(?<![\d.])(\d{1,3}(?:[.,]\d{1,4})?)[ \t]?\)?[ \t]?$', t[max(0, m.start() - 10):m.start()])  # «20%»
+        g = bef if bef and m.start() > 0 and t[m.start() - 1].isdigit() else (aft or bef)  # الرقم الملاصق للعلامة أولًا
         if not g: continue
         raw = g.group(1).replace(',', '.')
         v = float(raw)
         if '.' in raw and v >= 5 and len(raw) == 3: v = float(raw[::-1])  # %5.2 معكوسة = 2.5
         out.append((v, m.start(), 'رقم'))
-    for m in re.finditer(r'\(\s?90(\d{1,3})\s?\)|\b90(100|50|25|20|15|10)\b|\(\s?(?:0|9)0?5\s?\)', t):
-        g = m.group(1) or m.group(2)
+    for m in re.finditer(r'\(\s?90(\d{1,3})\s?\)|\b90(100|50|25|20|15|10)\b|\b96(100|50|25|20|15|10|05|5)\b|\(\s?(?:0|9)0?5\s?\)', t):  # «%» تُقرأ ضوئيًا 90 أو 96
+        g = m.group(1) or m.group(2) or m.group(3)
         out.append((float(g) if g else 5.0, m.start(), 'قراءة ضوئية'))
     return out
 
@@ -111,6 +111,17 @@ def line_pick(text, pos, vals, after=False):
                 c = in_line(j)
                 if c: return c[0][3], c[0][4]
     return None
+
+# النص الموحد من هيئة الخبراء مصدر رسمي ثانٍ مستقل للنظام نفسه: يُضاف بعد موضع النظام بالرقم والمرسى نفسيهما
+BOE = {'نظام ضريبة الدخل الصادر': 'نظام ضريبة الدخل — النص الموحد', 'نظام ضريبة القيمة المضافة': 'نظام ضريبة القيمة المضافة — النص الموحد'}
+for _i, (_id, _g, _l, _u, _locs) in enumerate(ITEMS):
+    out_locs = []
+    for loc in _locs:
+        if loc['src'] in BOE and loc['art'] is not None:
+            out_locs.append(dict(loc, src=re.escape(loc['src']) + '(?! —)'))
+            out_locs.append(dict(loc, src=re.escape(BOE[loc['src']])))
+        else: out_locs.append(loc)
+    ITEMS[_i] = (_id, _g, _l, _u, out_locs)
 
 def main():
     c = json.load(gzip.open(sys.argv[1], 'rt')); S = {s['code']: s for s in c['sources']}

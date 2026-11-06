@@ -12,7 +12,7 @@ type Chunk = { id: string; source_code: string; ord: number; kind: string; ref: 
 type Toc = { id: string; ref: string; heading: string | null; kind: string; page_from: number };
 
 export const DOC_TYPE: Record<string, string> = { law: 'نظام', regulation: 'لائحة تنفيذية', rules: 'قواعد وإجراءات', decision: 'قرار / تعميم', guide: 'دليل إرشادي', agreement: 'اتفاقية', standard: 'معيار', ruling: 'مبادئ وقرارات اللجان', other: 'وثيقة' };
-const STATUS: Record<string, [string, string]> = { active: ['سارٍ', 'ok'], superseded: ['سابق / ملغى', 'warn'] };
+const STATUS: Record<string, [string, string]> = { active: ['سارٍ', 'ok'], superseded: ['سابق / ملغى', 'warn'], upcoming: ['يسري لاحقًا', 'info'] };
 const stem = (w: string) => norm(w).replace(/[^\u0621-\u064A0-9a-z%]/gi, '').replace(/^(وبال|وكال|فبال|ولل|فلل|وال|بال|فال|كال|لل|ال|و)(?=[\u0621-\u064A]{3,})/, '');
 const norm = (s: string) => s.replace(/[ً-ْـ]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
 
@@ -43,7 +43,7 @@ export function Library() {
       <div className="lib-q"><Search size={18} /><input value={text} onChange={(e) => setText(e.target.value)} placeholder="ابحث بسؤال أو كلمات: سعر ضريبة الدخل، مدة تقديم الإقرار، المادة 68 من نظام ضريبة الدخل…" autoFocus />{text && <button className="iconbtn sm" title="مسح" onClick={() => { setText(''); set({ q: null }); }}><X size={15} /></button>}</div>
       <div className="row" style={{ marginTop: 10 }}>
         <select value={cat} onChange={(e) => set({ cat: e.target.value || null, src: null, a: null })} aria-label="التصنيف"><option value="">كل التصنيفات</option>{stats.data?.categories.map((c) => <option key={c.category} value={c.category}>{c.category || 'غير مصنف'} ({c.sources})</option>)}</select>
-        <select value={status} onChange={(e) => set({ st: e.target.value || null })} aria-label="الحالة"><option value="">السارية والسابقة</option><option value="active">السارية فقط</option><option value="superseded">السابقة فقط</option></select>
+        <select value={status} onChange={(e) => set({ st: e.target.value || null })} aria-label="الحالة"><option value="">السارية والسابقة</option><option value="active">السارية فقط</option><option value="superseded">السابقة فقط</option><option value="upcoming">التي تسري لاحقًا</option></select>
         <span className="muted" style={{ marginInlineStart: 'auto' }}>{total ? `${total} مصدرًا | ${arts} مادة` : ''}</span>
       </div>
     </div>
@@ -104,7 +104,8 @@ function Reader({ id, q, onOpen, onClose, onSource }: { id: string; q: string; o
     <div className="muted" style={{ fontSize: 13 }}>{c.title}</div>
     <h2 style={{ margin: '4px 0 8px' }}>{c.ref}{c.heading ? ` | ${c.heading}` : ''}</h2>
     <div className="row" style={{ marginBottom: 14 }}><StatusBadge s={c.status} /><span className="badge neutral">{DOC_TYPE[c.doc_type] ?? c.doc_type}</span><span className="muted">الصفحات {c.page_from}{c.page_to !== c.page_from ? `–${c.page_to}` : ''}</span></div>
-    {c.status !== 'active' && <div className="note warn" style={{ marginBottom: 12 }}>هذا النص من إصدار سابق أو ملغى. راجع النسخة السارية قبل الاعتماد عليه.</div>}
+    {c.status === 'superseded' && <div className="note warn" style={{ marginBottom: 12 }}>هذا النص من إصدار سابق أو ملغى. راجع النسخة السارية قبل الاعتماد عليه.</div>}
+    {c.status === 'upcoming' && <div className="note" style={{ marginBottom: 12 }}>هذا الإصدار لم يسرِ بعد؛ يطبَّق من تاريخ سريانه المذكور في عنوانه، وتبقى النسخة الحالية هي المطبقة حتى ذلك الحين.</div>}
     <div className="lib-body"><Mark text={c.body} terms={terms} /></div>
     <div className="row between" style={{ marginTop: 16 }}>
       {data.prev ? <button className="btn sec sm" onClick={() => onOpen(data.prev!.id)}><ChevronRight size={15} /> {data.prev.ref}</button> : <span />}
