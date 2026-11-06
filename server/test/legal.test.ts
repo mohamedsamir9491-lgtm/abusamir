@@ -50,3 +50,15 @@ describe('طبقات الإجابة: الدول وتفكيك الأسئلة', ()
     expect(splitQuestions('ما نسبة الزكاة')).toEqual(['ما نسبة الزكاة']);
   });
 });
+
+describe('الإجابات المنظمة لباقي الضرائب', () => {
+  it('كل سؤال «كيف تُحسب» يذهب لإجابته، وأسئلة النسب لا تُلتقط', () => {
+    expect(findGuide('كيف تحسب ضريبة الدخل على الشركات')?.key).toBe('income_tax_calc');
+    expect(findGuide('كيف أحسب ضريبة القيمة المضافة المستحقة')?.key).toBe('vat_calc');
+    expect(findGuide('طريقة احتساب ضريبة الاستقطاع')?.key).toBe('wht_calc');
+    expect(findGuide('كيف تحسب ضريبة التصرفات العقارية')?.key).toBe('rett_calc');
+    expect(findGuide('كيف تحسب الزكاة')?.key).toBe('zakat_calc');
+    expect(findGuide('ما نسبة ضريبة الدخل')).toBeNull();
+    expect(findGuide('غرامة تأخير سداد ضريبة القيمة المضافة كيف تحسب')).toBeNull();
+  });
+});
