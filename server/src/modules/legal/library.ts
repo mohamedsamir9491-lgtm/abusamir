@@ -44,7 +44,7 @@ export async function loadLegalCorpus(file = CORPUS_FILE): Promise<{ loaded: boo
 }
 
 // ---------- البحث ----------
-const STOP = new Set(['في', 'من', 'علي', 'عن', 'الي', 'ما', 'ماذا', 'هو', 'هي', 'هل', 'كم', 'كيف', 'متي', 'اين', 'لماذا', 'هذا', 'هذه', 'ذلك', 'التي', 'الذي', 'او', 'ام', 'ثم', 'مع', 'كل', 'اي', 'بين', 'عند', 'قد', 'لا', 'لم', 'لن', 'ان', 'انه', 'كان', 'يكون', 'تكون', 'وفق', 'حسب', 'المملكه', 'السعوديه', 'يعد', 'تعد', 'لاغراض', 'اغراض', 'يجب', 'حال', 'حاله', 'بشان', 'خاص', 'خاصه', 'المتعلقه', 'متعلقه',
+const STOP = new Set(['في', 'من', 'علي', 'عن', 'الي', 'ما', 'ماذا', 'هو', 'هي', 'هل', 'كم', 'كيف', 'متي', 'اين', 'لماذا', 'هذا', 'هذه', 'ذلك', 'التي', 'الذي', 'او', 'ام', 'ثم', 'مع', 'كل', 'اي', 'بين', 'عند', 'قد', 'لا', 'لم', 'لن', 'ان', 'انه', 'كان', 'يكون', 'تكون', 'وفق', 'حسب', 'المملكه', 'السعوديه', 'مملكه', 'سعوديه', 'ماهي', 'ماهو', 'طريقه', 'كيفيه', 'يعد', 'تعد', 'لاغراض', 'اغراض', 'يجب', 'حال', 'حاله', 'بشان', 'خاص', 'خاصه', 'المتعلقه', 'متعلقه',
   'the', 'of', 'and', 'or', 'to', 'in', 'a', 'an', 'is', 'what', 'for', 'on', 'by', 'with']);
 /** نفس تقليص البادئات المستخدم في الفهرس (ar_stem_text) */
 export const arStem = (s: string) => searchKey(s).replace(/(^|[^ء-ي0-9a-z])(وبال|وكال|فبال|ولل|فلل|وال|بال|فال|كال|لل|ال|و)([ء-ي0-9a-z]{3,})/g, '$1$3');
@@ -105,7 +105,7 @@ export interface LegalHit { id: string; source_code: string; ref: string; headin
 /** بحث مرتب: عدد الكلمات المطابقة أولًا، ثم كثافتها، مع تفضيل الأنظمة واللوائح السارية */
 export async function searchLegal(q: string, opts: { limit?: number; category?: string; status?: string; type?: string; source?: string } = {}): Promise<{ terms: string[]; groups: number; hits: LegalHit[] }> {
   const terms = queryTerms(q); if (!terms.length) return { terms, groups: 0, hits: [] };
-  const d = domainOf(q); const dom = d?.[1] ?? null; const drop = new Set([...(d?.[2] ?? []), ...(d ? GENERAL : [])]);
+  const d = domainOf(q); const dom = d?.[1] ?? null; const drop = new Set([...(d?.[2] ?? []), ...(d ? GENERAL : []), ...(d && dom !== 'IFRS|standard' ? ['معايير', 'معيار'] : [])]); /* «المعايير السعودية» في سؤال زكوي/ضريبي تعني الأنظمة لا معايير المحاسبة */
   const core = terms.filter((t) => !drop.has(t) && !drop.has(lamBase(t) ?? ''));
   const groups = termGroups(core.length ? core : terms); const tq = groups.map((g) => `(${tsGroup(g)})`).join(' | ');
   const artNo = articleNumber(q); const std = standardRef(q) ?? (dom === 'IFRS|standard' || !dom ? standardByName(q, dom ? 1 : 2) : null);
@@ -126,7 +126,7 @@ export async function searchLegal(q: string, opts: { limit?: number; category?: 
   const titleExpr = gi.map((i) => `(to_tsvector('simple', ar_stem_text(s.title || ' ' || s.category)) @@ to_tsquery('simple', $${i}))::int`).join(' + ');
   // نوع الضريبة المذكور في السؤال يحصر الترجيح في مصادره
   let domExpr = '0';
-  if (dom) { params.push(dom); domExpr = `CASE WHEN (s.title || ' ' || s.category || ' ' || s.doc_type) ~ $${params.length} THEN 4 ELSE -1.5 END`; }
+  if (dom) { params.push(dom); domExpr = `CASE WHEN (s.title || ' ' || s.category || ' ' || s.doc_type) ~ $${params.length} THEN 4 WHEN ${dom === 'IFRS|standard' ? 'false' : "s.doc_type = 'standard'"} THEN -10 ELSE -1.5 END`; /* سؤال زكوي/ضريبي لا تجيب عنه معايير المحاسبة */ }
   const limit = Math.min(50, opts.limit ?? 10); params.push(limit * 2);
   const rows = await many<LegalHit>(`SELECT * FROM (SELECT c.id::text, c.source_code, c.ref, c.heading, c.body, c.kind, c.num, c.page_from, c.page_to, s.title, s.category, s.doc_type, s.status, s.source_url,
       (${matchedExpr}) AS matched,

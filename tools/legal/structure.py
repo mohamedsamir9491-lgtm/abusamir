@@ -18,7 +18,7 @@ def ordinal(words):
     m = re.search(r'\d+', w)
     if m:
         return int(m.group())
-    toks = [re.sub(r'^(و?ال)', '', t) for t in re.split(r'[\s\-]+', w) if t]
+    toks = [fix_ord(re.sub(r'^(و?ال)', '', t)) for t in re.split(r'[\s\-]+', w) if t]
     n = 0; unit = 0; hundred = 0
     for i, t in enumerate(toks):
         if t in ('مائه', 'مئه', 'مايه'):
@@ -40,6 +40,24 @@ def ordinal(words):
     total = hundred + n + unit
     return total or None
 
+def fix_ord(t):
+    """تصحيح كلمة ترتيبية قرأها OCR خطأً: ت↔ث (الثالتة، التالث، الثامنه→)"""
+    if t in ORD_WORDS: return t
+    for v in (t.replace('ت', 'ث'), t.replace('ث', 'ت')):
+        if v in ORD_WORDS: return v
+    return t
+
+def join_split(toks):
+    """«الثلا ثون» ← «الثلاثون»: يدمج كلمتين متجاورتين إذا كان دمجهما عددًا ترتيبيًا"""
+    out = []; i = 0
+    while i < len(toks):
+        if i + 1 < len(toks):
+            j = re.sub(r'^(و?ال)', '', norm(toks[i] + toks[i + 1]).strip(':،.-–()'))
+            if fix_ord(j) in ORD_WORDS and re.sub(r'^(و?ال)', '', norm(toks[i]).strip(':،.')) not in ORD_WORDS:
+                out.append(toks[i] + toks[i + 1]); i += 2; continue
+        out.append(toks[i]); i += 1
+    return out
+
 HEAD = re.compile(r'^\s*[\(\[]?\s*(?:ال)?ماد[ةه]\s*[:\-–]?\s*(.*)$')
 ORD_WORDS = set(UNITS) | set(TENS) | {'عشر', 'عشره', 'مائه', 'مئه', 'مايه', 'بعد', 'مايتان', 'مايتين', 'ماءتين', 'ماءتان', 'مئتين', 'مئتان'}
 
@@ -51,10 +69,10 @@ def parse_head(line):
     d = re.match(r'^[\(\[]?\s*([\d٠-٩]+)\s*[\)\]]?\s*[:\-–.]?\s*(.*)$', rest)
     if d:
         return int(norm(d.group(1))), d.group(1), d.group(2).strip(' :-–')
-    toks = rest.split(); used = []
+    toks = join_split(rest.split()); used = []
     for t in toks:
-        b = re.sub(r'^(و?ال)', '', norm(t).strip(':،.-–()'))
-        if b in ORD_WORDS or (used and norm(t).startswith('و') and re.sub(r'^و?ال', '', norm(t).strip(':،.')) in ORD_WORDS):
+        b = fix_ord(re.sub(r'^(و?ال)', '', norm(t).strip(':،.-–()')))
+        if b in ORD_WORDS or (used and norm(t).startswith('و') and fix_ord(re.sub(r'^و?ال', '', norm(t).strip(':،.'))) in ORD_WORDS):
             used.append(t)
             if t.endswith(':'): break
         else:
@@ -69,7 +87,7 @@ def split_articles(pages):
     """يعيد قائمة مواد [{num, ref, heading, text, p1, p2}] بقبول العناوين المتسلسلة فقط"""
     arts = []; cur = None; last = 0; pre = []
     for pi, page in enumerate(pages, start=1):
-        for line in page.split('\n'):
+        for line, mid in [(x, k > 0) for ln in page.split('\n') for k, x in enumerate(re.split(r'(?<=\S)\s+(?=(?:ال)?ماد[ةه]\s+[^\s:()]+(?:\s+[^\s:()]+){0,4}\s*:)', ln))]:
             raw = line.strip()
             if not raw:
                 if cur: cur['lines'].append('')
@@ -80,6 +98,7 @@ def split_articles(pages):
                 num, numtxt, head = ph
                 titled = ':' in raw[:60] or bool(head)
                 ok = (last == 0 and num <= 3) or (last < num <= last + 3) or (last < num <= last + 25 and titled and ':' in raw[:70]) or (num == 1 and last >= 3)
+                if mid and num not in (last + 1, last + 2): ok = False
             if ok:
                 if cur: arts.append(cur)
                 cur = {'num': num, 'ref': 'المادة ' + numtxt, 'heading': head, 'lines': [], 'p1': pi, 'p2': pi}

@@ -3,6 +3,7 @@ import { searchKey } from '../../lib/arabic.js';
 import type { ChatAnswer } from '../ai/chat.js';
 import { searchLegal, snippet, type LegalHit } from './library.js';
 import { findTopics } from '../ai/knowledge.js';
+import { guideAnswer } from './guides.js';
 
 const N = (s: string) => searchKey(s).replace(/[؟?!.,،:؛()]/g, ' ').replace(/\s+/g, ' ').trim();
 // مفردات تدل على سؤال نظامي (زكاة، ضرائب، جمارك، أنظمة)
@@ -25,6 +26,8 @@ const cite = (h: LegalHit) => `${h.title} | ${h.ref}${h.heading ? ` (${h.heading
 
 /** يعيد إجابة مقتبسة من المكتبة، أو null إن لم يوجد نص مطابق كفاية */
 export async function legalAnswer(question: string): Promise<(ChatAnswer & { links: { label: string; href: string }[] }) | null> {
+  // أسئلة «كيف تُحسب؟» لها إجابة منظمة خطوة بخطوة من مواد النظام
+  const g = await guideAnswer(question); if (g) return g;
   const r = await searchLegal(question, { limit: 8 });
   if (!r.hits.length) return null;
   const need = Math.max(1, Math.ceil(r.groups * 0.5));

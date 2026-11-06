@@ -27,3 +27,11 @@ describe('المكتبة النظامية', () => {
     const s = snippet(body, ['سعر'], 200); expect(s).toContain('سعر الضريبة'); expect(s.startsWith('…')).toBe(true);
   });
 });
+
+import { findGuide } from '../src/modules/legal/guides.js';
+describe('إجابة «كيف تُحسب الزكاة؟» المنظمة', () => {
+  it('تلتقط صيغ السؤال المختلفة ولا تلتقط الأسئلة الخاصة', () => {
+    for (const q of ['ماهي طريقة احتساب الزكاة السنوية حسب للمعايير السعودية', 'كيف احسب الوعاء الزكوي', 'طريقة حساب الزكاة', 'كيف تحسب الزكاة للشركة']) expect(findGuide(q)?.key).toBe('zakat_calc');
+    for (const q of ['ما نسبة ضريبة القيمة المضافة', 'زكاة مكلفي التقديري كيف تحسب', 'ما سعر ضريبة الدخل']) expect(findGuide(q)).toBeNull();
+  });
+});
