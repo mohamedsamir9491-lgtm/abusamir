@@ -1,0 +1,512 @@
+{
+ "FS-001": [
+  {
+   "src": [
+    "IAS 1 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>60) An entity shall present current and non-current assets",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "TB-009": [
+  {
+   "src": [
+    "IAS 1 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>54) The statement of financial position shall include",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "TB-016": [
+  {
+   "src": [
+    "IAS 1 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>66) An entity shall classify an asset as current",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "TB-017": [
+  {
+   "src": [
+    "IAS 1 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>54) The statement of financial position shall include",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "TB-022": [
+  {
+   "src": [
+    "IFRS 9 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>5\\.5\\.1) An entity shall recognise a loss allowance",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "TB-023": [
+  {
+   "src": [
+    "IAS 16 ",
+    "النص الكامل"
+   ],
+   "re": "Carrying amount is the amount at which an asset is recognised after deducting any accumulated depreciation",
+   "pre": 0,
+   "post": 230,
+   "para": "الفقرة 6"
+  }
+ ],
+ "TB-026": [
+  {
+   "src": [
+    "IAS 2 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>34) When inventories are sold",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "FS-002": [
+  {
+   "src": [
+    "IAS 7 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>45) An entity shall disclose the components of cash",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "FS-014": [
+  {
+   "src": [
+    "IFRS 9 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>5\\.5\\.1) An entity shall recognise a loss allowance",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "AR-001": [
+  {
+   "src": [
+    "IFRS 9 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>5\\.5\\.11) If reasonable and supportable forward-looking information|more than 30 days past due",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "AR-002": [
+  {
+   "src": [
+    "IFRS 9 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>5\\.5\\.1) An entity shall recognise a loss allowance",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "LA-001": [
+  {
+   "src": [
+    "IAS 16 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>55) Depreciation of an asset begins",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "FA-003": [
+  {
+   "src": [
+    "IAS 16 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>50) The depreciable amount of an asset shall be allocated",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "FA-004": [
+  {
+   "src": [
+    "IAS 16 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>60) The depreciation method used shall reflect",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "LA-002": [
+  {
+   "src": [
+    "IAS 38 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>97) The depreciable amount of an intangible asset with a finite useful life",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "LA-003": [
+  {
+   "src": [
+    "IFRS 16 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>31) A lessee shall apply the depreciation requirements",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "LA-004": [
+  {
+   "src": [
+    "IFRS 16 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>36) After the commencement date, a lessee shall measure the lease liability",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "LA-005": [
+  {
+   "src": [
+    "IAS 19 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>11) When an employee has rendered service",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "LA-006": [
+  {
+   "src": [
+    "IAS 19 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>67) An entity shall use the projected unit credit method",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "LA-008": [
+  {
+   "src": [
+    "IAS 24 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>18) If an entity has had related party transactions",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "TB-025": [
+  {
+   "src": [
+    "IAS 24 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>18) If an entity has had related party transactions",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "LA-010": [
+  {
+   "src": [
+    "IFRS 15 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>106) If a customer pays consideration",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "INV-002": [
+  {
+   "src": [
+    "IAS 2 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>9) Inventories shall be measured at the lower of cost",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "INV-003": [
+  {
+   "src": [
+    "IAS 2 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>9) Inventories shall be measured at the lower of cost",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "DOC-001": [
+  {
+   "src": [
+    "IAS 1 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>79) An entity shall disclose the following",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "DOC-003": [
+  {
+   "src": [
+    "IFRS 10 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>B86) Consolidated financial statements",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "DOC-009": [
+  {
+   "src": [
+    "IFRS 10 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>B89) When potential voting rights",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "AR-003": [
+  {
+   "src": [
+    "IFRS 7 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>34) .{0,300}?concentrations of risk",
+   "pre": 0,
+   "post": 260
+  }
+ ],
+ "FA-001": [
+  {
+   "src": [
+    "IAS 16 ",
+    "النص الكامل"
+   ],
+   "re": "Carrying amount is the amount at which an asset is recognised after deducting any accumulated depreciation",
+   "pre": 0,
+   "post": 230,
+   "para": "الفقرة 6"
+  }
+ ],
+ "FA-002": [
+  {
+   "src": [
+    "IAS 16 ",
+    "النص الكامل"
+   ],
+   "re": "(?P<p>50) The depreciable amount of an asset shall be allocated",
+   "pre": 0,
+   "post": 230
+  }
+ ],
+ "TB-011": [
+  {
+   "src": [
+    "ISA 500"
+   ],
+   "re": "ما يكفي من أدلة المراجعة المناسبة"
+  }
+ ],
+ "TB-014": [
+  {
+   "src": [
+    "ISA 520"
+   ],
+   "re": "التقلبات أو العلاقات"
+  },
+  {
+   "src": [
+    "ISA 320"
+   ],
+   "re": "نسبة مئوية على أساس مرجعي"
+  }
+ ],
+ "VAR-001": [
+  {
+   "src": [
+    "ISA 520"
+   ],
+   "re": "التقلبات أو العلاقات"
+  }
+ ],
+ "LA-007": [
+  {
+   "src": [
+    "ISA 520"
+   ],
+   "re": "التقلبات أو العلاقات"
+  }
+ ],
+ "FS-010": [
+  {
+   "src": [
+    "ISA 570"
+   ],
+   "re": "مركز صافٍ بالالتزامات"
+  }
+ ],
+ "FS-012": [
+  {
+   "src": [
+    "ISA 570"
+   ],
+   "re": "الخسائر التشغيلية الجوهرية"
+  }
+ ],
+ "FS-013": [
+  {
+   "src": [
+    "ISA 570"
+   ],
+   "re": "تدفقات نقدية تشغيلية سالبة"
+  }
+ ],
+ "LA-009": [
+  {
+   "src": [
+    "ISA 570"
+   ],
+   "re": "أحداث أو ظروف قد تثير شكوكاً كبيرة"
+  }
+ ],
+ "FS-011": [
+  {
+   "src": [
+    "نظام الشركات",
+    "النص الموحد"
+   ],
+   "re": "إذا بلغت خسائر",
+   "ref": "المادة الثانية والثلاثون بعد المائة",
+   "pre": 0,
+   "post": 160
+  },
+  {
+   "src": [
+    "نظام الشركات",
+    "النص الموحد"
+   ],
+   "re": "إذا بلغت خسائر",
+   "ref": "المادة الثانية والثمانون بعد المائة",
+   "pre": 0,
+   "post": 120
+  },
+  {
+   "src": [
+    "ISA 570"
+   ],
+   "re": "مركز صافٍ بالالتزامات"
+  }
+ ],
+ "TB-024": [
+  {
+   "src": [
+    "نظام الشركات",
+    "النص الموحد"
+   ],
+   "re": "إذا بلغت خسائر",
+   "ref": "المادة الثانية والثلاثون بعد المائة",
+   "pre": 0,
+   "post": 300
+  },
+  {
+   "src": [
+    "نظام الشركات",
+    "النص الموحد"
+   ],
+   "re": "إذا بلغت خسائر",
+   "ref": "المادة الثانية والثمانون بعد المائة",
+   "pre": 0,
+   "post": 260
+  }
+ ],
+ "DOC-002": [
+  {
+   "src": [
+    "نظام الشركات",
+    "النص الموحد"
+   ],
+   "re": "يجب ألا",
+   "ref": "المادة التاسعة والخمسون",
+   "pre": 0,
+   "post": 140
+  }
+ ],
+ "DOC-004": [
+  {
+   "src": [
+    "ISA 500"
+   ],
+   "re": "المستندات الأصلية"
+  }
+ ],
+ "DOC-005": [
+  {
+   "src": [
+    "نظام السجل التجاري",
+    "النص الموحد"
+   ],
+   "re": "يجب على التاجر",
+   "ref": "المادة الحادية عشرة",
+   "pre": 0,
+   "post": 140
+  },
+  {
+   "src": [
+    "نظام السجل التجاري",
+    "النص الموحد"
+   ],
+   "re": "يُعلق",
+   "ref": "المادة الخامسة عشرة",
+   "pre": 0,
+   "post": 110
+  }
+ ],
+ "REC-001": [
+  {
+   "src": [
+    "ISA 500"
+   ],
+   "re": "المعلومات الواردة في السجلات المحاسبية"
+  }
+ ],
+ "SL-001": [
+  {
+   "src": [
+    "ISA 500"
+   ],
+   "re": "المعلومات الواردة في السجلات المحاسبية"
+  }
+ ]
+}

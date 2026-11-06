@@ -1,0 +1,992 @@
+{
+ "cls-depreciation-expense": {
+  "ref": "IAS 16 الفقرة 50",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "50 The depreciable amount of an asset shall be allocated on a systematic basis over its useful life. 51 The residual value and the useful life of an asset shall be reviewed at least at each financial year-end and, if expectations differ from previous estimates, the change(s) shall be a",
+  "score": 1
+ },
+ "cls-deferred-revenue": {
+  "ref": "IFRS 15 الفقرة 31",
+  "source": "IFRS 15 الإيراد من العقود مع العملاء (Revenue From Contracts With Customers) — النص الكامل 2026",
+  "quote": "31 An entity shall recognise revenue when (or as) the entity satisfies a performance obligation by transferring a promised good or service (ie an asset) to a customer. An asset is transferred when (or as) the customer obtains control of that asset. 32 For each performanc",
+  "score": 3
+ },
+ "cls-rou-asset": {
+  "ref": "IFRS 16 الفقرة 31",
+  "source": "IFRS 16 عقود الإيجار (Leases) — النص الكامل 2026",
+  "quote": "31 A lessee shall apply the depreciation requirements in IAS 16 Property, Plant and Equipment in depreciating the right-of-use asset, subject to the requirements in paragraph 32. A850 © IFRS Foundation 32 If the lease transfers ownership of the underlying asset to the lessee by the",
+  "score": 1
+ },
+ "cls-related-party": {
+  "ref": "IAS 24 الفقرة 18",
+  "source": "IAS 24 الإفصاحات عن الأطراف ذات العلاقة (Related Party Disclosures) — النص الكامل 2026",
+  "quote": "18 If an entity has had related party transactions during the periods covered by the financial statements, it shall disclose the nature of the related party relationship as well as information about those transactions and outstanding balances, including commitments, necessary for",
+  "score": 3
+ },
+ "cls-retained-earnings": {
+  "ref": "IAS 1 الفقرة 79",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "لكل فئة من فئات رأس المال المساهم به: )0( عدد الأسهم المصرح the 0( عدد الأسهم المصدرة والمدفوعة بالكامل. والمصدرة التي لم تدفع بالكامل؛ ليه القيمة الاسمية للسهمء أوبيان أن الأسهم ليست لبا قيمة اسمية؛ )£( مطابقة عدد الأسهم القائمة في بداية ونهاية الفترة؛ )",
+  "score": 1
+ },
+ "cls-share-premium": {
+  "ref": "IAS 1 الفقرة 79",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "لكل فئة من فئات رأس المال المساهم به: )0( عدد الأسهم المصرح the 0( عدد الأسهم المصدرة والمدفوعة بالكامل. والمصدرة التي لم تدفع بالكامل؛ ليه القيمة الاسمية للسهمء أوبيان أن الأسهم ليست لبا قيمة اسمية؛ )£( مطابقة عدد الأسهم القائمة في بداية ونهاية الفترة؛ )",
+  "score": 2
+ },
+ "cls-cogs-purchases": {
+  "ref": "IAS 2 الفقرة 9",
+  "source": "IAS 2 المخزون (Inventories) — النص الكامل 2026",
+  "quote": "9 Inventories shall be measured at the lower of cost and net realisable value.",
+  "score": 1
+ },
+ "cls-ecl-expense": {
+  "ref": "IFRS 9 الفقرة 5.5.1",
+  "source": "IFRS 9 الأدوات المالية (Financial Instruments) — النص الكامل 2026",
+  "quote": "5.5.1 An entity shall recognise a loss allowance for expected credit losses on a financial asset that is measured in accordance with paragraphs 4.1.2 or 4.1.2A, a lease receivable, a contract asset or a loan commitment and a financial guarantee contract to which the impairment",
+  "score": 2
+ },
+ "cls-refundable-deposits": {
+  "ref": "IAS 1 الفقرة 66",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الأصل على أنه متداول عندما: (i) تتوقع تحقق broil! أوعندما تنوي بيع الأصل أواستبلاكه. خلال دورتها التشغيلية العادية؛ أو )~( تحتفظ بالأصل بشكل رئيسي لغرض المتاجرة؛ أو )¢( = تتوقع تحقق الأصل خلال اثني عشرشهراً بعد فترة التقرير؛ أو [ © يكون الأصل نقداً أ",
+  "score": 4
+ },
+ "cls-expense-leading-word": {
+  "ref": "IAS 1 الفقرة 69",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الالتزام على أنه متداول عندما: ترجمة البيئة السعودية للمراجعين والمحاسبين AoA مؤسسة المعايير الدولية للتقرير المالي©",
+  "score": 2
+ },
+ "cls-cash-bank": {
+  "ref": "IAS 7 الفقرة 45",
+  "source": "IAS 7 قائمة التدفقات النقدية (Statement Of Cash Flows) — النص الكامل 2026",
+  "quote": "45 An entity shall disclose the components of cash and cash equivalents and shall present a reconciliation of the amounts in its statement of cash flows with the equivalent items reported in the statement of financial position. 46 In view of the variety of cash management practic",
+  "score": 1
+ },
+ "cls-ar-allowance": {
+  "ref": "IFRS 9 الفقرة 5.5.1",
+  "source": "IFRS 9 الأدوات المالية (Financial Instruments) — النص الكامل 2026",
+  "quote": "5.5.1 An entity shall recognise a loss allowance for expected credit losses on a financial asset that is measured in accordance with paragraphs 4.1.2 or 4.1.2A, a lease receivable, a contract asset or a loan commitment and a financial guarantee contract to which the impairment",
+  "score": 2
+ },
+ "cls-vat": {
+  "ref": "IAS 1 الفقرة 69",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الالتزام على أنه متداول عندما: ترجمة البيئة السعودية للمراجعين والمحاسبين AoA مؤسسة المعايير الدولية للتقرير المالي©",
+  "score": 3
+ },
+ "cls-zakat-tax": {
+  "ref": "IAS 12 الفقرة 5",
+  "source": "IAS 12 ضرائب الدخل (Income Taxes) — النص الكامل 2026",
+  "quote": "Current tax is the amount of income taxes payable (recoverable) in respect of the taxable profit (tax loss) for a period. Deferred tax liabilities are the amounts of income taxes payable in future periods in respect of taxable temporary differences. Deferred tax assets are the a",
+  "score": 2
+ },
+ "cls-ar": {
+  "ref": "IAS 1 الفقرة 66",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الأصل على أنه متداول عندما: (i) تتوقع تحقق broil! أوعندما تنوي بيع الأصل أواستبلاكه. خلال دورتها التشغيلية العادية؛ أو )~( تحتفظ بالأصل بشكل رئيسي لغرض المتاجرة؛ أو )¢( = تتوقع تحقق الأصل خلال اثني عشرشهراً بعد فترة التقرير؛ أو [ © يكون الأصل نقداً أ",
+  "score": 3
+ },
+ "cls-prepaid-advances": {
+  "ref": "IAS 1 الفقرة 66",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الأصل على أنه متداول عندما: (i) تتوقع تحقق broil! أوعندما تنوي بيع الأصل أواستبلاكه. خلال دورتها التشغيلية العادية؛ أو )~( تحتفظ بالأصل بشكل رئيسي لغرض المتاجرة؛ أو )¢( = تتوقع تحقق الأصل خلال اثني عشرشهراً بعد فترة التقرير؛ أو [ © يكون الأصل نقداً أ",
+  "score": 5
+ },
+ "cls-ap": {
+  "ref": "IAS 1 الفقرة 69",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الالتزام على أنه متداول عندما: ترجمة البيئة السعودية للمراجعين والمحاسبين AoA مؤسسة المعايير الدولية للتقرير المالي©",
+  "score": 3
+ },
+ "cls-accruals": {
+  "ref": "IAS 37 الفقرة 14",
+  "source": "IAS 37 المخصصات والالتزامات المحتملة والأصول المحتملة (Provisions Contingent Liabilities And Contingent Assets) — النص الكامل 2026",
+  "quote": "14 A provision shall be recognised when: (a) an entity has a present obligation (legal or constructive) as a result of a past event; (b) it is probable that an outflow of resources embodying economic benefits will be required to settle the obligation; and (c) a reliabl",
+  "score": 1
+ },
+ "cls-eosb": {
+  "ref": "IAS 19 الفقرة 67",
+  "source": "IAS 19 منافع الموظفين (Employee Benefits) — النص الكامل 2026",
+  "quote": "67 An entity shall use the projected unit credit method to determine the present value of its defined benefit obligations and the related current service cost and, where applicable, past service cost. 68 The projected unit credit method (sometimes known as the accrued benefit method p",
+  "score": 2
+ },
+ "cls-inventory": {
+  "ref": "IAS 2 الفقرة 9",
+  "source": "IAS 2 المخزون (Inventories) — النص الكامل 2026",
+  "quote": "9 Inventories shall be measured at the lower of cost and net realisable value.",
+  "score": 2
+ },
+ "cls-acc-dep": {
+  "ref": "IAS 16 الفقرة 50",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "50 The depreciable amount of an asset shall be allocated on a systematic basis over its useful life. 51 The residual value and the useful life of an asset shall be reviewed at least at each financial year-end and, if expectations differ from previous estimates, the change(s) shall be a",
+  "score": 1
+ },
+ "cls-intangibles": {
+  "ref": "IAS 38 الفقرة 97",
+  "source": "IAS 38 الأصول غير الملموسة (Intangible Assets) — النص الكامل 2026",
+  "quote": "97 The depreciable amount of an intangible asset with a finite useful life shall be allocated on a systematic basis over its useful life. Amortisation shall begin when the asset is available for use, ie when it is in the location and condition necessary for it to be capable of operating in t",
+  "score": 1
+ },
+ "cls-ppe": {
+  "ref": "IAS 16 الفقرة 58",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "58 Land and buildings are separable assets and are accounted for separately, even when they are acquired together. With some exceptions, such as quarries and sites used for landfill, land has an unlimited useful life and therefore is not depreciated. Buildings have a limi",
+  "score": 1
+ },
+ "cls-loans": {
+  "ref": "IAS 1 الفقرة 66",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الأصل على أنه متداول عندما: (i) تتوقع تحقق broil! أوعندما تنوي بيع الأصل أواستبلاكه. خلال دورتها التشغيلية العادية؛ أو )~( تحتفظ بالأصل بشكل رئيسي لغرض المتاجرة؛ أو )¢( = تتوقع تحقق الأصل خلال اثني عشرشهراً بعد فترة التقرير؛ أو [ © يكون الأصل نقداً أ",
+  "score": 1
+ },
+ "cls-share-capital": {
+  "ref": "IAS 1 الفقرة 79",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "لكل فئة من فئات رأس المال المساهم به: )0( عدد الأسهم المصرح the 0( عدد الأسهم المصدرة والمدفوعة بالكامل. والمصدرة التي لم تدفع بالكامل؛ ليه القيمة الاسمية للسهمء أوبيان أن الأسهم ليست لبا قيمة اسمية؛ )£( مطابقة عدد الأسهم القائمة في بداية ونهاية الفترة؛ )",
+  "score": 1
+ },
+ "cls-statutory-reserve": {
+  "ref": "IAS 1 الفقرة 79",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "لكل فئة من فئات رأس المال المساهم به: )0( عدد الأسهم المصرح the 0( عدد الأسهم المصدرة والمدفوعة بالكامل. والمصدرة التي لم تدفع بالكامل؛ ليه القيمة الاسمية للسهمء أوبيان أن الأسهم ليست لبا قيمة اسمية؛ )£( مطابقة عدد الأسهم القائمة في بداية ونهاية الفترة؛ )",
+  "score": 1
+ },
+ "cls-dividends-drawings": {
+  "ref": "IAS 1 الفقرة 79",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "لكل فئة من فئات رأس المال المساهم به: )0( عدد الأسهم المصرح the 0( عدد الأسهم المصدرة والمدفوعة بالكامل. والمصدرة التي لم تدفع بالكامل؛ ليه القيمة الاسمية للسهمء أوبيان أن الأسهم ليست لبا قيمة اسمية؛ )£( مطابقة عدد الأسهم القائمة في بداية ونهاية الفترة؛ )",
+  "score": 3
+ },
+ "cls-sales-returns": {
+  "ref": "IFRS 15 الفقرة 31",
+  "source": "IFRS 15 الإيراد من العقود مع العملاء (Revenue From Contracts With Customers) — النص الكامل 2026",
+  "quote": "31 An entity shall recognise revenue when (or as) the entity satisfies a performance obligation by transferring a promised good or service (ie an asset) to a customer. An asset is transferred when (or as) the customer obtains control of that asset. 32 For each performanc",
+  "score": 1
+ },
+ "cls-finance-income": {
+  "ref": "IAS 1 الفقرة 66",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الأصل على أنه متداول عندما: (i) تتوقع تحقق broil! أوعندما تنوي بيع الأصل أواستبلاكه. خلال دورتها التشغيلية العادية؛ أو )~( تحتفظ بالأصل بشكل رئيسي لغرض المتاجرة؛ أو )¢( = تتوقع تحقق الأصل خلال اثني عشرشهراً بعد فترة التقرير؛ أو [ © يكون الأصل نقداً أ",
+  "score": 1
+ },
+ "cls-revenue": {
+  "ref": "IFRS 15 الفقرة 31",
+  "source": "IFRS 15 الإيراد من العقود مع العملاء (Revenue From Contracts With Customers) — النص الكامل 2026",
+  "quote": "31 An entity shall recognise revenue when (or as) the entity satisfies a performance obligation by transferring a promised good or service (ie an asset) to a customer. An asset is transferred when (or as) the customer obtains control of that asset. 32 For each performanc",
+  "score": 3
+ },
+ "cls-owner-current-bilateral": {
+  "ref": "IAS 32 الفقرة 11",
+  "source": "IAS 32 الأدوات المالية: العرض (Financial Instruments Presentation) — النص الكامل 2026",
+  "quote": "equity instrument is any contract that evidences a residual interest in the assets of an entity after deducting all of its liabilities. Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between market participants at the measu",
+  "score": 1
+ },
+ "cls-related-bilateral": {
+  "ref": "IAS 1 الفقرة 69",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الالتزام على أنه متداول عندما: ترجمة البيئة السعودية للمراجعين والمحاسبين AoA مؤسسة المعايير الدولية للتقرير المالي©",
+  "score": 2
+ },
+ "fs-lines-catalog": {
+  "ref": "IAS 1 الفقرة 66",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الأصل على أنه متداول عندما: (i) تتوقع تحقق broil! أوعندما تنوي بيع الأصل أواستبلاكه. خلال دورتها التشغيلية العادية؛ أو )~( تحتفظ بالأصل بشكل رئيسي لغرض المتاجرة؛ أو )¢( = تتوقع تحقق الأصل خلال اثني عشرشهراً بعد فترة التقرير؛ أو [ © يكون الأصل نقداً أ",
+  "score": 3
+ },
+ "fs-sfp-order-liquidity": {
+  "ref": "IAS 1 الفقرة 66",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الأصل على أنه متداول عندما: (i) تتوقع تحقق broil! أوعندما تنوي بيع الأصل أواستبلاكه. خلال دورتها التشغيلية العادية؛ أو )~( تحتفظ بالأصل بشكل رئيسي لغرض المتاجرة؛ أو )¢( = تتوقع تحقق الأصل خلال اثني عشرشهراً بعد فترة التقرير؛ أو [ © يكون الأصل نقداً أ",
+  "score": 5
+ },
+ "fs-zakat-tax-line": {
+  "ref": "IAS 12 الفقرة 5",
+  "source": "IAS 12 ضرائب الدخل (Income Taxes) — النص الكامل 2026",
+  "quote": "Current tax is the amount of income taxes payable (recoverable) in respect of the taxable profit (tax loss) for a period. Deferred tax liabilities are the amounts of income taxes payable in future periods in respect of taxable temporary differences. Deferred tax assets are the a",
+  "score": 2
+ },
+ "fs-contra-negative": {
+  "ref": "IAS 1 الفقرة 79",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "لكل فئة من فئات رأس المال المساهم به: )0( عدد الأسهم المصرح the 0( عدد الأسهم المصدرة والمدفوعة بالكامل. والمصدرة التي لم تدفع بالكامل؛ ليه القيمة الاسمية للسهمء أوبيان أن الأسهم ليست لبا قيمة اسمية؛ )£( مطابقة عدد الأسهم القائمة في بداية ونهاية الفترة؛ )",
+  "score": 2
+ },
+ "fs-pl-subtotals": {
+  "ref": "IAS 1 الفقرة 69",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الالتزام على أنه متداول عندما: ترجمة البيئة السعودية للمراجعين والمحاسبين AoA مؤسسة المعايير الدولية للتقرير المالي©",
+  "score": 2
+ },
+ "fs-net-income-into-equity": {
+  "ref": "IAS 1 الفقرة 32",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "لايجوزللمنشأة أن تجري مقاصة بين الأصول والالتزامات. أوبين الدخل والمصروفات, مالم تكن مطالبة أومسموحاً لها بذلك بموجب معياردولي للتقرير المالي.",
+  "score": 1
+ },
+ "fs-unclassified-in-assets": {
+  "ref": "IAS 1 الفقرة 66",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الأصل على أنه متداول عندما: (i) تتوقع تحقق broil! أوعندما تنوي بيع الأصل أواستبلاكه. خلال دورتها التشغيلية العادية؛ أو )~( تحتفظ بالأصل بشكل رئيسي لغرض المتاجرة؛ أو )¢( = تتوقع تحقق الأصل خلال اثني عشرشهراً بعد فترة التقرير؛ أو [ © يكون الأصل نقداً أ",
+  "score": 1
+ },
+ "fs-ce-statement": {
+  "ref": "IAS 1 الفقرة 79",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "لكل فئة من فئات رأس المال المساهم به: )0( عدد الأسهم المصرح the 0( عدد الأسهم المصدرة والمدفوعة بالكامل. والمصدرة التي لم تدفع بالكامل؛ ليه القيمة الاسمية للسهمء أوبيان أن الأسهم ليست لبا قيمة اسمية؛ )£( مطابقة عدد الأسهم القائمة في بداية ونهاية الفترة؛ )",
+  "score": 5
+ },
+ "fs-cf-indirect-operating": {
+  "ref": "IAS 7 الفقرة 18",
+  "source": "IAS 7 قائمة التدفقات النقدية (Statement Of Cash Flows) — النص الكامل 2026",
+  "quote": "18 An entity shall report cash flows from operating activities using either: (a) the direct method, whereby major classes of gross cash receipts and gross cash payments are disclosed; or (b) the indirect method, whereby operating profit or loss is adjusted for: (i) the effects of transactions of a non-ca",
+  "score": 1
+ },
+ "fs-cf-ecl-noncash": {
+  "ref": "IAS 7 الفقرة 45",
+  "source": "IAS 7 قائمة التدفقات النقدية (Statement Of Cash Flows) — النص الكامل 2026",
+  "quote": "45 An entity shall disclose the components of cash and cash equivalents and shall present a reconciliation of the amounts in its statement of cash flows with the equivalent items reported in the statement of financial position. 46 In view of the variety of cash management practic",
+  "score": 1
+ },
+ "fs-cf-investing": {
+  "ref": "IAS 7 الفقرة 45",
+  "source": "IAS 7 قائمة التدفقات النقدية (Statement Of Cash Flows) — النص الكامل 2026",
+  "quote": "45 An entity shall disclose the components of cash and cash equivalents and shall present a reconciliation of the amounts in its statement of cash flows with the equivalent items reported in the statement of financial position. 46 In view of the variety of cash management practic",
+  "score": 1
+ },
+ "fs-cf-lease-noncash": {
+  "ref": "IAS 7 الفقرة 43",
+  "source": "IAS 7 قائمة التدفقات النقدية (Statement Of Cash Flows) — النص الكامل 2026",
+  "quote": "43 Investing and financing transactions that do not require the use of cash or cash equivalents shall be excluded from a statement of cash flows. Such transactions shall be disclosed elsewhere in the financial statements in a way that provides all the relevant information about these inve",
+  "score": 3
+ },
+ "fs-cf-financing": {
+  "ref": "IAS 7 الفقرة 31",
+  "source": "IAS 7 قائمة التدفقات النقدية (Statement Of Cash Flows) — النص الكامل 2026",
+  "quote": "31 Cash flows from interest and dividends received and paid shall each be presented separately. Each shall be classified in a consistent manner from period to period applying paragraphs 32, 33A and 34A–34D. 32 The total amount of interest paid during a period is included in the statement",
+  "score": 1
+ },
+ "fs-cf-reconciliation": {
+  "ref": "IAS 7 الفقرة 45",
+  "source": "IAS 7 قائمة التدفقات النقدية (Statement Of Cash Flows) — النص الكامل 2026",
+  "quote": "45 An entity shall disclose the components of cash and cash equivalents and shall present a reconciliation of the amounts in its statement of cash flows with the equivalent items reported in the statement of financial position. 46 In view of the variety of cash management practic",
+  "score": 2
+ },
+ "FS-014-high-dso": {
+  "ref": "IFRS 9 الفقرة 5.5.1",
+  "source": "IFRS 9 الأدوات المالية (Financial Instruments) — النص الكامل 2026",
+  "quote": "5.5.1 An entity shall recognise a loss allowance for expected credit losses on a financial asset that is measured in accordance with paragraphs 4.1.2 or 4.1.2A, a lease receivable, a contract asset or a loan commitment and a financial guarantee contract to which the impairment",
+  "score": 1
+ },
+ "AR-aging-buckets": {
+  "ref": "IFRS 9 الفقرة 5.5.1",
+  "source": "IFRS 9 الأدوات المالية (Financial Instruments) — النص الكامل 2026",
+  "quote": "5.5.1 An entity shall recognise a loss allowance for expected credit losses on a financial asset that is measured in accordance with paragraphs 4.1.2 or 4.1.2A, a lease receivable, a contract asset or a loan commitment and a financial guarantee contract to which the impairment",
+  "score": 1
+ },
+ "AR-001-over-90": {
+  "ref": "IFRS 9 الفقرة 5.5.1",
+  "source": "IFRS 9 الأدوات المالية (Financial Instruments) — النص الكامل 2026",
+  "quote": "5.5.1 An entity shall recognise a loss allowance for expected credit losses on a financial asset that is measured in accordance with paragraphs 4.1.2 or 4.1.2A, a lease receivable, a contract asset or a loan commitment and a financial guarantee contract to which the impairment",
+  "score": 2
+ },
+ "AR-002-opposite-sign": {
+  "ref": "IFRS 15 الفقرة 106",
+  "source": "IFRS 15 الإيراد من العقود مع العملاء (Revenue From Contracts With Customers) — النص الكامل 2026",
+  "quote": "106 If a customer pays consideration, or an entity has a right to an amount of consideration that is unconditional (ie a receivable), before the entity transfers a good or service to the customer, the entity shall present the contract as a contract liability when th",
+  "score": 1
+ },
+ "AR-003-concentration": {
+  "ref": "IFRS 7 الفقرة 34",
+  "source": "IFRS 7 الأدوات المالية: الإفصاحات (Financial Instruments Disclosures) — النص الكامل 2026",
+  "quote": "concentrations of risk if not apparent from the disclosures made in accordance with (a) and (b). 35 If the quantitative data disclosed as at the end of the reporting period are unrepresentative of an entity’s exposure to risk during the period, an enti",
+  "score": 1
+ },
+ "FA-001-nbv-mismatch": {
+  "ref": "IAS 16 الفقرة 30",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "30 After recognition as an asset, an item of property, plant and equipment shall be carried at its cost less any accumulated depreciation and any accumulated impairment losses.",
+  "score": 3
+ },
+ "FA-002-accdep-over-cost": {
+  "ref": "IAS 16 الفقرة 50",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "50 The depreciable amount of an asset shall be allocated on a systematic basis over its useful life. 51 The residual value and the useful life of an asset shall be reviewed at least at each financial year-end and, if expectations differ from previous estimates, the change(s) shall be a",
+  "score": 1
+ },
+ "FA-003-fully-depreciated-charged": {
+  "ref": "IAS 16 الفقرة 50",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "50 The depreciable amount of an asset shall be allocated on a systematic basis over its useful life. 51 The residual value and the useful life of an asset shall be reviewed at least at each financial year-end and, if expectations differ from previous estimates, the change(s) shall be a",
+  "score": 1
+ },
+ "FA-004-depreciation-recalc": {
+  "ref": "IAS 16 الفقرة 50",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "50 The depreciable amount of an asset shall be allocated on a systematic basis over its useful life. 51 The residual value and the useful life of an asset shall be reviewed at least at each financial year-end and, if expectations differ from previous estimates, the change(s) shall be a",
+  "score": 4
+ },
+ "INV-checks": {
+  "ref": "IAS 2 الفقرة 9",
+  "source": "IAS 2 المخزون (Inventories) — النص الكامل 2026",
+  "quote": "9 Inventories shall be measured at the lower of cost and net realisable value.",
+  "score": 1
+ },
+ "TB-022-allowance-over-ar": {
+  "ref": "IFRS 9 الفقرة 5.5.1",
+  "source": "IFRS 9 الأدوات المالية (Financial Instruments) — النص الكامل 2026",
+  "quote": "5.5.1 An entity shall recognise a loss allowance for expected credit losses on a financial asset that is measured in accordance with paragraphs 4.1.2 or 4.1.2A, a lease receivable, a contract asset or a loan commitment and a financial guarantee contract to which the impairment",
+  "score": 1
+ },
+ "TB-023-accdep-over-ppe": {
+  "ref": "IAS 16 الفقرة 30",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "30 After recognition as an asset, an item of property, plant and equipment shall be carried at its cost less any accumulated depreciation and any accumulated impairment losses.",
+  "score": 2
+ },
+ "TB-025-due-from-shareholder": {
+  "ref": "IAS 24 الفقرة 18",
+  "source": "IAS 24 الإفصاحات عن الأطراف ذات العلاقة (Related Party Disclosures) — النص الكامل 2026",
+  "quote": "18 If an entity has had related party transactions during the periods covered by the financial statements, it shall disclose the nature of the related party relationship as well as information about those transactions and outstanding balances, including commitments, necessary for",
+  "score": 1
+ },
+ "cons-basis": {
+  "ref": "IFRS 10 الفقرة B86",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B86 Consolidated financial statements: (a) combine like items of assets, liabilities, equity, income, expenses and cash flows of the parent with those of its subsidiaries.",
+  "score": 2
+ },
+ "cons-intercompany-split": {
+  "ref": "IFRS 10 الفقرة 7",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "7 Thus, an investor controls an investee if and only if the investor has all the following: (a) power over the investee (see paragraphs 10–14); (b) exposure, or rights, to variable returns from its involvement with the investee (see paragraphs 15 and 16); and (c) the abili",
+  "score": 2
+ },
+ "cons-implied-paid-capital": {
+  "ref": "IAS 32 الفقرة 11",
+  "source": "IAS 32 الأدوات المالية: العرض (Financial Instruments Presentation) — النص الكامل 2026",
+  "quote": "equity instrument is any contract that evidences a residual interest in the assets of an entity after deducting all of its liabilities. Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between market participants at the measu",
+  "score": 2
+ },
+ "cons-nci-proportionate": {
+  "ref": "IFRS 10 الفقرة B89",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B89 When potential voting rights, or other derivatives containing potential voting rights, exist, the proportion of profit or loss and changes in equity allocated to the parent and non-controlling interests in preparing consolidated financial statements is deter",
+  "score": 4
+ },
+ "cons-contribution-formula": {
+  "ref": "IFRS 10 الفقرة 7",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "7 Thus, an investor controls an investee if and only if the investor has all the following: (a) power over the investee (see paragraphs 10–14); (b) exposure, or rights, to variable returns from its involvement with the investee (see paragraphs 15 and 16); and (c) the abili",
+  "score": 2
+ },
+ "cons-sensitivity": {
+  "ref": "IAS 36 الفقرة 59",
+  "source": "IAS 36 الهبوط في قيمة الأصول (Impairment Of Assets) — النص الكامل 2026",
+  "quote": "59 If, and only if, the recoverable amount of an asset is less than its carrying amount, the carrying amount of the asset shall be reduced to its recoverable amount. That reduction is an impairment loss. 60 An impairment loss shall be recognised immediately in profit or loss, unless the asset is",
+  "score": 0
+ },
+ "cons-at-cost": {
+  "ref": "IFRS 10 الفقرة B86",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B86 Consolidated financial statements: (a) combine like items of assets, liabilities, equity, income, expenses and cash flows of the parent with those of its subsidiaries.",
+  "score": 1
+ },
+ "ws-no-plug": {
+  "ref": "IFRS 10 الفقرة B89",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B89 When potential voting rights, or other derivatives containing potential voting rights, exist, the proportion of profit or loss and changes in equity allocated to the parent and non-controlling interests in preparing consolidated financial statements is deter",
+  "score": 2
+ },
+ "ws-E1-investment-elimination": {
+  "ref": "IFRS 10 الفقرة B86",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B86 Consolidated financial statements: (a) combine like items of assets, liabilities, equity, income, expenses and cash flows of the parent with those of its subsidiaries.",
+  "score": 2
+ },
+ "ws-claim-nature-default": {
+  "ref": "IAS 32 الفقرة 11",
+  "source": "IAS 32 الأدوات المالية: العرض (Financial Instruments Presentation) — النص الكامل 2026",
+  "quote": "equity instrument is any contract that evidences a residual interest in the assets of an entity after deducting all of its liabilities. Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between market participants at the measu",
+  "score": 1
+ },
+ "ws-entry-support": {
+  "ref": "IFRS 10 الفقرة 7",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "7 Thus, an investor controls an investee if and only if the investor has all the following: (a) power over the investee (see paragraphs 10–14); (b) exposure, or rights, to variable returns from its involvement with the investee (see paragraphs 15 and 16); and (c) the abili",
+  "score": 2
+ },
+ "ws-E3-nci": {
+  "ref": "IFRS 10 الفقرة 7",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "7 Thus, an investor controls an investee if and only if the investor has all the following: (a) power over the investee (see paragraphs 10–14); (b) exposure, or rights, to variable returns from its involvement with the investee (see paragraphs 15 and 16); and (c) the abili",
+  "score": 2
+ },
+ "ws-other-equity-rights": {
+  "ref": "IAS 32 الفقرة 11",
+  "source": "IAS 32 الأدوات المالية: العرض (Financial Instruments Presentation) — النص الكامل 2026",
+  "quote": "equity instrument is any contract that evidences a residual interest in the assets of an entity after deducting all of its liabilities. Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between market participants at the measu",
+  "score": 2
+ },
+ "ws-status": {
+  "ref": "IFRS 10 الفقرة 7",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "7 Thus, an investor controls an investee if and only if the investor has all the following: (a) power over the investee (see paragraphs 10–14); (b) exposure, or rights, to variable returns from its involvement with the investee (see paragraphs 15 and 16); and (c) the abili",
+  "score": 3
+ },
+ "cons-reporting-date-gap": {
+  "ref": "IFRS 10 الفقرة B92",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B92 The financial statements of the parent and its subsidiaries used in the preparation of the consolidated financial statements shall have the same reporting date. When the end of the reporting period of the parent is different from that of a subsidiary, the subsidiary prepares, for consolid",
+  "score": 3
+ },
+ "val-dep-rates": {
+  "ref": "IAS 16 الفقرة 50",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "50 The depreciable amount of an asset shall be allocated on a systematic basis over its useful life. 51 The residual value and the useful life of an asset shall be reviewed at least at each financial year-end and, if expectations differ from previous estimates, the change(s) shall be a",
+  "score": 2
+ },
+ "val-land-not-depreciated": {
+  "ref": "IAS 16 الفقرة 58",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "58 Land and buildings are separable assets and are accounted for separately, even when they are acquired together. With some exceptions, such as quarries and sites used for landfill, land has an unlimited useful life and therefore is not depreciated. Buildings have a limi",
+  "score": 1
+ },
+ "val-expected-dep": {
+  "ref": "IAS 16 الفقرة 50",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "50 The depreciable amount of an asset shall be allocated on a systematic basis over its useful life. 51 The residual value and the useful life of an asset shall be reviewed at least at each financial year-end and, if expectations differ from previous estimates, the change(s) shall be a",
+  "score": 2
+ },
+ "val-owner-valuation": {
+  "ref": "IAS 16 الفقرة 30",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "30 After recognition as an asset, an item of property, plant and equipment shall be carried at its cost less any accumulated depreciation and any accumulated impairment losses.",
+  "score": 1
+ },
+ "val-lease-adjustment": {
+  "ref": "IFRS 16 الفقرة 31",
+  "source": "IFRS 16 عقود الإيجار (Leases) — النص الكامل 2026",
+  "quote": "31 A lessee shall apply the depreciation requirements in IAS 16 Property, Plant and Equipment in depreciating the right-of-use asset, subject to the requirements in paragraph 32. A850 © IFRS Foundation 32 If the lease transfers ownership of the underlying asset to the lessee by the",
+  "score": 2
+ },
+ "val-group-base": {
+  "ref": "IFRS 10 الفقرة B89",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B89 When potential voting rights, or other derivatives containing potential voting rights, exist, the proportion of profit or loss and changes in equity allocated to the parent and non-controlling interests in preparing consolidated financial statements is deter",
+  "score": 3
+ },
+ "val-group-attributable-adjustments": {
+  "ref": "IFRS 10 الفقرة B89",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B89 When potential voting rights, or other derivatives containing potential voting rights, exist, the proportion of profit or loss and changes in equity allocated to the parent and non-controlling interests in preparing consolidated financial statements is deter",
+  "score": 1
+ },
+ "LA-001-no-ppe-dep": {
+  "ref": "IAS 16 الفقرة 50",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "50 The depreciable amount of an asset shall be allocated on a systematic basis over its useful life. 51 The residual value and the useful life of an asset shall be reviewed at least at each financial year-end and, if expectations differ from previous estimates, the change(s) shall be a",
+  "score": 1
+ },
+ "LA-002-no-amortisation": {
+  "ref": "IAS 38 الفقرة 97",
+  "source": "IAS 38 الأصول غير الملموسة (Intangible Assets) — النص الكامل 2026",
+  "quote": "97 The depreciable amount of an intangible asset with a finite useful life shall be allocated on a systematic basis over its useful life. Amortisation shall begin when the asset is available for use, ie when it is in the location and condition necessary for it to be capable of operating in t",
+  "score": 2
+ },
+ "LA-003-rou-no-dep": {
+  "ref": "IFRS 16 الفقرة 31",
+  "source": "IFRS 16 عقود الإيجار (Leases) — النص الكامل 2026",
+  "quote": "31 A lessee shall apply the depreciation requirements in IAS 16 Property, Plant and Equipment in depreciating the right-of-use asset, subject to the requirements in paragraph 32. A850 © IFRS Foundation 32 If the lease transfers ownership of the underlying asset to the lessee by the",
+  "score": 1
+ },
+ "LA-004-lease-no-interest": {
+  "ref": "IFRS 16 الفقرة 36",
+  "source": "IFRS 16 عقود الإيجار (Leases) — النص الكامل 2026",
+  "quote": "36 After the commencement date, a lessee shall measure the lease liability by: (a) increasing the carrying amount to reflect interest on the lease liability; (b) reducing the carrying amount to reflect the lease payments made; and (c) remeasuring the carrying amount to reflect any reassessment or lease",
+  "score": 2
+ },
+ "LA-005-accrued-salaries": {
+  "ref": "IAS 19 الفقرة 67",
+  "source": "IAS 19 منافع الموظفين (Employee Benefits) — النص الكامل 2026",
+  "quote": "67 An entity shall use the projected unit credit method to determine the present value of its defined benefit obligations and the related current service cost and, where applicable, past service cost. 68 The projected unit credit method (sometimes known as the accrued benefit method p",
+  "score": 0
+ },
+ "LA-006-eosb-unchanged": {
+  "ref": "IAS 19 الفقرة 67",
+  "source": "IAS 19 منافع الموظفين (Employee Benefits) — النص الكامل 2026",
+  "quote": "67 An entity shall use the projected unit credit method to determine the present value of its defined benefit obligations and the related current service cost and, where applicable, past service cost. 68 The projected unit credit method (sometimes known as the accrued benefit method p",
+  "score": 2
+ },
+ "LA-008-related-party-share": {
+  "ref": "IAS 24 الفقرة 18",
+  "source": "IAS 24 الإفصاحات عن الأطراف ذات العلاقة (Related Party Disclosures) — النص الكامل 2026",
+  "quote": "18 If an entity has had related party transactions during the periods covered by the financial statements, it shall disclose the nature of the related party relationship as well as information about those transactions and outstanding balances, including commitments, necessary for",
+  "score": 2
+ },
+ "LA-009-going-concern": {
+  "ref": "IAS 1 الفقرة 32",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "لايجوزللمنشأة أن تجري مقاصة بين الأصول والالتزامات. أوبين الدخل والمصروفات, مالم تكن مطالبة أومسموحاً لها بذلك بموجب معياردولي للتقرير المالي.",
+  "score": 1
+ },
+ "LA-010-deferred-revenue": {
+  "ref": "IFRS 15 الفقرة 31",
+  "source": "IFRS 15 الإيراد من العقود مع العملاء (Revenue From Contracts With Customers) — النص الكامل 2026",
+  "quote": "31 An entity shall recognise revenue when (or as) the entity satisfies a performance obligation by transferring a promised good or service (ie an asset) to a customer. An asset is transferred when (or as) the customer obtains control of that asset. 32 For each performanc",
+  "score": 2
+ },
+ "ai-partial-period": {
+  "ref": "IAS 34 الفقرة 4",
+  "source": "IAS 34 التقرير المالي الأولي (Interim Financial Reporting) — النص الكامل 2026",
+  "quote": "Interim period is a financial reporting period shorter than a full financial year. Interim financial report means a financial report containing either a complete set of financial statements (as described in IFRS 18 Presentation and Disclosure in Financial Statements) or a set of condensed",
+  "score": 1
+ },
+ "chat-unpaid-capital": {
+  "ref": "IAS 32 الفقرة 11",
+  "source": "IAS 32 الأدوات المالية: العرض (Financial Instruments Presentation) — النص الكامل 2026",
+  "quote": "equity instrument is any contract that evidences a residual interest in the assets of an entity after deducting all of its liabilities. Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between market participants at the measu",
+  "score": 2
+ },
+ "chat-no-summing-separate-equity": {
+  "ref": "IFRS 10 الفقرة B86",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B86 Consolidated financial statements: (a) combine like items of assets, liabilities, equity, income, expenses and cash flows of the parent with those of its subsidiaries.",
+  "score": 2
+ },
+ "chat-book-vs-market": {
+  "ref": "IFRS 13 الفقرة 9",
+  "source": "IFRS 13 قياس القيمة العادلة (Fair Value Measurement) — النص الكامل 2026",
+  "quote": "9 This IFRS defines fair value as the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between market participants at the measurement date. 10 Paragraph B2 describes the overall fair value measurement approach. The ass",
+  "score": 2
+ },
+ "office-vat-exclusive": {
+  "ref": "IFRS 15 الفقرة 31",
+  "source": "IFRS 15 الإيراد من العقود مع العملاء (Revenue From Contracts With Customers) — النص الكامل 2026",
+  "quote": "31 An entity shall recognise revenue when (or as) the entity satisfies a performance obligation by transferring a promised good or service (ie an asset) to a customer. An asset is transferred when (or as) the customer obtains control of that asset. 32 For each performanc",
+  "score": 2
+ },
+ "office-earned-stage": {
+  "ref": "IFRS 15 الفقرة 31",
+  "source": "IFRS 15 الإيراد من العقود مع العملاء (Revenue From Contracts With Customers) — النص الكامل 2026",
+  "quote": "31 An entity shall recognise revenue when (or as) the entity satisfies a performance obligation by transferring a promised good or service (ie an asset) to a customer. An asset is transferred when (or as) the customer obtains control of that asset. 32 For each performanc",
+  "score": 2
+ },
+ "kb-ifrs16": {
+  "ref": "IFRS 16 الفقرة 26",
+  "source": "IFRS 16 عقود الإيجار (Leases) — النص الكامل 2026",
+  "quote": "26 At the commencement date, a lessee shall measure the lease liability at the present value of the lease payments that are not paid at that date. The lease payments shall be discounted using the interest rate implicit in the lease, if that rate can be readily determined. If that rate cannot be readi",
+  "score": 2
+ },
+ "kb-ias7": {
+  "ref": "IAS 7 الفقرة 18",
+  "source": "IAS 7 قائمة التدفقات النقدية (Statement Of Cash Flows) — النص الكامل 2026",
+  "quote": "18 An entity shall report cash flows from operating activities using either: (a) the direct method, whereby major classes of gross cash receipts and gross cash payments are disclosed; or (b) the indirect method, whereby operating profit or loss is adjusted for: (i) the effects of transactions of a non-ca",
+  "score": 2
+ },
+ "kb-ifrs10": {
+  "ref": "IFRS 10 الفقرة B86",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B86 Consolidated financial statements: (a) combine like items of assets, liabilities, equity, income, expenses and cash flows of the parent with those of its subsidiaries.",
+  "score": 3
+ },
+ "kb-ias27": {
+  "ref": "IAS 27 الفقرة 10",
+  "source": "IAS 27 القوائم المالية المنفصلة (Separate Financial Statements) — النص الكامل 2026",
+  "quote": "10 When an entity prepares separate financial statements, it shall account for investments in subsidiaries, joint ventures and associates either: (a) at cost; (b) in accordance with IFRS 9; or (c) using the equity method as described in IAS 28.",
+  "score": 3
+ },
+ "kb-nci": {
+  "ref": "IFRS 10 الفقرة B89",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B89 When potential voting rights, or other derivatives containing potential voting rights, exist, the proportion of profit or loss and changes in equity allocated to the parent and non-controlling interests in preparing consolidated financial statements is deter",
+  "score": 3
+ },
+ "kb-ias28": {
+  "ref": "IAS 28 الفقرة 16",
+  "source": "IAS 28 الاستثمارات في المنشآت الزميلة والمشروعات المشتركة (Investments In Associates And Joint Ventures) — النص الكامل 2026",
+  "quote": "16 An entity with joint control of, or significant influence over, an investee shall account for its investment in an associate or a joint venture using the equity method except when that investment qualifies for exemption in accordance with paragraphs 17–19. Exemptions from applying the equity",
+  "score": 2
+ },
+ "kb-ifrs13": {
+  "ref": "IFRS 13 الفقرة 9",
+  "source": "IFRS 13 قياس القيمة العادلة (Fair Value Measurement) — النص الكامل 2026",
+  "quote": "9 This IFRS defines fair value as the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between market participants at the measurement date. 10 Paragraph B2 describes the overall fair value measurement approach. The ass",
+  "score": 3
+ },
+ "kb-ias16": {
+  "ref": "IAS 16 الفقرة 50",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "50 The depreciable amount of an asset shall be allocated on a systematic basis over its useful life. 51 The residual value and the useful life of an asset shall be reviewed at least at each financial year-end and, if expectations differ from previous estimates, the change(s) shall be a",
+  "score": 3
+ },
+ "kb-ias38": {
+  "ref": "IAS 38 الفقرة 97",
+  "source": "IAS 38 الأصول غير الملموسة (Intangible Assets) — النص الكامل 2026",
+  "quote": "97 The depreciable amount of an intangible asset with a finite useful life shall be allocated on a systematic basis over its useful life. Amortisation shall begin when the asset is available for use, ie when it is in the location and condition necessary for it to be capable of operating in t",
+  "score": 0
+ },
+ "kb-ias36": {
+  "ref": "IAS 36 الفقرة 59",
+  "source": "IAS 36 الهبوط في قيمة الأصول (Impairment Of Assets) — النص الكامل 2026",
+  "quote": "59 If, and only if, the recoverable amount of an asset is less than its carrying amount, the carrying amount of the asset shall be reduced to its recoverable amount. That reduction is an impairment loss. 60 An impairment loss shall be recognised immediately in profit or loss, unless the asset is",
+  "score": 2
+ },
+ "kb-ifrs9": {
+  "ref": "IFRS 9 الفقرة 5.5.1",
+  "source": "IFRS 9 الأدوات المالية (Financial Instruments) — النص الكامل 2026",
+  "quote": "5.5.1 An entity shall recognise a loss allowance for expected credit losses on a financial asset that is measured in accordance with paragraphs 4.1.2 or 4.1.2A, a lease receivable, a contract asset or a loan commitment and a financial guarantee contract to which the impairment",
+  "score": 1
+ },
+ "kb-ifrs15": {
+  "ref": "IFRS 15 الفقرة 31",
+  "source": "IFRS 15 الإيراد من العقود مع العملاء (Revenue From Contracts With Customers) — النص الكامل 2026",
+  "quote": "31 An entity shall recognise revenue when (or as) the entity satisfies a performance obligation by transferring a promised good or service (ie an asset) to a customer. An asset is transferred when (or as) the customer obtains control of that asset. 32 For each performanc",
+  "score": 2
+ },
+ "kb-ias37": {
+  "ref": "IAS 37 الفقرة 14",
+  "source": "IAS 37 المخصصات والالتزامات المحتملة والأصول المحتملة (Provisions Contingent Liabilities And Contingent Assets) — النص الكامل 2026",
+  "quote": "14 A provision shall be recognised when: (a) an entity has a present obligation (legal or constructive) as a result of a past event; (b) it is probable that an outflow of resources embodying economic benefits will be required to settle the obligation; and (c) a reliabl",
+  "score": 1
+ },
+ "kb-ias19": {
+  "ref": "IAS 19 الفقرة 67",
+  "source": "IAS 19 منافع الموظفين (Employee Benefits) — النص الكامل 2026",
+  "quote": "67 An entity shall use the projected unit credit method to determine the present value of its defined benefit obligations and the related current service cost and, where applicable, past service cost. 68 The projected unit credit method (sometimes known as the accrued benefit method p",
+  "score": 3
+ },
+ "kb-ias1": {
+  "ref": "IAS 1 الفقرة 66",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الأصل على أنه متداول عندما: (i) تتوقع تحقق broil! أوعندما تنوي بيع الأصل أواستبلاكه. خلال دورتها التشغيلية العادية؛ أو )~( تحتفظ بالأصل بشكل رئيسي لغرض المتاجرة؛ أو )¢( = تتوقع تحقق الأصل خلال اثني عشرشهراً بعد فترة التقرير؛ أو [ © يكون الأصل نقداً أ",
+  "score": 1
+ },
+ "kb-ias8": {
+  "ref": "IAS 8 الفقرة 42",
+  "source": "IAS 8 أساس إعداد القوائم المالية (السياسات المحاسبية والتغيرات في التقديرات والأخطاء) (Basis Of Preparation Of Financial Statements) — النص الكامل 2026",
+  "quote": "42 Subject to paragraph 43, an entity shall correct material prior period errors retrospectively in the first set of financial statements authorised for issue after their discovery by: (a) restating the comparative amounts for the prior period(s) presented in which the error occurred; or (b) if the error occu",
+  "score": 1
+ },
+ "kb-ias24": {
+  "ref": "IAS 24 الفقرة 18",
+  "source": "IAS 24 الإفصاحات عن الأطراف ذات العلاقة (Related Party Disclosures) — النص الكامل 2026",
+  "quote": "18 If an entity has had related party transactions during the periods covered by the financial statements, it shall disclose the nature of the related party relationship as well as information about those transactions and outstanding balances, including commitments, necessary for",
+  "score": 2
+ },
+ "kb-capital": {
+  "ref": "IAS 1 الفقرة 79",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "لكل فئة من فئات رأس المال المساهم به: )0( عدد الأسهم المصرح the 0( عدد الأسهم المصدرة والمدفوعة بالكامل. والمصدرة التي لم تدفع بالكامل؛ ليه القيمة الاسمية للسهمء أوبيان أن الأسهم ليست لبا قيمة اسمية؛ )£( مطابقة عدد الأسهم القائمة في بداية ونهاية الفترة؛ )",
+  "score": 3
+ },
+ "rpt-summary-key-figures": {
+  "ref": "IAS 1 الفقرة 66",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الأصل على أنه متداول عندما: (i) تتوقع تحقق broil! أوعندما تنوي بيع الأصل أواستبلاكه. خلال دورتها التشغيلية العادية؛ أو )~( تحتفظ بالأصل بشكل رئيسي لغرض المتاجرة؛ أو )¢( = تتوقع تحقق الأصل خلال اثني عشرشهراً بعد فترة التقرير؛ أو [ © يكون الأصل نقداً أ",
+  "score": 1
+ },
+ "rpt-summary-cf-indicative": {
+  "ref": "IAS 7 الفقرة 18",
+  "source": "IAS 7 قائمة التدفقات النقدية (Statement Of Cash Flows) — النص الكامل 2026",
+  "quote": "18 An entity shall report cash flows from operating activities using either: (a) the direct method, whereby major classes of gross cash receipts and gross cash payments are disclosed; or (b) the indirect method, whereby operating profit or loss is adjusted for: (i) the effects of transactions of a non-ca",
+  "score": 2
+ },
+ "rpt-sfp-structure": {
+  "ref": "IAS 1 الفقرة 66",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الأصل على أنه متداول عندما: (i) تتوقع تحقق broil! أوعندما تنوي بيع الأصل أواستبلاكه. خلال دورتها التشغيلية العادية؛ أو )~( تحتفظ بالأصل بشكل رئيسي لغرض المتاجرة؛ أو )¢( = تتوقع تحقق الأصل خلال اثني عشرشهراً بعد فترة التقرير؛ أو [ © يكون الأصل نقداً أ",
+  "score": 2
+ },
+ "rpt-pl-structure": {
+  "ref": "IAS 1 الفقرة 69",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الالتزام على أنه متداول عندما: ترجمة البيئة السعودية للمراجعين والمحاسبين AoA مؤسسة المعايير الدولية للتقرير المالي©",
+  "score": 2
+ },
+ "rpt-statement-titles": {
+  "ref": "IAS 1 الفقرة 106",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة أن تعرض قائمة للتغيرات في حقوق ASU كما هو مطلوب بموجب الفقرة .٠١ وتشتمل قائمة التغيرات في حقوق الملكية على المعلومات الآتية: (i) مجموع الدخل الشامل للفترة, والذي يُظهر مجموع المبالغ الخاصة بملاك المنشاة الأم بشكل منفصل عن الخاصة بالحصص غير المسيطرة؛ )4( = فيما",
+  "score": 2
+ },
+ "rpt-ce-cf-insufficient": {
+  "ref": "IAS 1 الفقرة 106",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة أن تعرض قائمة للتغيرات في حقوق ASU كما هو مطلوب بموجب الفقرة .٠١ وتشتمل قائمة التغيرات في حقوق الملكية على المعلومات الآتية: (i) مجموع الدخل الشامل للفترة, والذي يُظهر مجموع المبالغ الخاصة بملاك المنشاة الأم بشكل منفصل عن الخاصة بالحصص غير المسيطرة؛ )4( = فيما",
+  "score": 2
+ },
+ "rpt-cf-sections": {
+  "ref": "IAS 7 الفقرة 18",
+  "source": "IAS 7 قائمة التدفقات النقدية (Statement Of Cash Flows) — النص الكامل 2026",
+  "quote": "18 An entity shall report cash flows from operating activities using either: (a) the direct method, whereby major classes of gross cash receipts and gross cash payments are disclosed; or (b) the indirect method, whereby operating profit or loss is adjusted for: (i) the effects of transactions of a non-ca",
+  "score": 2
+ },
+ "rpt-aging-section": {
+  "ref": "IFRS 9 الفقرة 5.5.1",
+  "source": "IFRS 9 الأدوات المالية (Financial Instruments) — النص الكامل 2026",
+  "quote": "5.5.1 An entity shall recognise a loss allowance for expected credit losses on a financial asset that is measured in accordance with paragraphs 4.1.2 or 4.1.2A, a lease receivable, a contract asset or a loan commitment and a financial guarantee contract to which the impairment",
+  "score": 1
+ },
+ "rpt-fa-inventory-recon": {
+  "ref": "IAS 16 الفقرة 30",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "30 After recognition as an asset, an item of property, plant and equipment shall be carried at its cost less any accumulated depreciation and any accumulated impairment losses.",
+  "score": 3
+ },
+ "rpt-tpl-fs-analysis": {
+  "ref": "IAS 1 الفقرة 66",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الأصل على أنه متداول عندما: (i) تتوقع تحقق broil! أوعندما تنوي بيع الأصل أواستبلاكه. خلال دورتها التشغيلية العادية؛ أو )~( تحتفظ بالأصل بشكل رئيسي لغرض المتاجرة؛ أو )¢( = تتوقع تحقق الأصل خلال اثني عشرشهراً بعد فترة التقرير؛ أو [ © يكون الأصل نقداً أ",
+  "score": 1
+ },
+ "rpt-tpl-group-valuation": {
+  "ref": "IFRS 10 الفقرة B86",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B86 Consolidated financial statements: (a) combine like items of assets, liabilities, equity, income, expenses and cash flows of the parent with those of its subsidiaries.",
+  "score": 1
+ },
+ "rpt-group-separate-statements": {
+  "ref": "IAS 27 الفقرة 10",
+  "source": "IAS 27 القوائم المالية المنفصلة (Separate Financial Statements) — النص الكامل 2026",
+  "quote": "10 When an entity prepares separate financial statements, it shall account for investments in subsidiaries, joint ventures and associates either: (a) at cost; (b) in accordance with IFRS 9; or (c) using the equity method as described in IAS 28.",
+  "score": 3
+ },
+ "rpt-group-book-valuation": {
+  "ref": "IFRS 10 الفقرة B89",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B89 When potential voting rights, or other derivatives containing potential voting rights, exist, the proportion of profit or loss and changes in equity allocated to the parent and non-controlling interests in preparing consolidated financial statements is deter",
+  "score": 3
+ },
+ "rpt-group-basis-not-book-note": {
+  "ref": "IFRS 13 الفقرة 9",
+  "source": "IFRS 13 قياس القيمة العادلة (Fair Value Measurement) — النص الكامل 2026",
+  "quote": "9 This IFRS defines fair value as the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between market participants at the measurement date. 10 Paragraph B2 describes the overall fair value measurement approach. The ass",
+  "score": 2
+ },
+ "rpt-consolidation-status": {
+  "ref": "IFRS 10 الفقرة B89",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B89 When potential voting rights, or other derivatives containing potential voting rights, exist, the proportion of profit or loss and changes in equity allocated to the parent and non-controlling interests in preparing consolidated financial statements is deter",
+  "score": 2
+ },
+ "rpt-consolidation-elim-entries": {
+  "ref": "IFRS 10 الفقرة B86",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B86 Consolidated financial statements: (a) combine like items of assets, liabilities, equity, income, expenses and cash flows of the parent with those of its subsidiaries.",
+  "score": 1
+ },
+ "rpt-consolidation-capital-matching": {
+  "ref": "IFRS 10 الفقرة 7",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "7 Thus, an investor controls an investee if and only if the investor has all the following: (a) power over the investee (see paragraphs 10–14); (b) exposure, or rights, to variable returns from its involvement with the investee (see paragraphs 15 and 16); and (c) the abili",
+  "score": 4
+ },
+ "rpt-consolidation-bridge-register": {
+  "ref": "IFRS 10 الفقرة 7",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "7 Thus, an investor controls an investee if and only if the investor has all the following: (a) power over the investee (see paragraphs 10–14); (b) exposure, or rights, to variable returns from its involvement with the investee (see paragraphs 15 and 16); and (c) the abili",
+  "score": 3
+ },
+ "rpt-nav-depreciation-assumptions": {
+  "ref": "IAS 16 الفقرة 50",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "50 The depreciable amount of an asset shall be allocated on a systematic basis over its useful life. 51 The residual value and the useful life of an asset shall be reviewed at least at each financial year-end and, if expectations differ from previous estimates, the change(s) shall be a",
+  "score": 2
+ },
+ "rpt-nav-lease-ifrs16": {
+  "ref": "IFRS 16 الفقرة 31",
+  "source": "IFRS 16 عقود الإيجار (Leases) — النص الكامل 2026",
+  "quote": "31 A lessee shall apply the depreciation requirements in IAS 16 Property, Plant and Equipment in depreciating the right-of-use asset, subject to the requirements in paragraph 32. A850 © IFRS Foundation 32 If the lease transfers ownership of the underlying asset to the lessee by the",
+  "score": 2
+ },
+ "rpt-nav-contributions": {
+  "ref": "IAS 32 الفقرة 11",
+  "source": "IAS 32 الأدوات المالية: العرض (Financial Instruments Presentation) — النص الكامل 2026",
+  "quote": "equity instrument is any contract that evidences a residual interest in the assets of an entity after deducting all of its liabilities. Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between market participants at the measu",
+  "score": 1
+ },
+ "rpt-nav-no-sum-separate": {
+  "ref": "IFRS 10 الفقرة B89",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B89 When potential voting rights, or other derivatives containing potential voting rights, exist, the proportion of profit or loss and changes in equity allocated to the parent and non-controlling interests in preparing consolidated financial statements is deter",
+  "score": 1
+ },
+ "rpt-nav-at-cost": {
+  "ref": "IAS 27 الفقرة 10",
+  "source": "IAS 27 القوائم المالية المنفصلة (Separate Financial Statements) — النص الكامل 2026",
+  "quote": "10 When an entity prepares separate financial statements, it shall account for investments in subsidiaries, joint ventures and associates either: (a) at cost; (b) in accordance with IFRS 9; or (c) using the equity method as described in IAS 28.",
+  "score": 1
+ },
+ "period-next-year": {
+  "ref": "IAS 1 الفقرة 66",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الأصل على أنه متداول عندما: (i) تتوقع تحقق broil! أوعندما تنوي بيع الأصل أواستبلاكه. خلال دورتها التشغيلية العادية؛ أو )~( تحتفظ بالأصل بشكل رئيسي لغرض المتاجرة؛ أو )¢( = تتوقع تحقق الأصل خلال اثني عشرشهراً بعد فترة التقرير؛ أو [ © يكون الأصل نقداً أ",
+  "score": 1
+ },
+ "period-group-mirror": {
+  "ref": "IFRS 10 الفقرة B92",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B92 The financial statements of the parent and its subsidiaries used in the preparation of the consolidated financial statements shall have the same reporting date. When the end of the reporting period of the parent is different from that of a subsidiary, the subsidiary prepares, for consolid",
+  "score": 3
+ },
+ "ltr-group-valuation-book-basis": {
+  "ref": "IFRS 10 الفقرة B86",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B86 Consolidated financial statements: (a) combine like items of assets, liabilities, equity, income, expenses and cash flows of the parent with those of its subsidiaries.",
+  "score": 2
+ },
+ "grp-roles": {
+  "ref": "IFRS 10 الفقرة 7",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "7 Thus, an investor controls an investee if and only if the investor has all the following: (a) power over the investee (see paragraphs 10–14); (b) exposure, or rights, to variable returns from its involvement with the investee (see paragraphs 15 and 16); and (c) the abili",
+  "score": 2
+ },
+ "grp-ownership-range": {
+  "ref": "IFRS 10 الفقرة 7",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "7 Thus, an investor controls an investee if and only if the investor has all the following: (a) power over the investee (see paragraphs 10–14); (b) exposure, or rights, to variable returns from its involvement with the investee (see paragraphs 15 and 16); and (c) the abili",
+  "score": 2
+ },
+ "grp-component-inherits": {
+  "ref": "IFRS 10 الفقرة 7",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "7 Thus, an investor controls an investee if and only if the investor has all the following: (a) power over the investee (see paragraphs 10–14); (b) exposure, or rights, to variable returns from its involvement with the investee (see paragraphs 15 and 16); and (c) the abili",
+  "score": 1
+ },
+ "grp-prefill-matching": {
+  "ref": "IFRS 10 الفقرة B86",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B86 Consolidated financial statements: (a) combine like items of assets, liabilities, equity, income, expenses and cash flows of the parent with those of its subsidiaries.",
+  "score": 2
+ },
+ "grp-investment-cost-fallback": {
+  "ref": "IAS 27 الفقرة 10",
+  "source": "IAS 27 القوائم المالية المنفصلة (Separate Financial Statements) — النص الكامل 2026",
+  "quote": "10 When an entity prepares separate financial statements, it shall account for investments in subsidiaries, joint ventures and associates either: (a) at cost; (b) in accordance with IFRS 9; or (c) using the equity method as described in IAS 28.",
+  "score": 1
+ },
+ "off-doc001-capital-mismatch": {
+  "ref": "IAS 1 الفقرة 79",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "لكل فئة من فئات رأس المال المساهم به: )0( عدد الأسهم المصرح the 0( عدد الأسهم المصدرة والمدفوعة بالكامل. والمصدرة التي لم تدفع بالكامل؛ ليه القيمة الاسمية للسهمء أوبيان أن الأسهم ليست لبا قيمة اسمية؛ )£( مطابقة عدد الأسهم القائمة في بداية ونهاية الفترة؛ )",
+  "score": 1
+ },
+ "off-doc002-unpaid-capital": {
+  "ref": "IAS 32 الفقرة 11",
+  "source": "IAS 32 الأدوات المالية: العرض (Financial Instruments Presentation) — النص الكامل 2026",
+  "quote": "equity instrument is any contract that evidences a residual interest in the assets of an entity after deducting all of its liabilities. Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between market participants at the measu",
+  "score": 3
+ },
+ "off-doc003-fully-paid-claim": {
+  "ref": "IFRS 10 الفقرة B86",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B86 Consolidated financial statements: (a) combine like items of assets, liabilities, equity, income, expenses and cash flows of the parent with those of its subsidiaries.",
+  "score": 2
+ },
+ "off-doc009-ownership": {
+  "ref": "IFRS 10 الفقرة B89",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B89 When potential voting rights, or other derivatives containing potential voting rights, exist, the proportion of profit or loss and changes in equity allocated to the parent and non-controlling interests in preparing consolidated financial statements is deter",
+  "score": 4
+ },
+ "off-control-since-contract": {
+  "ref": "IFRS 10 الفقرة 7",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "7 Thus, an investor controls an investee if and only if the investor has all the following: (a) power over the investee (see paragraphs 10–14); (b) exposure, or rights, to variable returns from its involvement with the investee (see paragraphs 15 and 16); and (c) the abili",
+  "score": 4
+ },
+ "req-at-cost-tb": {
+  "ref": "IAS 27 الفقرة 10",
+  "source": "IAS 27 القوائم المالية المنفصلة (Separate Financial Statements) — النص الكامل 2026",
+  "quote": "10 When an entity prepares separate financial statements, it shall account for investments in subsidiaries, joint ventures and associates either: (a) at cost; (b) in accordance with IFRS 9; or (c) using the equity method as described in IAS 28.",
+  "score": 2
+ },
+ "req-contributions": {
+  "ref": "IAS 32 الفقرة 11",
+  "source": "IAS 32 الأدوات المالية: العرض (Financial Instruments Presentation) — النص الكامل 2026",
+  "quote": "equity instrument is any contract that evidences a residual interest in the assets of an entity after deducting all of its liabilities. Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between market participants at the measu",
+  "score": 1
+ },
+ "req-intercompany": {
+  "ref": "IFRS 10 الفقرة B86",
+  "source": "IFRS 10 القوائم المالية الموحدة (Consolidated Financial Statements) — النص الكامل 2026",
+  "quote": "B86 Consolidated financial statements: (a) combine like items of assets, liabilities, equity, income, expenses and cash flows of the parent with those of its subsidiaries.",
+  "score": 2
+ },
+ "req-losses-half-capital": {
+  "ref": "IAS 1 الفقرة 32",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "لايجوزللمنشأة أن تجري مقاصة بين الأصول والالتزامات. أوبين الدخل والمصروفات, مالم تكن مطالبة أومسموحاً لها بذلك بموجب معياردولي للتقرير المالي.",
+  "score": 1
+ },
+ "req-asset-register": {
+  "ref": "IAS 16 الفقرة 50",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "50 The depreciable amount of an asset shall be allocated on a systematic basis over its useful life. 51 The residual value and the useful life of an asset shall be reviewed at least at each financial year-end and, if expectations differ from previous estimates, the change(s) shall be a",
+  "score": 2
+ },
+ "req-lease-ifrs16": {
+  "ref": "IFRS 16 الفقرة 31",
+  "source": "IFRS 16 عقود الإيجار (Leases) — النص الكامل 2026",
+  "quote": "31 A lessee shall apply the depreciation requirements in IAS 16 Property, Plant and Equipment in depreciating the right-of-use asset, subject to the requirements in paragraph 32. A850 © IFRS Foundation 32 If the lease transfers ownership of the underlying asset to the lessee by the",
+  "score": 2
+ },
+ "req-payroll-eosb": {
+  "ref": "IAS 19 الفقرة 67",
+  "source": "IAS 19 منافع الموظفين (Employee Benefits) — النص الكامل 2026",
+  "quote": "67 An entity shall use the projected unit credit method to determine the present value of its defined benefit obligations and the related current service cost and, where applicable, past service cost. 68 The projected unit credit method (sometimes known as the accrued benefit method p",
+  "score": 2
+ },
+ "req-deferred-revenue": {
+  "ref": "IFRS 15 الفقرة 31",
+  "source": "IFRS 15 الإيراد من العقود مع العملاء (Revenue From Contracts With Customers) — النص الكامل 2026",
+  "quote": "31 An entity shall recognise revenue when (or as) the entity satisfies a performance obligation by transferring a promised good or service (ie an asset) to a customer. An asset is transferred when (or as) the customer obtains control of that asset. 32 For each performanc",
+  "score": 2
+ },
+ "req-classification": {
+  "ref": "IAS 1 الفقرة 66",
+  "source": "IAS 1 عرض القوائم المالية — المعتمد في المملكة (الهيئة السعودية للمراجعين والمحاسبين 2026)",
+  "quote": "يجب على المنشأة تصنيف الأصل على أنه متداول عندما: (i) تتوقع تحقق broil! أوعندما تنوي بيع الأصل أواستبلاكه. خلال دورتها التشغيلية العادية؛ أو )~( تحتفظ بالأصل بشكل رئيسي لغرض المتاجرة؛ أو )¢( = تتوقع تحقق الأصل خلال اثني عشرشهراً بعد فترة التقرير؛ أو [ © يكون الأصل نقداً أ",
+  "score": 1
+ },
+ "req-owner-valuation": {
+  "ref": "IAS 16 الفقرة 50",
+  "source": "IAS 16 الممتلكات والآلات والمعدات (Property Plant And Equipment) — النص الكامل 2026",
+  "quote": "50 The depreciable amount of an asset shall be allocated on a systematic basis over its useful life. 51 The residual value and the useful life of an asset shall be reviewed at least at each financial year-end and, if expectations differ from previous estimates, the change(s) shall be a",
+  "score": 1
+ },
+ "fin-revenue-excl-vat": {
+  "ref": "IFRS 15 الفقرة 31",
+  "source": "IFRS 15 الإيراد من العقود مع العملاء (Revenue From Contracts With Customers) — النص الكامل 2026",
+  "quote": "31 An entity shall recognise revenue when (or as) the entity satisfies a performance obligation by transferring a promised good or service (ie an asset) to a customer. An asset is transferred when (or as) the customer obtains control of that asset. 32 For each performanc",
+  "score": 2
+ },
+ "fin-aging-buckets": {
+  "ref": "IFRS 9 الفقرة 5.5.1",
+  "source": "IFRS 9 الأدوات المالية (Financial Instruments) — النص الكامل 2026",
+  "quote": "5.5.1 An entity shall recognise a loss allowance for expected credit losses on a financial asset that is measured in accordance with paragraphs 4.1.2 or 4.1.2A, a lease receivable, a contract asset or a loan commitment and a financial guarantee contract to which the impairment",
+  "score": 1
+ },
+ "fin-progress-6-steps": {
+  "ref": "IFRS 15 الفقرة 31",
+  "source": "IFRS 15 الإيراد من العقود مع العملاء (Revenue From Contracts With Customers) — النص الكامل 2026",
+  "quote": "31 An entity shall recognise revenue when (or as) the entity satisfies a performance obligation by transferring a promised good or service (ie an asset) to a customer. An asset is transferred when (or as) the customer obtains control of that asset. 32 For each performanc",
+  "score": 1
+ },
+ "fin-earned-revenue": {
+  "ref": "IFRS 15 الفقرة 31",
+  "source": "IFRS 15 الإيراد من العقود مع العملاء (Revenue From Contracts With Customers) — النص الكامل 2026",
+  "quote": "31 An entity shall recognise revenue when (or as) the entity satisfies a performance obligation by transferring a promised good or service (ie an asset) to a customer. An asset is transferred when (or as) the customer obtains control of that asset. 32 For each performanc",
+  "score": 3
+ },
+ "fin-unbilled-deferred": {
+  "ref": "IFRS 15 الفقرة 31",
+  "source": "IFRS 15 الإيراد من العقود مع العملاء (Revenue From Contracts With Customers) — النص الكامل 2026",
+  "quote": "31 An entity shall recognise revenue when (or as) the entity satisfies a performance obligation by transferring a promised good or service (ie an asset) to a customer. An asset is transferred when (or as) the customer obtains control of that asset. 32 For each performanc",
+  "score": 3
+ }
+}

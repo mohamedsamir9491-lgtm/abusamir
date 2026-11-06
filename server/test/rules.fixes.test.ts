@@ -90,3 +90,34 @@ describe('سياسة الأهمية النسبية (ISA 320 أ8)', () => {
     const n = signatureStatusNote('approved', true); expect(n.type === 'note' && n.text).toContain('المُعد نفسه');
   });
 });
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { basisFor, basisLabel, RULE_BASIS } from '../src/modules/legal/basis.js';
+describe('الأساس النظامي لكل ملاحظة', () => {
+  it('كل رمز ملاحظة في البرنامج له أساس (سند أو فحص حسابي)', () => {
+    const files: string[] = []; const walk = (d: string) => { for (const f of fs.readdirSync(d)) { const p = path.join(d, f); if (fs.statSync(p).isDirectory()) walk(p); else if (p.endsWith('.ts')) files.push(p); } };
+    walk(path.resolve(__dirname, '../src'));
+    const codes = new Set<string>();
+    for (const f of files) for (const m of fs.readFileSync(f, 'utf8').matchAll(/'((?:TB|AR|AP|FS|JE|DOC|FA|INV|BANK|REC|SL|LA|VAR)-[0-9]{3}[A-Z]?)'/g)) codes.add(m[1]);
+    const missing = [...codes].filter((c) => !basisFor(c));
+    expect(missing).toEqual([]);
+    expect(codes.size).toBeGreaterThan(60);
+  });
+  it('الأسانيد تذكر المادة أو الفقرة، والعتبات تُوصف بأنها اجتهاد', () => {
+    expect(basisLabel(basisFor('TB-024'))).toContain('المادة الثانية والثلاثون بعد المائة');
+    expect(basisLabel(basisFor('FA-003'))).toBe('IAS 16 الفقرة 50');
+    expect(basisLabel(basisFor('TB-026'))).toBe('IAS 2 الفقرة 34');
+    expect(basisLabel(basisFor('TB-002-R'))).toBe('فحص حسابي على البيانات');
+    expect(basisLabel(basisFor('FS-014'))).toContain('اجتهاد المكتب');
+    for (const b of Object.values(RULE_BASIS)) if (b.kind === 'سند') { expect(b.items.length).toBeGreaterThan(0); for (const i of b.items) expect(i.quote && i.quote.length > 20).toBe(true); }
+  });
+});
+
+describe('TB-026 الجرد الدوري (IAS 2.34)', () => {
+  it('تنبيه عند وجود مشتريات ومخزون لم يتحرك', () => {
+    const row = (code: string, name: string, od: string, cd: string, pd = '0', pc = '0', cc = '0', oc = '0'): TbEntry => ({ account_code: code, account_name: name, opening_debit: od, opening_credit: oc, period_debit: pd, period_credit: pc, closing_debit: cd, closing_credit: cc, source_row: 1 });
+    const tb = [row('1301', 'المخزون', '50000', '50000'), row('5101', 'مشتريات بضاعة', '0', '80000', '80000'), row('1101', 'النقد', '100000', '20000', '0', '80000'), row('3101', 'رأس المال', '0', '0', '0', '0', '150000', '150000')];
+    expect(validateTrialBalance(tb).findings.some((f) => f.rule_code === 'TB-026')).toBe(true);
+  });
+});

@@ -58,7 +58,7 @@ export function FinanceRevenue() {
   useEffect(() => { get<{ year: number }>('/office/fiscal-year').then((r) => setYear(r.year)).catch(() => undefined); }, []);
   const { data, loading, reload } = useLoad(() => get<Overview>(`/finance/overview?year=${year}`), [year]);
   const [target, setTarget] = useState('');
-  return <Page title="إيرادات المكتب" sub="الإيراد على أساسين معًا: المحصّل نقدًا، والمكتسب حسب مرحلة تنفيذ كل ارتباط. كل المبالغ بدون ضريبة القيمة المضافة."
+  return <Page title="إيرادات المكتب" sub="الإيراد على أساسين معًا: المحصّل نقدًا، والمكتسب حسب مرحلة تنفيذ كل ارتباط (مؤشر إداري حسب مراحل العمل، وليس قياسًا للإيراد وفق IFRS 15). كل المبالغ بدون ضريبة القيمة المضافة."
     actions={<Field label="السنة"><select value={year} onChange={(e) => setYear(Number(e.target.value))} style={{ width: 120 }}>{[0, 1, 2, 3].map((k) => new Date().getFullYear() - k).map((y) => <option key={y} value={y}>{y}</option>)}</select></Field>}>
     {loading || !data ? <Spinner /> : <div className="dgrid">
       {([['المفوتر', data.billed, ''], ['المحصّل', data.collected, 'okt'], ['المكتسب حسب التنفيذ', data.earned, ''], ['أعمال لم يُطالب بها', data.unbilled, 'warnt']] as const).map(([l, v, c]) => <div key={l} className="card mk s3"><small>{l}</small><b className={c}>{fmtMoney(v)}</b></div>)}

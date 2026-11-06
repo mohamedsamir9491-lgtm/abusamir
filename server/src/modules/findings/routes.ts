@@ -1,3 +1,4 @@
+import { basisFor, basisLabel } from '../legal/basis.js';
 import { Router } from 'express';
 import { z } from 'zod';
 import { many, one, query } from '../../db/pool.js';
@@ -31,7 +32,7 @@ findingsRouter.get('/', async (req, res, next) => {
     const counts = await one(`SELECT count(*) FILTER (WHERE review_status IN ('open','under_review')) AS open, count(*) FILTER (WHERE review_status = 'accepted') AS accepted,
       count(*) FILTER (WHERE review_status = 'rejected') AS rejected, count(*) FILTER (WHERE review_status = 'resolved') AS resolved, count(*) AS total,
       count(*) FILTER (WHERE severity = 'critical') AS critical, count(*) FILTER (WHERE severity = 'high') AS high FROM findings WHERE engagement_id = $1 AND ($2::uuid IS NULL OR period_id = $2)`, [engagementId, periodId]);
-    res.json({ findings: rows, counts });
+    res.json({ findings: (rows as Record<string, unknown>[]).map((f) => ({ ...f, basis_label: basisLabel(basisFor(f.rule_code as string)) })), counts });
   } catch (e) { next(e); }
 });
 
@@ -64,7 +65,7 @@ findingsRouter.get('/:id', async (req, res, next) => {
     const comments = await many(`SELECT c.*, u.full_name FROM review_comments c JOIN users u ON u.id = c.user_id WHERE c.entity_type = 'finding' AND c.entity_id = $1 ORDER BY c.created_at`, [req.params.id]);
     const adjustments = await many('SELECT * FROM proposed_adjustments WHERE finding_id = $1 ORDER BY created_at', [req.params.id]);
     const history = await many(`SELECT h.*, u.full_name FROM approval_history h LEFT JOIN users u ON u.id = h.user_id WHERE h.entity_type = 'finding' AND h.entity_id = $1 ORDER BY h.created_at`, [req.params.id]);
-    res.json({ finding: f, comments, adjustments, history });
+    res.json({ finding: { ...f, basis: basisFor((f as { rule_code?: string }).rule_code), basis_label: basisLabel(basisFor((f as { rule_code?: string }).rule_code)) }, comments, adjustments, history });
   } catch (e) { next(e); }
 });
 

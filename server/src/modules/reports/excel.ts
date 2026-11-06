@@ -1,3 +1,4 @@
+import { basisFor, basisLabel } from '../legal/basis.js';
 import ExcelJS from 'exceljs';
 import type { ReportContent, ReportBlock } from './builder.js';
 import type { Snapshot } from './snapshot.js';
@@ -34,9 +35,9 @@ export async function reportToExcel(content: ReportContent, snap: Snapshot): Pro
   }
   // الملاحظات
   const fws = wb.addWorksheet('الملاحظات', { views: [{ rightToLeft: true }] });
-  fws.columns = [{ header: 'المرجع', key: 'ref', width: 10 }, { header: 'الخطورة', key: 'sev', width: 10 }, { header: 'الفئة', key: 'cat', width: 18 }, { header: 'العنوان', key: 'title', width: 50 }, { header: 'الحساب', key: 'acc', width: 16 }, { header: 'المبلغ', key: 'amount', width: 16 }, { header: 'الوصف', key: 'desc', width: 80 }, { header: 'الاحتساب', key: 'calc', width: 40 }, { header: 'التوصية', key: 'rec', width: 50 }, { header: 'الحالة', key: 'status', width: 12 }];
+  fws.columns = [{ header: 'المرجع', key: 'ref', width: 10 }, { header: 'الخطورة', key: 'sev', width: 10 }, { header: 'الفئة', key: 'cat', width: 18 }, { header: 'العنوان', key: 'title', width: 50 }, { header: 'الحساب', key: 'acc', width: 16 }, { header: 'المبلغ', key: 'amount', width: 16 }, { header: 'الوصف', key: 'desc', width: 80 }, { header: 'الاحتساب', key: 'calc', width: 40 }, { header: 'التوصية', key: 'rec', width: 50 }, { header: 'الأساس النظامي', key: 'basis', width: 45 }, { header: 'الحالة', key: 'status', width: 12 }];
   fws.getRow(1).font = { bold: true };
-  for (const f of snap.findings as Record<string, unknown>[]) fws.addRow({ ref: f.finding_ref, sev: f.severity, cat: f.category, title: f.title, acc: f.account_code ?? '', amount: f.amount == null ? null : D(f.amount as string).toNumber(), desc: f.description, calc: f.calculation ?? '', rec: f.recommendation ?? '', status: f.review_status });
+  for (const f of snap.findings as Record<string, unknown>[]) fws.addRow({ ref: f.finding_ref, sev: f.severity, cat: f.category, title: f.title, acc: f.account_code ?? '', amount: f.amount == null ? null : D(f.amount as string).toNumber(), desc: f.description, calc: f.calculation ?? '', rec: f.recommendation ?? '', basis: basisLabel(basisFor(f.rule_code as string)), status: f.review_status });
   fws.getColumn('amount').numFmt = numFmt;
   return Buffer.from(await wb.xlsx.writeBuffer());
 }

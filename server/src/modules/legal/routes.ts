@@ -40,6 +40,17 @@ legalRouter.get('/chunks/:id', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+/** تحديد المقطع الذي يحتوي مقتطف «الأساس النظامي» لفتحه مباشرة في المكتبة */
+legalRouter.get('/locate', async (req, res, next) => {
+  try {
+    const d = parse(z.object({ source: z.string().min(4).max(64), quote: z.string().min(10).max(400) }), req.query);
+    const head = d.quote.replace(/\s+/g, ' ').trim().slice(0, 60);
+    const r = await one<{ id: string }>(`SELECT id::text FROM legal_chunks WHERE source_code = $1 AND regexp_replace(body, '\\s+', ' ', 'g') LIKE '%' || $2 || '%' ORDER BY page_from NULLS LAST LIMIT 1`, [d.source, head]);
+    if (!r) throw notFound('لم يُعثر على المقطع');
+    res.json(r);
+  } catch (e) { next(e); }
+});
+
 legalRouter.get('/search', async (req, res, next) => {
   try {
     const q = String(req.query.q ?? '').slice(0, 300);

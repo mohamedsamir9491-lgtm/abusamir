@@ -43,7 +43,7 @@ export async function loadClaims(where: string, params: unknown[], db?: Queryabl
   const t = today();
   return rows.map((r) => { const total = Number(r.total); const paid = Number(r.paid); const balance = r2(total - paid);
     const ref = r.due_date ?? r.issue_date; const age = balance > 0.009 ? daysBetween(ref, t) : null;
-    const state: ClaimRow['state'] = r.status === 'cancelled' ? 'cancelled' : balance <= 0.009 ? 'paid' : age != null && age > 0 && r.due_date ? (paid > 0 ? 'partial' : 'overdue') : paid > 0 ? 'partial' : 'unpaid';
+    const state: ClaimRow['state'] = r.status === 'cancelled' ? 'cancelled' : balance <= 0.009 ? 'paid' : age != null && age > 0 ? 'overdue' : paid > 0 ? 'partial' : 'unpaid';
     return { ...r, amount: Number(r.amount), vat_rate: Number(r.vat_rate), vat_amount: Number(r.vat_amount), total, paid: r2(paid), balance, state, age_days: age } as ClaimRow; });
 }
 
@@ -81,8 +81,8 @@ export async function officeFinance(year: number, db?: Queryable) {
   const open = claims.filter((c) => c.balance > 0.009);
   const outstanding = r2(open.reduce((t, c) => t + c.balance, 0));
   const B = [{ key: 'not_due', label: 'لم يحن موعدها', v: 0 }, { key: 'd30', label: 'حتى 30 يومًا', v: 0 }, { key: 'd60', label: 'من 31 إلى 60', v: 0 }, { key: 'd90', label: 'من 61 إلى 90', v: 0 }, { key: 'd90p', label: 'أكثر من 90 يومًا', v: 0 }];
-  for (const c of open) { const a = c.due_date ? c.age_days ?? 0 : 0; const k = !c.due_date || a <= 0 ? 0 : a <= 30 ? 1 : a <= 60 ? 2 : a <= 90 ? 3 : 4; B[k].v = r2(B[k].v + c.balance); }
-  const lateClients = new Set(open.filter((c) => c.due_date && (c.age_days ?? 0) > 60).map((c) => c.client_id)).size;
+  for (const c of open) { const a = c.age_days ?? 0; /* بلا تاريخ استحقاق: مستحقة من تاريخ الإصدار */ const k = a <= 0 ? 0 : a <= 30 ? 1 : a <= 60 ? 2 : a <= 90 ? 3 : 4; B[k].v = r2(B[k].v + c.balance); }
+  const lateClients = new Set(open.filter((c) => (c.age_days ?? 0) > 60).map((c) => c.client_id)).size;
   const months = Array.from({ length: 12 }, (_, i) => ({ m: i + 1, billed: 0, collected: 0 }));
   for (const c of claims) if (inYear(c.issue_date)) months[Number(c.issue_date.slice(5, 7)) - 1].billed += c.amount;
   for (const p of pays) if (inYear(p.pay_date)) months[Number(p.pay_date.slice(5, 7)) - 1].collected += netOf(p);

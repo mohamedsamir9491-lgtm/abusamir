@@ -130,7 +130,7 @@ function renderBlock(b: ReportBlock): string {
         <table class="kv small"><tbody>
           ${f.account ? `<tr><th>الحساب / البند</th><td>${esc(f.account)}</td></tr>` : ''}${f.amount ? `<tr><th>المبلغ</th><td class="num">${esc(f.amount)}</td></tr>` : ''}${f.source ? `<tr><th>المصدر</th><td>${esc(f.source)}</td></tr>` : ''}
           ${f.calculation ? `<tr><th>الاحتساب / الدليل</th><td class="ltr-num">${esc(f.calculation)}</td></tr>` : ''}<tr><th>الوصف</th><td>${esc(f.description)}</td></tr>
-          ${f.impact ? `<tr><th>الأثر المحتمل</th><td>${esc(f.impact)}</td></tr>` : ''}${f.recommendation ? `<tr><th>الإجراء الموصى به</th><td>${esc(f.recommendation)}</td></tr>` : ''}
+          ${f.impact ? `<tr><th>الأثر المحتمل</th><td>${esc(f.impact)}</td></tr>` : ''}${f.recommendation ? `<tr><th>الإجراء الموصى به</th><td>${esc(f.recommendation)}</td></tr>` : ''}${f.basis ? `<tr><th>الأساس النظامي</th><td>${esc(f.basis)}</td></tr>` : ''}
           <tr><th>حالة المراجعة</th><td>${esc(REVIEW_STATUS_LABELS[f.status] ?? f.status)}${f.origin === 'ai' ? ' (ملاحظة مساعد ذكي - تتطلب تحققًا بشريًا)' : f.origin === 'manual' ? ' (مضافة يدويًا)' : ''}</td></tr>
         </tbody></table></div>`).join('');
   }

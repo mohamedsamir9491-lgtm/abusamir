@@ -350,6 +350,16 @@ export function validateTrialBalance(entries: TbEntry[], opts: TbValidationOptio
       amount: toStr(accDep.abs().minus(ppe)), fs_line_code: 'ACC_DEP', evidence: { ppe_cost: toStr(ppe), accumulated_depreciation: toStr(accDep.abs()) },
       recommendation: 'مراجعة سجل الأصول الثابتة وجدول الاستهلاك.', dedupe_key: 'TB-023' });
   }
+  // TB-026: جرد دوري محتمل — حساب مشتريات مع مخزون لم يتحرك؛ تكلفة المبيعات = أول المدة + المشتريات − آخر المدة (IAS 2.34)
+  const purchases = analyses.filter((a) => a.meta.fs_line_code === 'COGS' && /(مشتريات|purchases)/i.test(a.account_name ?? ''));
+  const invAcc = analyses.filter((a) => a.meta.fs_line_code === 'INVENTORY' && !D(a.closing_net).isZero());
+  if (cols.movements && purchases.length && invAcc.length && invAcc.every((a) => D(a.movement_net).isZero())) {
+    const pur = purchases.reduce((t, a) => t.plus(a.closing_net), ZERO); const inv = invAcc.reduce((t, a) => t.plus(a.closing_net), ZERO);
+    findings.push({ rule_code: 'TB-026', category: 'accounting_issue', severity: 'medium', title: 'يبدو أن المخزون بنظام الجرد الدوري: رصيده لم يتحرك خلال الفترة مع وجود حساب مشتريات',
+      description: `المشتريات ${toStr(pur)} محمّلة على تكلفة المبيعات، ورصيد المخزون ${toStr(inv)} لم يتغير خلال الفترة. في الجرد الدوري: تكلفة المبيعات = مخزون أول المدة + المشتريات − مخزون آخر المدة، ويُثبت المبلغ الدفتري للمخزون المبيع مصروفًا في فترة إثبات إيراده (IAS 2.34). بدون قيد الإقفال تختلف تكلفة المبيعات ومجمل الربح ورصيد المخزون بقدر التغير في المخزون.`,
+      amount: toStr(pur), fs_line_code: 'INVENTORY', evidence: { purchases: toStr(pur), inventory: toStr(inv), accounts: purchases.map((a) => a.account_code) },
+      recommendation: 'الحصول على قيمة مخزون آخر المدة من الجرد الفعلي وتسجيل قيد الإقفال، أو إدخاله تسويةً مقترحة قبل إصدار القوائم.', dedupe_key: 'TB-026' });
+  }
   const capital = lineNet('SHARE_CAPITAL').neg(); const retained = lineNet('RETAINED_EARNINGS').neg();
   const plNet = analyses.filter((a) => a.meta.account_type === 'revenue' || a.meta.account_type === 'expense').reduce((s2, a) => s2.plus(a.closing_net), ZERO).neg();
   const accumulated = retained.plus(plNet);

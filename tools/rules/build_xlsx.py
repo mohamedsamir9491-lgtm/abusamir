@@ -42,9 +42,11 @@ def std_title(sd):
   return min(pref, key=len) if pref else None
 STATUS = OrderedDict([
  ('fixed', '✔️ صُحّحت واختُبرت'), ('fix', '⚠️ تحتاج تصحيح (تحقّقتُ منها)'), ('bug', '🐞 خلل برمجي (تحقّقتُ منه)'), ('link', '🔗 القيمة صحيحة وتحتاج ربطًا بجدول النسب'),
- ('decide', '🟡 تحتاج قرارك'), ('ok', '✅ موثّقة بنص (تحقّقتُ منها)'), ('cand', '🔎 سند مرشح من المعيار (لم يُراجَع فقرةً فقرة)'),
+ ('decide', '🟡 تحتاج قرارك'), ('ok', '✅ موثّقة بنص (تحقّقتُ منها)'), ('pinned', '📌 مرتبطة بفقرة محددة (مطابقة آلية بالكلمات — للمراجعة)'), ('cand', '🔎 المعيار محدد والفقرة لم تُحدد بعد'),
  ('suspect', '❓ ملاحظة مراجِع آلي — لم أتحقق منها بعد'), ('practice', '📝 اجتهاد مهني بلا نص — يحتاج اعتماد المكتب'),
  ('absent', '📚 المعيار غير موجود في المكتبة'), ('none', '❔ لم يُعثر على سند بعد'), ('tech', '⚙️ تقني — لا يحتاج سندًا')])
+PINS = json.load(open(D + 'pins.json', encoding='utf-8'))
+BASIS = json.load(open('/tmp/claude-0/-workspace/3f0c9cdb-eb6b-5493-bc6e-a6b73e9bf13f/scratchpad/basis/basis_final.json', encoding='utf-8'))
 rows = []
 for r in L:
   src = ''; snip = ''; note = ''; prio = ''
@@ -64,6 +66,10 @@ for r in L:
     elif r.get('std') and std_title(r['std']): st = 'cand'; src = std_title(r['std'])[:110]
     elif r['kind'] == 'ممارسة مهنية/اجتهاد': st = 'practice'
     else: st = 'none'
+  pin = PINS.get(r['id'])
+  if st == 'cand' and pin:
+    if pin['score'] >= 2: st = 'pinned'; src = f"{pin['ref']} — {pin['source'][:70]}"; snip = pin['quote'][:350]
+    else: note = (note + ' ' if note else '') + f"فقرة مقترحة (مطابقة ضعيفة): {pin['ref']}"
   rows.append({**r, 'st': st, 'src': src, 'snip': snip, 'note': note, 'prio': prio})
 json.dump(rows, open(D + 'register.json', 'w'), ensure_ascii=False, indent=1)
 cnt = Counter(x['st'] for x in rows)
@@ -73,7 +79,7 @@ wb = Workbook(); NAVY = '1F2A44'; GOLD = 'B8962E'
 hdr = Font(bold=True, color='FFFFFF', name='Arial'); hfill = PatternFill('solid', fgColor=NAVY)
 thin = Side(style='thin', color='CCCCCC'); B = Border(top=thin, bottom=thin, left=thin, right=thin)
 wrap = Alignment(wrap_text=True, vertical='top', horizontal='right', readingOrder=2)
-FILL = {'fixed': 'D9F2E3', 'fix': 'FDE2E1', 'bug': 'FDE2E1', 'link': 'FFF4D6', 'decide': 'FFF4D6', 'ok': 'E3F4E8', 'cand': 'EEF3FB', 'suspect': 'F3E8FF', 'practice': 'FFF9EB', 'absent': 'F1F1F1', 'none': 'F1F1F1', 'tech': 'FFFFFF'}
+FILL = {'pinned': 'E6EEFA', 'fixed': 'D9F2E3', 'fix': 'FDE2E1', 'bug': 'FDE2E1', 'link': 'FFF4D6', 'decide': 'FFF4D6', 'ok': 'E3F4E8', 'cand': 'EEF3FB', 'suspect': 'F3E8FF', 'practice': 'FFF9EB', 'absent': 'F1F1F1', 'none': 'F1F1F1', 'tech': 'FFFFFF'}
 def sheet(ws, cols, data, widths):
   ws.sheet_view.rightToLeft = True
   for i, c in enumerate(cols, 1):
@@ -92,7 +98,7 @@ ws['A2'].alignment = Alignment(wrap_text=True, horizontal='right', readingOrder=
 r0 = 4
 for i, c in enumerate(['الحالة', 'العدد', 'المعنى'], 1):
   x = ws.cell(row=r0, column=i, value=c); x.font = hdr; x.fill = hfill; x.border = B; x.alignment = Alignment(horizontal='center')
-MEAN = {'fixed': 'خطأ مؤكد صُحّح في البرنامج وله اختبار آلي', 'fix': 'خطأ مؤكد في المعالجة أو الصياغة مقارنة بالنص؛ الإصلاح مقترح', 'bug': 'خلل في البرنامج نفسه', 'link': 'رقم صحيح مكتوب ثابتًا في الكود', 'decide': 'قيمة أو سياسة لا يحددها نص؛ القرار لك', 'ok': 'طابقتُ القاعدة مع نص المادة/المعيار', 'cand': 'وُجد المعيار والصفحة المرشحة آليًا؛ المطابقة الدقيقة في المرحلة التالية', 'suspect': 'شك من المراجعة الآلية للكود، أتحقق منه قبل أي تعديل', 'practice': 'حدود وعتبات من اجتهاد البرنامج (مثل 10% و120 يومًا)', 'absent': 'المعيار غير متوفر في ملفات المكتبة (IVS للتقييم، ISQM 1 لإدارة الجودة)', 'none': 'لم يظهر سند في البحث الآلي', 'tech': 'إجراء تقني (حفظ، ترقيم، قراءة ملفات)'}
+MEAN = {'pinned': 'رُبطت بفقرة من النص الكامل للمعيار بمطابقة كلمات القاعدة مع موضوع الفقرة، مع مقتطف النص', 'fixed': 'خطأ مؤكد صُحّح في البرنامج وله اختبار آلي', 'fix': 'خطأ مؤكد في المعالجة أو الصياغة مقارنة بالنص؛ الإصلاح مقترح', 'bug': 'خلل في البرنامج نفسه', 'link': 'رقم صحيح مكتوب ثابتًا في الكود', 'decide': 'قيمة أو سياسة لا يحددها نص؛ القرار لك', 'ok': 'طابقتُ القاعدة مع نص المادة/المعيار', 'cand': 'وُجد المعيار والصفحة المرشحة آليًا؛ المطابقة الدقيقة في المرحلة التالية', 'suspect': 'شك من المراجعة الآلية للكود، أتحقق منه قبل أي تعديل', 'practice': 'حدود وعتبات من اجتهاد البرنامج (مثل 10% و120 يومًا)', 'absent': 'المعيار غير متوفر في ملفات المكتبة (IVS للتقييم، ISQM 1 لإدارة الجودة)', 'none': 'لم يظهر سند في البحث الآلي', 'tech': 'إجراء تقني (حفظ، ترقيم، قراءة ملفات)'}
 for i, (k, lab) in enumerate(STATUS.items(), r0 + 1):
   for ci, v in enumerate([lab, cnt.get(k, 0), MEAN[k]], 1):
     x = ws.cell(row=i, column=ci, value=v); x.border = B; x.fill = PatternFill('solid', fgColor=FILL[k]); x.alignment = wrap
@@ -113,6 +119,11 @@ oks = [x for x in rows if x['st'] == 'ok']
 sheet(wb.create_sheet('موثّقة'), ['#', 'المجال', 'القاعدة', 'السند الرسمي', 'ملاحظة', 'الموضع'], [([i, x['area'], x['rule_ar'], x['src'], x['note'], x['file']], 'ok') for i, x in enumerate(oks, 1)], [5, 13, 55, 55, 40, 30])
 sus = [x for x in rows if x['st'] == 'suspect']
 sheet(wb.create_sheet('للتحقق'), ['#', 'المجال', 'القاعدة الحالية', 'سبب الشك', 'الموضع'], [([i, x['area'], x['rule_ar'], x['note'], x['file']], 'suspect') for i, x in enumerate(sus, 1)], [5, 13, 60, 55, 30])
+brow = []
+for code, b in sorted(BASIS.items()):
+  if b['kind'] == 'حسابي': brow.append(([code, 'فحص حسابي', '—', b.get('note', ''), '', ''], 'tech')); continue
+  for it in b['items']: brow.append(([code, it['source'][:80], it['ref'], it.get('quote', '')[:400], 'إنجليزي (النص الكامل)' if it.get('lang') == 'en' else 'عربي', b.get('threshold', '')], 'ok'))
+sheet(wb.create_sheet('أساس الملاحظات'), ['رمز الملاحظة', 'المصدر', 'المادة / الفقرة', 'نص المصدر (مقتطف)', 'لغة النص', 'العتبة'], brow, [12, 45, 22, 80, 14, 40])
 full = sorted(rows, key=lambda x: (order[x['st']], x['area']))
 sheet(wb.create_sheet('السجل الكامل'), ['#', 'المجال', 'الحالة', 'القاعدة', 'القيم المستخدمة', 'النوع', 'السند (من المكتبة)', 'مقتطف من النص', 'ملاحظة', 'قابلة للتعديل', 'الموضع في البرنامج'],
       [([i, x['area'], STATUS[x['st']], x['rule_ar'], x['params'], x['kind'], x['src'] or (x.get('code_cites') or ''), x['snip'], x['note'], 'نعم' if x.get('user_editable') else 'لا', x['file']], x['st']) for i, x in enumerate(full, 1)],

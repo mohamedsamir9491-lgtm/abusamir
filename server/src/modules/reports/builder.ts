@@ -8,6 +8,7 @@ import { D } from '../../engine/money.js';
 const DOC_TYPE_LABELS: Record<string, string> = { ...(DATA_TYPE_LABELS as Record<string, string>), invoice: 'فاتورة', contract: 'عقد', articles_of_association: 'عقد التأسيس / النظام الأساس', commercial_registration: 'السجل التجاري', other: 'أخرى', unknown: 'غير محدد' };
 import { periodPhrase } from '../../lib/periods.js';
 import { TAX_DEP_NOTE } from '../valuation/nav.js';
+import { basisFor, basisLabel } from '../legal/basis.js';
 import { FS_LINE_MAP } from '../../engine/fsLines.js';
 import { fmtAmounts } from '../../lib/textfmt.js';
 import { DATA_TYPE_LABELS } from '../imports/fields.js';
@@ -22,7 +23,7 @@ export type ReportBlock =
   | { type: 'note'; text: string; tone: 'info' | 'warning' | 'danger' }
   | { type: 'page_break' };
 
-export interface FindingBlockItem { ref: string; title: string; category: string; severity: string; account: string | null; amount: string | null; source: string | null; calculation: string | null; description: string; impact: string | null; recommendation: string | null; status: string; origin: string }
+export interface FindingBlockItem { basis?: string | null; ref: string; title: string; category: string; severity: string; account: string | null; amount: string | null; source: string | null; calculation: string | null; description: string; impact: string | null; recommendation: string | null; status: string; origin: string }
 export interface ReportSectionContent { key: string; type: string; title: string; enabled: boolean; order: number; blocks: ReportBlock[]; options?: Record<string, unknown> }
 export interface ReportContent {
   meta: { title: string; reference_no: string; language: string; client_name: string; client_name_en: string | null; period_label: string; period_range: string; period_phrase: string; period_end: string; prepared_date: string; confidentiality: string; engagement_type: string; engagement_type_code?: string; framework: string; currency: string; is_demo: boolean; preparer: string | null; reviewer: string | null; approver: string | null; status: string };
@@ -49,7 +50,7 @@ function findingsToItems(snap: Snapshot, opts: Record<string, unknown> | undefin
     return true;
   }).map((f) => ({ ref: String(f.finding_ref), title: fmtAmounts(String(f.title)), category: String(f.category), severity: String(f.severity), account: f.account_code ? `${f.account_code}${f.account_name ? ' - ' + f.account_name : ''}` : (FS_LINE_MAP[String(f.fs_line_code)]?.label_ar ?? (f.fs_line_code as string | null)),
     amount: f.amount == null ? null : fmtMoney(f.amount as string), source: [f.source_document_title, f.source_row_ref].filter(Boolean).join(' / ') || null, calculation: (f.calculation as string | null) ?? null,
-    description: fmtAmounts(String(f.description)), impact: (f.impact as string | null) ?? null, recommendation: (f.recommendation as string | null) ?? null, status: String(f.review_status), origin: String(f.origin) }));
+    description: fmtAmounts(String(f.description)), impact: (f.impact as string | null) ?? null, recommendation: (f.recommendation as string | null) ?? null, status: String(f.review_status), origin: String(f.origin), basis: basisLabel(basisFor(f.rule_code as string)) || null }));
 }
 
 function statementTable(lines: { code: string; label_ar: string; section: string; value: string; prior_value?: string | null }[], totals: { key: string; label_ar: string; value: string; prior_value?: string | null }[], hasPrior: boolean, sectionLabels: Record<string, string>, groupOrder: string[], totalAfter: Record<string, string[]>): ReportBlock {
