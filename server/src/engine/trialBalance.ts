@@ -11,6 +11,31 @@ export interface TbValidationOptions {
   currentLabel?: string;
   columnsPresent?: { opening: boolean; movements: boolean; closing: boolean };
   materialChangePct?: number;    // نسبة التغير المعتبرة مادية (افتراضي 25%)
+  materialityPolicy?: MaterialityPolicy | null; // سياسة المكتب عند عدم تحديد الأهمية يدويًا
+}
+
+/** سياسة الأهمية النسبية للمكتب. ISA 320: تحديد الأهمية حكم مهني يبدأ غالبًا بنسبة من أساس مرجعي؛
+ *  الفقرة أ8 تذكر أمثلة: 5% من الربح من العمليات المستمرة قبل الزكاة والضريبة لمنشأة هادفة للربح، و1% من الإيرادات أو المصروفات.
+ *  نسبة الأصول ليس لها مثال في المعيار (اجتهاد المكتب). */
+export interface MaterialityPolicy { benchmark: 'auto' | 'pbt' | 'revenue' | 'total_assets' | 'largest'; pbt_pct: number; revenue_pct: number; assets_pct: number; min_amount: number }
+export const DEFAULT_MATERIALITY_POLICY: MaterialityPolicy = { benchmark: 'auto', pbt_pct: 5, revenue_pct: 1, assets_pct: 0.5, min_amount: 1000 };
+const pctText = (n: number) => `${Number(n.toFixed(3))}%`;
+/** الأهمية النسبية من سياسة المكتب، مع نص الأساس المستخدم (يُعرض في التقرير) */
+export function computeMateriality(t: { revenue: Decimal; assets: Decimal; pbt: Decimal }, policy?: MaterialityPolicy | null): { materiality: Decimal; basis: string } {
+  const P = { ...DEFAULT_MATERIALITY_POLICY, ...(policy ?? {}) };
+  const byPbt = t.pbt.gt(0) ? t.pbt.mul(P.pbt_pct).div(100) : ZERO; const byRev = t.revenue.gt(0) ? t.revenue.mul(P.revenue_pct).div(100) : ZERO; const byAssets = t.assets.gt(0) ? t.assets.mul(P.assets_pct).div(100) : ZERO;
+  const PBT = `${pctText(P.pbt_pct)} من الربح قبل الزكاة والضريبة (ISA 320 أ8)`; const REV = `${pctText(P.revenue_pct)} من إجمالي الإيرادات (ISA 320 أ8)`; const AST = `${pctText(P.assets_pct)} من إجمالي الأصول (اجتهاد المكتب)`;
+  let m = ZERO; let basis = '';
+  const pick = (v: Decimal, b: string) => { if (m.isZero() && v.gt(0)) { m = v; basis = b; } };
+  if (P.benchmark === 'pbt') { pick(byPbt, PBT); pick(byRev, `${REV} — لا يوجد ربح قبل الزكاة`); }
+  else if (P.benchmark === 'revenue') pick(byRev, REV);
+  else if (P.benchmark === 'total_assets') pick(byAssets, AST);
+  else if (P.benchmark === 'largest') { if (byRev.gte(byAssets)) pick(byRev, `${REV}، وهو الأكبر من نسبة الأصول`); pick(byAssets, `${AST}، وهو الأكبر من نسبة الإيرادات`); }
+  else { pick(byPbt, `${PBT} — المنشأة رابحة`); pick(byRev, `${REV} — المنشأة خاسرة أو بلا ربح`); }
+  pick(byAssets, `${AST} — لا تتوفر أسس أخرى`);
+  if (m.isZero()) { m = D(P.min_amount); basis = `الحد الأدنى للمكتب ${P.min_amount} لعدم توفر أساس (يُفضل تحديدها يدويًا)`; }
+  else if (m.lt(P.min_amount)) { basis += `؛ رُفعت إلى الحد الأدنى للمكتب ${P.min_amount}`; m = D(P.min_amount); }
+  return { materiality: m, basis: `${basis} — سياسة المكتب، قابلة للتعديل لكل ارتباط` };
 }
 
 export interface AccountAnalysis {
@@ -154,7 +179,7 @@ export function validateTrialBalance(entries: TbEntry[], opts: TbValidationOptio
   // ---------- الأهمية النسبية ----------
   const analyses: AccountAnalysis[] = [];
   const typeTotals: Record<string, Decimal> = {};
-  let revenueTotal = ZERO; let expenseTotal = ZERO; let assetsTotal = ZERO;
+  let revenueTotal = ZERO; let expenseTotal = ZERO; let assetsTotal = ZERO; let zakatTaxTotal = ZERO;
   const priorMap = new Map<string, TbEntry>();
   for (const p of opts.priorEntries ?? []) priorMap.set(p.account_code.trim(), p);
 
@@ -172,6 +197,7 @@ export function validateTrialBalance(entries: TbEntry[], opts: TbValidationOptio
     typeTotals[meta.account_type] = (typeTotals[meta.account_type] ?? ZERO).plus(closingNet);
     if (meta.account_type === 'revenue') revenueTotal = revenueTotal.plus(closingNet.neg());
     if (meta.account_type === 'expense') expenseTotal = expenseTotal.plus(closingNet);
+    if (meta.account_type === 'expense' && meta.sub_type === 'zakat_tax') zakatTaxTotal = zakatTaxTotal.plus(closingNet);
     if (meta.account_type === 'asset') assetsTotal = assetsTotal.plus(closingNet);
     const prior = priorMap.get(e.account_code.trim());
     const priorNet = prior ? net(prior.closing_debit, prior.closing_credit) : null;
@@ -185,13 +211,7 @@ export function validateTrialBalance(entries: TbEntry[], opts: TbValidationOptio
 
   let materiality: Decimal; let basis: string;
   if (opts.materiality) { materiality = D(opts.materiality); basis = 'محددة من المحاسب'; }
-  else {
-    const byRev = revenueTotal.gt(0) ? revenueTotal.mul('0.01') : ZERO; const byAssets = assetsTotal.gt(0) ? assetsTotal.mul('0.005') : ZERO;
-    if (byRev.gte(byAssets) && byRev.gt(0)) { materiality = byRev; basis = '1% من إجمالي الإيرادات (افتراض قابل للتعديل)'; }
-    else if (byAssets.gt(0)) { materiality = byAssets; basis = '0.5% من إجمالي الأصول (افتراض قابل للتعديل)'; }
-    else { materiality = D('1000'); basis = 'قيمة افتراضية 1,000 لعدم توفر أساس (يجب تحديدها)'; }
-    if (materiality.lt(1000)) { materiality = D('1000'); basis += '؛ رُفع إلى الحد الأدنى 1,000'; }
-  }
+  else ({ materiality, basis } = computeMateriality({ revenue: revenueTotal, assets: assetsTotal, pbt: revenueTotal.minus(expenseTotal.minus(zakatTaxTotal)) }, opts.materialityPolicy));
   const sevByAmount = (amt: Decimal, base: Severity = 'medium'): Severity => amt.abs().gte(materiality) ? (base === 'medium' ? 'high' : base) : base;
 
   // ---------- فحوصات الحساب الواحد ----------

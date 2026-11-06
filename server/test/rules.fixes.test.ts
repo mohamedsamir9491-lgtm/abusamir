@@ -70,3 +70,23 @@ describe('نسب الاستهلاك الضريبية (نظام ضريبة الد
     expect(by.furniture.tax_rate).toBe(10); expect(by.land.tax_rate).toBeNull();
   });
 });
+
+import { computeMateriality } from '../src/engine/trialBalance.js';
+import { D } from '../src/engine/money.js';
+describe('سياسة الأهمية النسبية (ISA 320 أ8)', () => {
+  const t = { revenue: D('1000000'), assets: D('3000000'), pbt: D('120000') };
+  it('التلقائي: 5% من الربح قبل الزكاة للمنشأة الرابحة، و1% من الإيرادات للخاسرة', () => {
+    expect(computeMateriality(t).materiality.toFixed(2)).toBe('6000.00');
+    expect(computeMateriality({ ...t, pbt: D('-50000') }).materiality.toFixed(2)).toBe('10000.00');
+    expect(computeMateriality({ ...t, pbt: D('-50000') }).basis).toContain('الإيرادات');
+  });
+  it('الأساس المختار والحد الأدنى وطريقة «الأكبر» السابقة', () => {
+    expect(computeMateriality(t, { benchmark: 'total_assets', pbt_pct: 5, revenue_pct: 1, assets_pct: 0.5, min_amount: 1000 }).materiality.toFixed(2)).toBe('15000.00');
+    expect(computeMateriality(t, { benchmark: 'largest', pbt_pct: 5, revenue_pct: 1, assets_pct: 0.5, min_amount: 1000 }).materiality.toFixed(2)).toBe('15000.00');
+    const small = computeMateriality({ revenue: D('20000'), assets: D('0'), pbt: D('0') });
+    expect(small.materiality.toFixed(2)).toBe('1000.00'); expect(small.basis).toContain('الحد الأدنى');
+  });
+  it('نص الحالة يذكر صراحة الاعتماد من المُعد نفسه', () => {
+    const n = signatureStatusNote('approved', true); expect(n.type === 'note' && n.text).toContain('المُعد نفسه');
+  });
+});

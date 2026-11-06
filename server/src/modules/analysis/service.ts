@@ -1,6 +1,7 @@
+import { getOfficeSettings } from '../office/routes.js';
 import { many, one, query, withTransaction, type Queryable } from '../../db/pool.js';
 import { badRequest } from '../../lib/errors.js';
-import { validateTrialBalance, type TbValidationResult } from '../../engine/trialBalance.js';
+import { validateTrialBalance, type TbValidationResult, type MaterialityPolicy } from '../../engine/trialBalance.js';
 import { buildStatements, type StatementPackage } from '../../engine/statements.js';
 import { computeRatios } from '../../engine/ratios.js';
 import { computeVariance } from '../../engine/variance.js';
@@ -96,7 +97,8 @@ export async function runTbValidation(engagementId: string, periodId: string, us
   const priorEntries = prior ? await loadTbEntries(prior.id) : null;
   const runId = await startRun({ clientId: e.client_id, engagementId, periodId, runType: 'tb_validation', userId });
   try {
-    const result = validateTrialBalance(entries, { accounts, priorEntries, priorLabel: prior?.label, currentLabel: p.label, materiality: opts.materiality ?? null, tolerance: opts.tolerance, materialChangePct: opts.materialChangePct });
+    const office = await getOfficeSettings() as { materiality_policy?: MaterialityPolicy | null };
+    const result = validateTrialBalance(entries, { accounts, priorEntries, priorLabel: prior?.label, currentLabel: p.label, materiality: opts.materiality ?? null, materialityPolicy: office.materiality_policy ?? null, tolerance: opts.tolerance, materialChangePct: opts.materialChangePct });
     const doc = await one<{ document_id: string }>(`SELECT j.document_id FROM import_jobs j WHERE j.period_id = $1 AND j.data_type = 'trial_balance' AND j.status = 'committed' ORDER BY j.committed_at DESC LIMIT 1`, [periodId]);
     const saved = await withTransaction(async (tx) => {
       const s = await upsertFindings({ clientId: e.client_id, engagementId, periodId, runId, rulePrefix: ['TB-'], findings: result.findings, userId, documentId: doc?.document_id ?? null }, tx);

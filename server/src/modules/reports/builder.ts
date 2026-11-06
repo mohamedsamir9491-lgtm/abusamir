@@ -36,8 +36,9 @@ export const SIGNATURE_LABELS = { reviewer: 'المراجعة المهنية', a
 export const SIGNATURE_PENDING = { reviewer: 'لم تتم مراجعة مهنية مستقلة بعد', approver: 'غير معتمد' } as const;
 const STATUS_NOTE: Record<string, string> = { draft: 'مسودة - غير مراجعة وغير معتمدة', reviewed: 'تمت مراجعته مهنيًا من مستخدم مختلف عن المُعد - غير معتمد للإصدار', approved: 'معتمد للإصدار', issued: 'صادر' };
 export const STATUS_NOTE_PREFIX = 'حالة هذا الإصدار:';
-export function signatureStatusNote(status: string): ReportBlock {
-  return note(`${STATUS_NOTE_PREFIX} ${STATUS_NOTE[status] ?? status}. النتائج غير مدققة ولا تمثل رأي مراجع مستقل.`, status === 'draft' ? 'warning' : 'info');
+export function signatureStatusNote(status: string, bySelf = false): ReportBlock {
+  const st = bySelf && status !== 'draft' ? (status === 'reviewed' ? 'روجع من المُعد نفسه دون فصل مهام (سياسة المكتب: مستخدم واحد) - غير معتمد للإصدار' : `${STATUS_NOTE[status] ?? status} - راجعه أو اعتمده المُعد نفسه دون فصل مهام وفق سياسة المكتب`) : (STATUS_NOTE[status] ?? status);
+  return note(`${STATUS_NOTE_PREFIX} ${st}. النتائج غير مدققة ولا تمثل رأي مراجع مستقل.`, status === 'draft' ? 'warning' : 'info');
 }
 
 function findingsToItems(snap: Snapshot, opts: Record<string, unknown> | undefined): FindingBlockItem[] {

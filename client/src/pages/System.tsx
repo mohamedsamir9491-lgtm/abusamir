@@ -17,6 +17,7 @@ export function System() {
   const manage = can('system.manage');
   return <Page title="إعدادات النظام" sub="سياسات الذكاء الاصطناعي والاحتفاظ بالبيانات، النسخ الاحتياطي، وطلبات الحذف">
     <FiscalYearCard />
+    <OfficePoliciesCard />
     <div className="grid c2">
       <div className="card"><h2>بيئة الخادم</h2><dl className="kv"><dt>مزوّد الذكاء الاصطناعي</dt><dd className="mono">{String(data.env.ai_provider)}</dd><dt>السماح بالإرسال الخارجي (خادم)</dt><dd>{data.env.ai_allow_external ? 'نعم' : 'لا'}</dd><dt>تشفير الملفات المخزنة</dt><dd>{data.env.file_encryption ? 'مفعّل (AES-256-GCM)' : 'غير مفعّل — اضبط FILE_ENCRYPTION_KEY'}</dd><dt>الحد الأقصى للرفع</dt><dd>{String(data.env.max_upload_mb)} MB</dd><dt>البيئة</dt><dd className="mono">{String(data.env.node_env)}</dd></dl></div>
       <div className="card"><h2>سياسة الذكاء الاصطناعي</h2><fieldset disabled={!manage} style={{ border: 0, padding: 0 }}><label className="row"><input type="checkbox" checked={ai.allow_external} onChange={(e) => setAi({ ...ai, allow_external: e.target.checked })} /> السماح بإرسال بيانات العملاء المهيكلة لمزوّد خارجي (يتطلب تفويضًا تعاقديًا)</label><label className="row"><input type="checkbox" checked={ai.share_client_names} onChange={(e) => setAi({ ...ai, share_client_names: e.target.checked })} /> إرسال أسماء العملاء (الافتراضي: إخفاؤها)</label><label className="row"><input type="checkbox" checked disabled /> عدم استخدام البيانات للتدريب (ثابت)</label>{manage && <button className="btn sm" style={{ marginTop: 8 }} disabled={busy} onClick={() => run(() => put('/system/settings/ai_policy', ai), 'تم الحفظ').then(reload)}>حفظ</button>}</fieldset>
@@ -46,4 +47,41 @@ function FiscalYearCard() {
       <label className="row"><input type="radio" checked={!auto} onChange={() => setAuto(false)} style={{ width: 'auto' }} /> يدوية:</label>
       <input type="number" min={2000} max={2100} value={year || ''} onChange={(e) => setYear(Number(e.target.value))} disabled={auto} style={{ width: 110 }} dir="ltr" />
       <button className="btn" onClick={save} disabled={busy || (!auto && (year < 2000 || year > 2100))}>حفظ</button></div></fieldset></div>;
+}
+
+type MatPolicy = { benchmark: 'auto' | 'pbt' | 'revenue' | 'total_assets' | 'largest'; pbt_pct: number; revenue_pct: number; assets_pct: number; min_amount: number };
+const APPROVAL: [string, string, string][] = [
+  ['single', 'مستخدم واحد', 'يراجع مُعد التقرير تقريره ويعتمده بنفسه، ويُكتب في التقرير صراحةً أنه روجع واعتُمد من المُعد نفسه دون فصل مهام.'],
+  ['managers', 'المدير يعتمد ما أعدّه', 'المراجعة المهنية من مستخدم آخر غير المُعد، ويُسمح للمدير العام ومدير المكتب فقط باعتماد تقرير أعدّاه.'],
+  ['separate', 'فصل كامل للمهام', 'لا يراجع أحد ولا يعتمد تقريرًا أعدّه، ولو كان مديرًا (ISA 220 / ISQM 1).'],
+];
+const BENCH: [MatPolicy['benchmark'], string][] = [
+  ['auto', 'تلقائي: الربح قبل الزكاة والضريبة إن كانت المنشأة رابحة، وإلا الإيرادات، وإلا الأصول'],
+  ['pbt', 'الربح قبل الزكاة والضريبة'], ['revenue', 'إجمالي الإيرادات'], ['total_assets', 'إجمالي الأصول'], ['largest', 'الأكبر من نسبة الإيرادات ونسبة الأصول (الطريقة السابقة)'],
+];
+/** سياسات المكتب: اعتماد التقارير والأهمية النسبية الافتراضية */
+function OfficePoliciesCard() {
+  const { can } = useAuth(); const { run, busy } = useAction();
+  const { data, reload } = useLoad(() => get<{ settings: { report_approval_policy?: string; materiality_policy?: MatPolicy } }>('/office'), []);
+  const [ap, setAp] = useState('managers'); const [mp, setMp] = useState<MatPolicy>({ benchmark: 'auto', pbt_pct: 5, revenue_pct: 1, assets_pct: 0.5, min_amount: 1000 });
+  useEffect(() => { if (data) { setAp(data.settings.report_approval_policy ?? 'managers'); if (data.settings.materiality_policy) setMp(data.settings.materiality_policy); } }, [data]);
+  if (!data) return null;
+  const ok = mp.pbt_pct >= 0.1 && mp.pbt_pct <= 20 && mp.revenue_pct >= 0.05 && mp.revenue_pct <= 10 && mp.assets_pct >= 0.05 && mp.assets_pct <= 10 && mp.min_amount >= 0;
+  const save = async () => { await run(() => put('/office', { report_approval_policy: ap, materiality_policy: mp }), 'حُفظت سياسات المكتب'); reload(); };
+  const num = (k: keyof MatPolicy, v: string) => setMp({ ...mp, [k]: Number(v) });
+  return <div className="card"><h2>سياسات المكتب</h2>
+    <fieldset disabled={!can('office.manage')} style={{ border: 0, padding: 0 }}>
+      <h3 style={{ marginTop: 0 }}>اعتماد التقارير</h3>
+      {APPROVAL.map(([k, t, d]) => <label key={k} className="row" style={{ alignItems: 'flex-start', marginBottom: 6 }}><input type="radio" name="ap" checked={ap === k} onChange={() => setAp(k)} style={{ width: 'auto', marginTop: 4 }} /><span><b>{t}</b><br /><span className="muted">{d}</span></span></label>)}
+      <h3>الأهمية النسبية الافتراضية</h3>
+      <p className="muted" style={{ marginTop: 0 }}>تحديد الأهمية النسبية حكم مهني (ISA 320). الفقرة أ8 من المعيار تذكر أمثلة: 5% من الربح قبل الزكاة والضريبة لمنشأة هادفة للربح، و1% من الإيرادات أو المصروفات. نسبة الأصول اجتهاد للمكتب. تُطبق هذه السياسة ما لم تُحدد الأهمية يدويًا للارتباط، ويُذكر أساسها في التقرير.</p>
+      <Field label="الأساس المرجعي"><select value={mp.benchmark} onChange={(e) => setMp({ ...mp, benchmark: e.target.value as MatPolicy['benchmark'] })}>{BENCH.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></Field>
+      <div className="grid c4">
+        <Field label="% من الربح قبل الزكاة والضريبة"><input type="number" step={0.5} min={0.1} max={20} value={mp.pbt_pct} onChange={(e) => num('pbt_pct', e.target.value)} dir="ltr" /></Field>
+        <Field label="% من الإيرادات"><input type="number" step={0.1} min={0.05} max={10} value={mp.revenue_pct} onChange={(e) => num('revenue_pct', e.target.value)} dir="ltr" /></Field>
+        <Field label="% من الأصول"><input type="number" step={0.1} min={0.05} max={10} value={mp.assets_pct} onChange={(e) => num('assets_pct', e.target.value)} dir="ltr" /></Field>
+        <Field label="الحد الأدنى (بعملة العرض)"><input type="number" step={100} min={0} value={mp.min_amount} onChange={(e) => num('min_amount', e.target.value)} dir="ltr" /></Field>
+      </div>
+      <button className="btn" onClick={save} disabled={busy || !ok}>حفظ السياسات</button>
+    </fieldset></div>;
 }

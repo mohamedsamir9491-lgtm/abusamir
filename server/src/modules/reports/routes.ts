@@ -85,7 +85,7 @@ reportsRouter.get('/:id', async (req, res, next) => {
     const versions = await many(`SELECT v.version_no, v.change_note, v.created_at, v.pdf_file_id, v.xlsx_file_id, u.full_name AS created_by_name FROM report_versions v LEFT JOIN users u ON u.id = v.created_by WHERE v.report_id = $1 ORDER BY v.version_no DESC`, [r.id]);
     const history = await many(`SELECT h.*, u.full_name FROM approval_history h LEFT JOIN users u ON u.id = h.user_id WHERE h.entity_type = 'report' AND h.entity_id = $1 ORDER BY h.created_at`, [r.id]);
     const comments = await many(`SELECT c.*, u.full_name FROM review_comments c JOIN users u ON u.id = c.user_id WHERE c.entity_type = 'report' AND c.entity_id = $1 ORDER BY c.created_at`, [r.id]);
-    res.json({ report: r, version: { version_no: v.version_no, content: v.content, created_at: v.created_at, pdf_file_id: v.pdf_file_id, xlsx_file_id: v.xlsx_file_id, snapshot_generated_at: v.snapshot.generated_at }, versions, history, comments });
+    res.json({ report: r, version: { version_no: v.version_no, content: v.content, created_at: v.created_at, pdf_file_id: v.pdf_file_id, xlsx_file_id: v.xlsx_file_id, snapshot_generated_at: v.snapshot.generated_at }, versions, history, comments, approval_policy: String((await getOfficeSettings()).report_approval_policy ?? 'managers') });
   } catch (e) { next(e); }
 });
 
@@ -168,7 +168,10 @@ reportsRouter.post('/:id/status', async (req, res, next) => {
     const allowed: Record<string, string[]> = { draft: ['reviewed'], reviewed: ['approved', 'draft'], approved: ['issued', 'draft'], issued: [] };
     if (!allowed[r.status].includes(d.status)) throw badRequest(`لا يمكن الانتقال من ${r.status} إلى ${d.status}`);
     if (d.status === 'reviewed' && !perms.includes('reports.review') && !perms.includes('reports.create')) throw forbidden();
-    if (d.status === 'reviewed' && r.prepared_by === req.user!.id) throw badRequest('لا يمكن لمُعد التقرير تعليمه كمُراجَع؛ المراجعة المهنية تتم من مستخدم آخر (لا يُدّعى وجود مراجعة لم تحدث)');
+    // سياسة الاعتماد من إعدادات المكتب: single (مستخدم واحد) | managers | separate (فصل كامل للمهام)
+    const policy = String((await getOfficeSettings()).report_approval_policy ?? 'managers');
+    const isPreparer = r.prepared_by === req.user!.id; const isManager = ['admin', 'office_manager'].includes(req.user!.role_code);
+    if (d.status === 'reviewed' && isPreparer && policy !== 'single') throw badRequest('لا يمكن لمُعد التقرير تعليمه كمُراجَع؛ المراجعة المهنية تتم من مستخدم آخر (لا يُدّعى وجود مراجعة لم تحدث). إن كان المكتب بمستخدم واحد فغيّر «سياسة اعتماد التقارير» من الإعدادات.');
     if (d.status === 'approved') {
       const v = await loadVersion(r.id); const snap = v.snapshot as unknown as { statements?: { sfp?: { balanced?: boolean; difference?: string } } | null; findings?: { category: string; severity: string; review_status: string; finding_ref: string }[] };
       const reasons: string[] = [];
@@ -178,24 +181,24 @@ reportsRouter.post('/:id/status', async (req, res, next) => {
       if (reasons.length) throw badRequest('لا يمكن اعتماد التقرير قبل معالجة الفروقات الجوهرية غير المفسرة', reasons);
     }
     if (['approved', 'issued'].includes(d.status) && !perms.includes('reports.approve')) throw forbidden('اعتماد التقارير للإصدار يتطلب صلاحية المراجع/المدير');
-    if (d.status === 'approved' && r.prepared_by === req.user!.id && req.user!.role_code !== 'admin' && req.user!.role_code !== 'office_manager') throw forbidden('لا يمكن لمُعد التقرير اعتماده بنفسه (فصل المهام)');
+    if (d.status === 'approved' && isPreparer && !(policy === 'single' || (policy === 'managers' && isManager))) throw forbidden('لا يمكن لمُعد التقرير اعتماده بنفسه وفق سياسة الاعتماد في إعدادات المكتب (فصل المهام)');
     if (d.status === 'draft' && !perms.includes('reports.create') && !perms.includes('reports.approve')) throw forbidden();
-    const sets: Record<string, string> = { reviewed: 'reviewed_by = $3, reviewed_at = now()', approved: 'approved_by = $3, approved_at = now()', issued: 'issued_at = now()', draft: 'reviewed_by = NULL, reviewed_at = NULL, approved_by = NULL, approved_at = NULL' };
+    const sets: Record<string, string> = { reviewed: `reviewed_by = $3, reviewed_at = now(), self_reviewed = ${isPreparer}`, approved: `approved_by = $3, approved_at = now(), self_approved = ${isPreparer}`, issued: 'issued_at = now()', draft: 'reviewed_by = NULL, reviewed_at = NULL, approved_by = NULL, approved_at = NULL, self_reviewed = false, self_approved = false' };
     await withTransaction(async (tx) => {
       await query(`UPDATE generated_reports SET status = $2, ${sets[d.status]}, updated_at = now() WHERE id = $1`, d.status === 'draft' || d.status === 'issued' ? [r.id, d.status] : [r.id, d.status, req.user!.id], tx);
       await query(`INSERT INTO approval_history (entity_type, entity_id, from_status, to_status, user_id, note) VALUES ('report',$1,$2,$3,$4,$5)`, [r.id, r.status, d.status, req.user!.id, d.note ?? null], tx);
       // تحديث حالة التقرير داخل المحتوى (لإزالة علامة المسودة وتعبئة أسماء المراجع/المعتمد)
       const v = await loadVersion(r.id);
-      const names = await one<{ reviewer: string | null; approver: string | null }>(`SELECT (SELECT full_name FROM users WHERE id = r.reviewed_by) AS reviewer, (SELECT full_name FROM users WHERE id = r.approved_by) AS approver FROM generated_reports r WHERE r.id = $1`, [r.id], tx);
+      const names = await one<{ reviewer: string | null; approver: string | null; self_reviewed: boolean; self_approved: boolean }>(`SELECT (SELECT full_name FROM users WHERE id = r.reviewed_by) AS reviewer, (SELECT full_name FROM users WHERE id = r.approved_by) AS approver, r.self_reviewed, r.self_approved FROM generated_reports r WHERE r.id = $1`, [r.id], tx);
       const content: ReportContent = { ...v.content, meta: { ...v.content.meta, status: d.status, reviewer: names?.reviewer ?? null, approver: names?.approver ?? null } };
       for (const s of content.sections) if (s.type === 'signatures') {
         const kv = s.blocks.find((b) => b.type === 'kv');
         if (kv && kv.type === 'kv') for (const it of kv.items) {
-          if (it.label === SIGNATURE_LABELS.reviewer) it.value = names?.reviewer ?? SIGNATURE_PENDING.reviewer;
-          if (it.label === SIGNATURE_LABELS.approver) it.value = names?.approver ?? SIGNATURE_PENDING.approver;
+          if (it.label === SIGNATURE_LABELS.reviewer) it.value = names?.reviewer ? `${names.reviewer}${names.self_reviewed ? ' (المُعد نفسه)' : ''}` : SIGNATURE_PENDING.reviewer;
+          if (it.label === SIGNATURE_LABELS.approver) it.value = names?.approver ? `${names.approver}${names.self_approved ? ' (المُعد نفسه)' : ''}` : SIGNATURE_PENDING.approver;
         }
         // نص الحالة يتبع حالة التقرير (كان يبقى «مسودة» بعد الاعتماد)
-        s.blocks = s.blocks.map((b) => (b.type === 'note' && b.text.startsWith(STATUS_NOTE_PREFIX) ? signatureStatusNote(d.status) : b));
+        s.blocks = s.blocks.map((b) => (b.type === 'note' && b.text.startsWith(STATUS_NOTE_PREFIX) ? signatureStatusNote(d.status, Boolean(names?.self_reviewed || names?.self_approved)) : b));
       }
       await query('UPDATE report_versions SET content = $3 WHERE report_id = $1 AND version_no = $2', [r.id, v.version_no, JSON.stringify(content)], tx);
     });
